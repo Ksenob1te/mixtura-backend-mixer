@@ -3,8 +3,6 @@
 __pycache__
 *.pyc
 .*
-!.dockerignore
 !.gitignore
 /logger.log
 /.local/
-docker-compose*override.yaml

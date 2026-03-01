@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - ./.local/postgres:/var/lib/postgresql
-      - ./alembic/versions:/mixtura-server/alembic/versions
+      - ./alembic/versions:/mixtura-mixer/alembic/versions
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "postgres" ]
       interval: 10s
