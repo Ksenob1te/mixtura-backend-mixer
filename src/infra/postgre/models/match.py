@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 import uuid
 from uuid import UUID
 from datetime import datetime
-from sqlalchemy import ForeignKey, func, Integer, Text, UniqueConstraint, Enum as AlchemyEnum
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.infra.postgre.engine import Base
+from ..engine import Base
 
 if TYPE_CHECKING:
     from .stage_group import StageGroup
