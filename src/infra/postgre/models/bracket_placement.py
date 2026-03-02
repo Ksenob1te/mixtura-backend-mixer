@@ -1,8 +1,7 @@
 from typing import TYPE_CHECKING
 import uuid
 from uuid import UUID
-from datetime import datetime
-from sqlalchemy import ForeignKey, func, Integer, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.infra.postgre.engine import Base
 
@@ -12,15 +11,15 @@ if TYPE_CHECKING:
 
 
 class BracketPlacement(Base):
+    """
+    BracketPlacement table stores the initial placement of teams in a bracket.
+    """
     __tablename__ = 'bracket_placement_table'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    bracket_id: Mapped[UUID] = mapped_column(ForeignKey('bracket_table.id'))
+    bracket_id: Mapped[UUID] = mapped_column(ForeignKey('bracket_table.id', ondelete="CASCADE"))
     team_id: Mapped[UUID] = mapped_column(ForeignKey('team_table.id'))
-    placement: Mapped[int] = mapped_column(Integer)
-
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+    placement: Mapped[int] = mapped_column()
 
     bracket: Mapped["Bracket"] = relationship("Bracket", back_populates="placements", lazy="raise")
     team: Mapped["Team"] = relationship("Team", back_populates="bracket_placements", lazy="raise")

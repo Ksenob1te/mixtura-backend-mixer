@@ -12,12 +12,15 @@ if TYPE_CHECKING:
 
 
 class FilledApplicationField(Base):
+    """
+    FilledApplicationField table stores the values provided by users for custom application fields.
+    """
     __tablename__ = 'filled_application_field_table'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     value: Mapped[str] = mapped_column(Text)
     custom_field_id: Mapped[UUID] = mapped_column(ForeignKey('application_custom_field_table.id'))
-    application_id: Mapped[UUID] = mapped_column(ForeignKey('application_table.id'))
+    application_id: Mapped[UUID] = mapped_column(ForeignKey('application_table.id', ondelete="CASCADE"))
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
