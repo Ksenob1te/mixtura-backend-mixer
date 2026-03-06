@@ -1,16 +1,14 @@
 from uuid import UUID
-from typing import Sequence
-from sqlalchemy import select, delete
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..models import ApplicationTimeSettings
-from ..exceptions import IntegrityForeignException, IntegrityUniqueException, IntegrityUnknownException
 from .base import BaseRepository
 
 
-class ApplicationTimeSettingsRepository(BaseRepository):
+class ApplicationTimeSettingsRepository(BaseRepository[ApplicationTimeSettings]):
+    model = ApplicationTimeSettings
+
     async def get_by_event_id(
             self,
             event_id: UUID,
@@ -23,19 +21,8 @@ class ApplicationTimeSettingsRepository(BaseRepository):
 
         return await self._session.scalar(stmt)
 
-    async def create(self, settings: ApplicationTimeSettings) -> ApplicationTimeSettings:
-        self._session.add(settings)
-        await self._flush()
-        await self._session.refresh(settings)
-        return settings
-
-    async def update(self, settings: ApplicationTimeSettings) -> ApplicationTimeSettings:
-        settings = await self._session.merge(settings)
-        await self._flush()
-        return settings
-
-    async def delete(self, event_id: UUID) -> None:
-        settings = await self.get_by_event_id(event_id)
-        if settings:
-            await self._session.delete(settings)
+    async def delete_by_event_id(self, event_id: UUID) -> None:
+        settings_field = await self.get_by_event_id(event_id)
+        if settings_field:
+            await self._session.delete(settings_field)
             await self._flush()

@@ -1,24 +1,17 @@
 from uuid import UUID
 from typing import Sequence
-from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 
-from ..models import (
-    Event,
-    Organizer,
-    RequiredIntegration,
-    SelectedGameRole
-)
-from ..exceptions import IntegrityForeignException, IntegrityUniqueException, IntegrityUnknownException
+from ..models import Event
 from .base import BaseRepository
 
 
-class EventRepository(BaseRepository):
-    async def get_by_id(
+class EventRepository(BaseRepository[Event]):
+    model = Event
+
+    async def get(
             self,
-            event_id: UUID,
+            field_id: UUID,
             load_organizers: bool = False,
             load_integrations: bool = False,
             load_time_settings: bool = False,
@@ -52,26 +45,4 @@ class EventRepository(BaseRepository):
         if load_brackets:
             options.append(selectinload(Event.brackets))
 
-        return await self._session.get(Event, event_id, options=options)
-
-    async def create(self, event: Event) -> Event:
-        self._session.add(event)
-        await self._flush()
-        await self._session.refresh(event)
-        return event
-
-    async def update(self, event: Event) -> Event:
-        event = await self._session.merge(event)
-        await self._flush()
-        return event
-
-    async def delete(self, event_id: UUID) -> None:
-        event = await self.get_by_id(event_id)
-        if event:
-            await self._session.delete(event)
-            await self._flush()
-
-    async def list_all(self, skip: int = 0, limit: int = 100) -> Sequence[Event]:
-        stmt = select(Event).offset(skip).limit(limit)
-        result = await self._session.scalars(stmt)
-        return result.all()
+        return await super()._get(field_id, options=options)
