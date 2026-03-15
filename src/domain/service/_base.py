@@ -1,7 +1,6 @@
-"""Shared authorization helpers reused across domain services."""
-
-from __future__ import annotations
-
+import inspect
+from functools import wraps
+from typing import Any, Callable
 from uuid import UUID
 
 from src.domain.exceptions import ForbiddenException, NotFoundException
@@ -10,16 +9,31 @@ from src.infra.postgre.repo import EventRepository, OrganizerRepository
 
 
 class BaseService:
-    """
-    Mixin that provides organizer authorization.
-
-    Any service that needs ``_assert_organizer`` should inherit from this
-
-    Require OrganizerRepository and EventRepository in ``__init__``.
-    """
-
     _organizer_repo: OrganizerRepository
     _event_repo: EventRepository
+
+    @staticmethod
+    def require_organizer(func: Callable) -> Callable:
+        sig = inspect.signature(func)
+
+        params = list(sig.parameters.keys())
+        if "event_id" not in params or "issuer_id" not in params:
+            raise TypeError(
+                f"{func.__qualname__} must have 'event_id' and 'issuer_id' parameters"
+            )
+
+        @wraps(func)
+        async def wrapper(self: BaseService, *args: Any, **kwargs: Any) -> Any:
+            bound = sig.bind(self, *args, **kwargs)
+            bound.apply_defaults()
+
+            event_id = bound.arguments["event_id"]
+            issuer_id = bound.arguments["issuer_id"]
+
+            await self._assert_organizer(event_id, issuer_id)
+            return await func(self, *args, **kwargs)
+
+        return wrapper
 
     async def _assert_organizer(self, event_id: UUID, member_id: UUID) -> None:
         """Raise ``ForbiddenException`` unless *member_id* is an organizer of *event_id*."""
@@ -37,4 +51,3 @@ class BaseService:
         if event is None:
             raise NotFoundException("Event not found")
         return event
-

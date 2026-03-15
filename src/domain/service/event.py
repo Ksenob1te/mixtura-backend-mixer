@@ -125,10 +125,11 @@ class EventService(BaseService):
 
     # ── config update ────────────────────────────
 
+    @BaseService.require_organizer
     async def update_config(
             self,
             event_id: UUID,
-            requester_id: UUID,
+            issuer_id: UUID,
             *,
             team_size: int | None = None,
             is_public: bool | None = None,
@@ -140,7 +141,6 @@ class EventService(BaseService):
     ) -> Event:
         """Partial-update basic event configuration. Organizer only."""
         event = await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         if team_size is not None:
             if team_size < 1:
@@ -160,15 +160,15 @@ class EventService(BaseService):
             event.rating_set_id = rating_set_id
 
         event = await self._event_repo.update(event)
-        self.logger.info("Event %s config updated by %s", event_id, requester_id)
+        self.logger.info("Event %s config updated by %s", event_id, issuer_id)
         return event
 
     # ── organizer management ─────────────────────
 
-    async def add_organizer(self, event_id: UUID, requester_id: UUID, target_member_id: UUID) -> Organizer:
+    @BaseService.require_organizer
+    async def add_organizer(self, event_id: UUID, issuer_id: UUID, target_member_id: UUID) -> Organizer:
         """Add a co-organizer. Requester must already be an organizer."""
         await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         try:
             return await self._organizer_repo.create(
@@ -177,10 +177,10 @@ class EventService(BaseService):
         except IntegrityUniqueException:
             raise ConflictException("Member is already an organizer")
 
-    async def remove_organizer(self, event_id: UUID, requester_id: UUID, target_member_id: UUID) -> None:
+    @BaseService.require_organizer
+    async def remove_organizer(self, event_id: UUID, issuer_id: UUID, target_member_id: UUID) -> None:
         """Remove a co-organizer. Cannot remove the last remaining one."""
         await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         organizers = await self._organizer_repo.list_by_event(event_id)
         target = next((o for o in organizers if o.member_id == target_member_id), None)

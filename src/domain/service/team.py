@@ -43,14 +43,14 @@ class TeamService(BaseService):
     """Manages teams after formation — roster, naming, captaincy, premade registration."""
 
     def __init__(
-        self,
-        team_repo: TeamRepository,
-        team_player_repo: TeamPlayerRepository,
-        event_repo: EventRepository,
-        organizer_repo: OrganizerRepository,
-        player_repo: PlayerRepository,
-        game_role_repo: SelectedGameRoleRepository,
-        drafted_player_repo: DraftedPlayerRepository,
+            self,
+            team_repo: TeamRepository,
+            team_player_repo: TeamPlayerRepository,
+            event_repo: EventRepository,
+            organizer_repo: OrganizerRepository,
+            player_repo: PlayerRepository,
+            game_role_repo: SelectedGameRoleRepository,
+            drafted_player_repo: DraftedPlayerRepository,
     ) -> None:
         self._team_repo = team_repo
         self._tp_repo = team_player_repo
@@ -63,10 +63,10 @@ class TeamService(BaseService):
     # ── private helpers ──────────────────────────
 
     async def _assert_organizer_or_captain(
-        self,
-        event_id: UUID,
-        team_id: UUID,
-        member_id: UUID,
+            self,
+            event_id: UUID,
+            team_id: UUID,
+            member_id: UUID,
     ) -> None:
         """Allow if caller is an event organizer **or** the team's draft captain."""
         organizers = await self._organizer_repo.list_by_event(event_id)
@@ -101,13 +101,13 @@ class TeamService(BaseService):
     # ── premade registration ─────────────────────
 
     async def register_premade_team(
-        self,
-        event_id: UUID,
-        captain_id: UUID,
-        player_member_ids: list[UUID],
-        name: str,
-        *,
-        game_role_id: UUID | None = None,
+            self,
+            event_id: UUID,
+            captain_id: UUID,
+            player_member_ids: list[UUID],
+            name: str,
+            *,
+            game_role_id: UUID | None = None,
     ) -> Team:
         """
         Register a pre-formed team for a tournament.
@@ -173,10 +173,10 @@ class TeamService(BaseService):
     # ── captaincy ────────────────────────────────
 
     async def appoint_captain(
-        self,
-        team_id: UUID,
-        requester_id: UUID,
-        member_id: UUID,
+            self,
+            team_id: UUID,
+            requester_id: UUID,
+            member_id: UUID,
     ) -> None:
         """
         Appoint *member_id* as captain of the team.
@@ -217,13 +217,13 @@ class TeamService(BaseService):
     # ── roster management ────────────────────────
 
     async def add_player(
-        self,
-        team_id: UUID,
-        requester_id: UUID,
-        member_id: UUID,
-        game_role_id: UUID,
-        *,
-        rating: float = 0.0,
+            self,
+            team_id: UUID,
+            requester_id: UUID,
+            member_id: UUID,
+            game_role_id: UUID,
+            *,
+            rating: float = 0.0,
     ) -> TeamPlayer:
         """Add a player to the roster. Validates ``team_size`` cap."""
         team = await self._get_team_or_404(team_id)
@@ -258,11 +258,11 @@ class TeamService(BaseService):
         logger.info("Removed member %s from team %s", member_id, team_id)
 
     async def substitute_player(
-        self,
-        team_id: UUID,
-        requester_id: UUID,
-        old_member_id: UUID,
-        new_member_id: UUID,
+            self,
+            team_id: UUID,
+            requester_id: UUID,
+            old_member_id: UUID,
+            new_member_id: UUID,
     ) -> TeamPlayer:
         """
         Replace one player with another — keeps the game role and rating.
@@ -304,11 +304,11 @@ class TeamService(BaseService):
         return new_tp
 
     async def set_player_role(
-        self,
-        team_id: UUID,
-        requester_id: UUID,
-        member_id: UUID,
-        game_role_id: UUID,
+            self,
+            team_id: UUID,
+            requester_id: UUID,
+            member_id: UUID,
+            game_role_id: UUID,
     ) -> TeamPlayer:
         """Change a player's game role. Organizer or captain only."""
         team = await self._get_team_or_404(team_id)
@@ -323,11 +323,11 @@ class TeamService(BaseService):
         return await self._tp_repo.update(tp)
 
     async def set_player_rating(
-        self,
-        team_id: UUID,
-        requester_id: UUID,
-        member_id: UUID,
-        rating: float,
+            self,
+            team_id: UUID,
+            requester_id: UUID,
+            member_id: UUID,
+            rating: float,
     ) -> TeamPlayer:
         """Manually override a player's rating. Organizer only."""
         team = await self._get_team_or_404(team_id)
@@ -372,4 +372,3 @@ class TeamService(BaseService):
         await self._assert_organizer(team.event_id, requester_id)
         await self._team_repo.delete(team_id)
         logger.info("Team %s disbanded by %s", team_id, requester_id)
-

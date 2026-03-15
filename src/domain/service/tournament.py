@@ -52,29 +52,30 @@ from src.infra.postgre.repo import (
     SwissSettingsRepository,
     TeamRepository,
 )
+from ._base import BaseService
 
 logger = logging.getLogger(__name__)
 
 
-class TournamentService:
+class TournamentService(BaseService):
     """
     Orchestrates tournament structure — from bracket creation to final standings.
     """
 
     def __init__(
-        self,
-        bracket_repo: BracketRepository,
-        bracket_placement_repo: BracketPlacementRepository,
-        stage_repo: StageRepository,
-        stage_group_repo: StageGroupRepository,
-        match_repo: MatchRepository,
-        match_slot_repo: MatchSlotRepository,
-        match_score_repo: MatchScoreRepository,
-        team_repo: TeamRepository,
-        event_repo: EventRepository,
-        organizer_repo: OrganizerRepository,
-        rr_settings_repo: RoundRobinSettingsRepository,
-        swiss_settings_repo: SwissSettingsRepository,
+            self,
+            bracket_repo: BracketRepository,
+            bracket_placement_repo: BracketPlacementRepository,
+            stage_repo: StageRepository,
+            stage_group_repo: StageGroupRepository,
+            match_repo: MatchRepository,
+            match_slot_repo: MatchSlotRepository,
+            match_score_repo: MatchScoreRepository,
+            team_repo: TeamRepository,
+            event_repo: EventRepository,
+            organizer_repo: OrganizerRepository,
+            rr_settings_repo: RoundRobinSettingsRepository,
+            swiss_settings_repo: SwissSettingsRepository,
     ) -> None:
         self._bracket_repo = bracket_repo
         self._placement_repo = bracket_placement_repo
@@ -93,21 +94,19 @@ class TournamentService:
     #  Guards
     # ──────────────────────────────────────────────
 
-    async def _assert_organizer(self, event_id: UUID, member_id: UUID) -> None:
-        organizers = await self._organizer_repo.list_by_event(event_id)
-        if not any(o.member_id == member_id for o in organizers):
-            raise ForbiddenException("You are not an organizer of this event")
+    # _assert_organizer is inherited from BaseService
 
     # ══════════════════════════════════════════════
     #  1. BRACKET MANAGEMENT
     # ══════════════════════════════════════════════
 
-    async def create_bracket(self, event_id: UUID, organizer_id: UUID) -> Bracket:
+    @BaseService.require_organizer
+    async def create_bracket(self, event_id: UUID, member_id: UUID) -> Bracket:
         """Create a new bracket container for the event."""
         event = await self._event_repo.get(event_id)
         if event is None:
             raise NotFoundException("Event not found")
-        await self._assert_organizer(event_id, organizer_id)
+        # Check happens in decorator
 
         bracket = Bracket(event_id=event_id)
         bracket = await self._bracket_repo.create(bracket)
@@ -136,12 +135,12 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def seed_bracket(
-        self,
-        bracket_id: UUID,
-        organizer_id: UUID,
-        team_ids: list[UUID],
-        *,
-        strategy: str = "MANUAL",
+            self,
+            bracket_id: UUID,
+            organizer_id: UUID,
+            team_ids: list[UUID],
+            *,
+            strategy: str = "MANUAL",
     ) -> list[BracketPlacement]:
         """
         Assign teams to bracket seed positions.
@@ -194,13 +193,13 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def add_stage(
-        self,
-        bracket_id: UUID,
-        organizer_id: UUID,
-        *,
-        name: str,
-        stage_format: str,
-        stage_index: int | None = None,
+            self,
+            bracket_id: UUID,
+            organizer_id: UUID,
+            *,
+            name: str,
+            stage_format: str,
+            stage_index: int | None = None,
     ) -> Stage:
         """
         Add a stage to the bracket.
@@ -227,14 +226,14 @@ class TournamentService:
         return stage
 
     async def configure_round_robin(
-        self,
-        stage_id: UUID,
-        organizer_id: UUID,
-        *,
-        meetings_per_pair: int = 1,
-        score_system: str = "POINTS",
-        score_per_win: int = 3,
-        score_per_draw: int = 1,
+            self,
+            stage_id: UUID,
+            organizer_id: UUID,
+            *,
+            meetings_per_pair: int = 1,
+            score_system: str = "POINTS",
+            score_per_win: int = 3,
+            score_per_draw: int = 1,
     ) -> RoundRobinSettings:
         """Attach Round-Robin settings to a stage."""
         stage = await self._stage_repo.get(stage_id, load_settings=True)
@@ -265,13 +264,13 @@ class TournamentService:
         return await self._rr_repo.create(rr)
 
     async def configure_swiss(
-        self,
-        stage_id: UUID,
-        organizer_id: UUID,
-        *,
-        score_per_win: int = 3,
-        score_per_draw: int = 1,
-        score_per_bye: int = 3,
+            self,
+            stage_id: UUID,
+            organizer_id: UUID,
+            *,
+            score_per_win: int = 3,
+            score_per_draw: int = 1,
+            score_per_bye: int = 3,
     ) -> SwissSettings:
         """Attach Swiss-system settings to a stage."""
         stage = await self._stage_repo.get(stage_id)
@@ -322,12 +321,12 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def create_group(
-        self,
-        stage_id: UUID,
-        organizer_id: UUID,
-        *,
-        name: str,
-        advance_count: int | None = None,
+            self,
+            stage_id: UUID,
+            organizer_id: UUID,
+            *,
+            name: str,
+            advance_count: int | None = None,
     ) -> StageGroup:
         """Create a group within a stage (e.g. Group A, Group B)."""
         stage = await self._stage_repo.get(stage_id)
@@ -361,10 +360,10 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def generate_single_elimination(
-        self,
-        stage_id: UUID,
-        organizer_id: UUID,
-        team_ids: list[UUID],
+            self,
+            stage_id: UUID,
+            organizer_id: UUID,
+            team_ids: list[UUID],
     ) -> list[Match]:
         """
         Build a single-elimination bracket tree.
@@ -495,10 +494,10 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def generate_double_elimination(
-        self,
-        stage_id: UUID,
-        organizer_id: UUID,
-        team_ids: list[UUID],
+            self,
+            stage_id: UUID,
+            organizer_id: UUID,
+            team_ids: list[UUID],
     ) -> list[Match]:
         """
         Build a double-elimination bracket.
@@ -716,10 +715,10 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def generate_round_robin(
-        self,
-        group_id: UUID,
-        organizer_id: UUID,
-        team_ids: list[UUID],
+            self,
+            group_id: UUID,
+            organizer_id: UUID,
+            team_ids: list[UUID],
     ) -> list[Match]:
         """
         Generate all round-robin pairings for *team_ids* in a group.
@@ -809,10 +808,10 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def generate_swiss_round(
-        self,
-        group_id: UUID,
-        organizer_id: UUID,
-        round_number: int,
+            self,
+            group_id: UUID,
+            organizer_id: UUID,
+            round_number: int,
     ) -> list[Match]:
         """
         Generate pairings for a Swiss-system round.
@@ -986,8 +985,8 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def get_standings(
-        self,
-        group_id: UUID,
+            self,
+            group_id: UUID,
     ) -> list[dict]:
         """
         Compute group/swiss standings from match scores.
@@ -1079,9 +1078,9 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def complete_stage(
-        self,
-        stage_id: UUID,
-        organizer_id: UUID,
+            self,
+            stage_id: UUID,
+            organizer_id: UUID,
     ) -> list[UUID]:
         """
         Mark a stage as complete and determine which teams advance.
@@ -1110,11 +1109,11 @@ class TournamentService:
         return advancing
 
     async def promote_teams_to_next_stage(
-        self,
-        bracket_id: UUID,
-        organizer_id: UUID,
-        current_stage_index: int,
-        team_ids: list[UUID],
+            self,
+            bracket_id: UUID,
+            organizer_id: UUID,
+            current_stage_index: int,
+            team_ids: list[UUID],
     ) -> None:
         """
         Move advancing teams from stage N to stage N+1.
@@ -1152,10 +1151,10 @@ class TournamentService:
     # ══════════════════════════════════════════════
 
     async def start_stage(
-        self,
-        stage_id: UUID,
-        organizer_id: UUID,
-        team_ids: list[UUID],
+            self,
+            stage_id: UUID,
+            organizer_id: UUID,
+            team_ids: list[UUID],
     ) -> list[Match]:
         """
         Initialize the first round of a stage.
@@ -1206,6 +1205,36 @@ class TournamentService:
             return await self.generate_swiss_round(gid, organizer_id, round_number=1)
         else:
             raise BadRequestException(f"Unknown stage format: {stage.format}")
+
+    # ══════════════════════════════════════════════
+    #  11. WINNER PROPAGATION
+    # ══════════════════════════════════════════════
+
+    async def propagate_winner(self, match_id: UUID, winner_team_id: UUID) -> None:
+        """
+        Move winner to the next match(es) in the bracket.
+        """
+        match = await self._match_repo.get(match_id)
+        if match is None:
+            raise NotFoundException("Match not found")
+
+        # Find slots waiting for this result
+        # Using filter expression for SQLAlchemy repo
+        slots = await self._slot_repo.list(0, 100, None, MatchSlot.source_match_id == match_id)
+
+        for slot in slots:
+            existing_score = await self._score_repo.get_by_slot_id(slot.id)
+            if existing_score:
+                existing_score.team_id = winner_team_id
+                await self._score_repo.update(existing_score)
+            else:
+                await self._score_repo.create(MatchScore(
+                    slot_id=slot.id,
+                    team_id=winner_team_id,
+                    score=0,
+                ))
+
+            logger.info("Propagated winner %s to match %s slot %d", winner_team_id, slot.match_id, slot.slot_num)
 
     # ══════════════════════════════════════════════
     #  Pure helpers

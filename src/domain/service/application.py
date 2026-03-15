@@ -1,13 +1,3 @@
-"""
-ApplicationService — registration, quick-join, check-in, waitlist management.
-
-Two entry paths:
-  • ``quick_join``          — MIX: instant APPROVED + EventPlayer
-  • ``submit_application``  — TOURNAMENT: PENDING → organizer review → APPROVED
-"""
-
-from __future__ import annotations
-
 import logging
 from datetime import datetime, timezone
 from typing import Sequence
@@ -42,18 +32,16 @@ logger = logging.getLogger(__name__)
 
 
 class ApplicationService(BaseService):
-    """Manages player registration — formal applications AND quick invites."""
-
     def __init__(
-        self,
-        application_repo: ApplicationRepository,
-        event_repo: EventRepository,
-        organizer_repo: OrganizerRepository,
-        player_repo: PlayerRepository,
-        filled_field_repo: FilledApplicationFieldRepository,
-        custom_field_repo: ApplicationCustomFieldRepository,
-        integration_repo: ApplicationIntegrationRepository,
-        time_settings_repo: ApplicationTimeSettingsRepository,
+            self,
+            application_repo: ApplicationRepository,
+            event_repo: EventRepository,
+            organizer_repo: OrganizerRepository,
+            player_repo: PlayerRepository,
+            filled_field_repo: FilledApplicationFieldRepository,
+            custom_field_repo: ApplicationCustomFieldRepository,
+            integration_repo: ApplicationIntegrationRepository,
+            time_settings_repo: ApplicationTimeSettingsRepository,
     ) -> None:
         self._app_repo = application_repo
         self._event_repo = event_repo
@@ -140,12 +128,12 @@ class ApplicationService(BaseService):
     # ── formal application (TOURNAMENT) ──────────
 
     async def submit_application(
-        self,
-        event_id: UUID,
-        member_id: UUID,
-        *,
-        filled_fields: list[dict] | None = None,
-        integration_ids: list[UUID] | None = None,
+            self,
+            event_id: UUID,
+            member_id: UUID,
+            *,
+            filled_fields: list[dict] | None = None,
+            integration_ids: list[UUID] | None = None,
     ) -> Application:
         """
         Submit a formal tournament application.
@@ -195,17 +183,17 @@ class ApplicationService(BaseService):
     # ── status management (organizer) ────────────
 
     async def manage_status(
-        self,
-        application_id: UUID,
-        organizer_id: UUID,
-        new_status: ApplicationStatus,
+            self,
+            application_id: UUID,
+            issuer_id: UUID,
+            new_status: ApplicationStatus,
     ) -> Application:
         """Approve / reject / waitlist a single application."""
         application = await self._app_repo.get(application_id)
         if application is None:
             raise NotFoundException("Application not found")
 
-        await self._assert_organizer(application.event_id, organizer_id)
+        await self._assert_organizer(application.event_id, issuer_id)
 
         application.status = new_status
         application.is_approved = new_status == ApplicationStatus.APPROVED
@@ -215,17 +203,17 @@ class ApplicationService(BaseService):
             await self._ensure_event_player(application)
 
         logger.info(
-            "Application %s → %s (by %s)", application_id, new_status.value, organizer_id,
+            "Application %s → %s (by %s)", application_id, new_status.value, issuer_id,
         )
         return application
 
     async def bulk_approve(
-        self,
-        event_id: UUID,
-        organizer_id: UUID,
-        *,
-        status_filter: ApplicationStatus = ApplicationStatus.PENDING,
-        limit: int | None = None,
+            self,
+            event_id: UUID,
+            organizer_id: UUID,
+            *,
+            status_filter: ApplicationStatus = ApplicationStatus.PENDING,
+            limit: int | None = None,
     ) -> list[Application]:
         """Approve applications matching *status_filter*, up to *limit*."""
         await self._fetch_event(event_id)
@@ -248,11 +236,11 @@ class ApplicationService(BaseService):
         return approved
 
     async def bulk_reject(
-        self,
-        event_id: UUID,
-        organizer_id: UUID,
-        *,
-        status_filter: ApplicationStatus = ApplicationStatus.PENDING,
+            self,
+            event_id: UUID,
+            organizer_id: UUID,
+            *,
+            status_filter: ApplicationStatus = ApplicationStatus.PENDING,
     ) -> int:
         """Reject all applications with the given status. Returns count."""
         await self._fetch_event(event_id)
@@ -294,11 +282,11 @@ class ApplicationService(BaseService):
     # ── kick / leave ─────────────────────────────
 
     async def kick_applicant(
-        self,
-        event_id: UUID,
-        organizer_id: UUID,
-        target_member_id: UUID,
-        reason: str = "",
+            self,
+            event_id: UUID,
+            organizer_id: UUID,
+            target_member_id: UUID,
+            reason: str = "",
     ) -> None:
         """Organizer kicks a player — rejects application and removes EventPlayer."""
         await self._fetch_event(event_id)
@@ -336,10 +324,10 @@ class ApplicationService(BaseService):
         return [a for a in all_apps if a.status == ApplicationStatus.WAITLIST]
 
     async def promote_from_waitlist(
-        self,
-        event_id: UUID,
-        organizer_id: UUID,
-        count: int = 1,
+            self,
+            event_id: UUID,
+            organizer_id: UUID,
+            count: int = 1,
     ) -> list[Application]:
         """Promote the top *count* waitlisted players to APPROVED."""
         await self._fetch_event(event_id)
@@ -358,12 +346,12 @@ class ApplicationService(BaseService):
     # ── listing / stats ──────────────────────────
 
     async def list_applications(
-        self,
-        event_id: UUID,
-        *,
-        status_filter: ApplicationStatus | None = None,
-        offset: int = 0,
-        limit: int = 100,
+            self,
+            event_id: UUID,
+            *,
+            status_filter: ApplicationStatus | None = None,
+            offset: int = 0,
+            limit: int = 100,
     ) -> Sequence[Application]:
         """Paginated listing, optionally filtered by status."""
         if status_filter is not None:
@@ -392,4 +380,3 @@ class ApplicationService(BaseService):
         if app is None:
             raise NotFoundException("Application not found")
         return app
-

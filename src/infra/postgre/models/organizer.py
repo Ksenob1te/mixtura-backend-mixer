@@ -17,7 +17,7 @@ class Organizer(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     event_id: Mapped[UUID] = mapped_column(ForeignKey('event_table.id', ondelete="CASCADE"))
-    member_id: Mapped[UUID] = mapped_column(ForeignKey('member_table.id'))
+    member_id: Mapped[UUID]
 
     event: Mapped["Event"] = relationship("Event", back_populates="organizers", lazy="raise")
 

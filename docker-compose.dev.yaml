@@ -1,8 +1,8 @@
 services:
   postgres:
     image: postgres:latest
-    container_name: postgres_db
-    restart: always
+#    container_name: postgres_db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mixtura-mixer}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -20,8 +20,8 @@ services:
 
   redis:
     image: redis:latest
-    container_name: redis_cache
-    restart: always
+#    container_name: redis_cache
+    restart: unless-stopped
     environment:
       REDIS_USER: ${REDIS_USER:-default}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-default}

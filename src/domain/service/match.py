@@ -37,10 +37,10 @@ class MatchService:
     """Handles the lifecycle of a single match — scheduling, scoring, winner resolution."""
 
     def __init__(
-        self,
-        match_repo: MatchRepository,
-        match_slot_repo: MatchSlotRepository,
-        match_score_repo: MatchScoreRepository,
+            self,
+            match_repo: MatchRepository,
+            match_slot_repo: MatchSlotRepository,
+            match_score_repo: MatchScoreRepository,
     ) -> None:
         self._match_repo = match_repo
         self._slot_repo = match_slot_repo
@@ -49,11 +49,11 @@ class MatchService:
     # ── private helpers ──────────────────────────
 
     async def _get_match_or_404(
-        self,
-        match_id: UUID,
-        *,
-        load_slots: bool = False,
-        load_group: bool = False,
+            self,
+            match_id: UUID,
+            *,
+            load_slots: bool = False,
+            load_group: bool = False,
     ) -> Match:
         match = await self._match_repo.get(match_id, load_slots=load_slots, load_group=load_group)
         if match is None:
@@ -73,10 +73,10 @@ class MatchService:
         return await self._get_match_or_404(match_id, load_slots=True)
 
     async def list_matches_by_group(
-        self,
-        group_id: UUID,
-        *,
-        round_number: int | None = None,
+            self,
+            group_id: UUID,
+            *,
+            round_number: int | None = None,
     ) -> Sequence[Match]:
         matches = await self._match_repo.list_by_stage_group(group_id)
         if round_number is not None:
@@ -142,9 +142,9 @@ class MatchService:
     # ── score reporting ──────────────────────────
 
     async def report_score(
-        self,
-        match_id: UUID,
-        scores: dict[int, dict[str, UUID | int]],
+            self,
+            match_id: UUID,
+            scores: dict[int, dict[str, UUID | int]],
     ) -> list[MatchScore]:
         """
         Report or update scores.
@@ -209,15 +209,15 @@ class MatchService:
             return None  # Draw
         return entries[0].team_id
 
-    async def is_match_complete(self, match_id: UUID) -> bool:
-        match = await self._get_match_or_404(match_id)
-        if match.time_end is None:
-            return False
-        slots = await self._slot_repo.list_by_match(match_id)
-        return all(
-            await self._score_repo.get_by_slot_id(s.id) is not None
-            for s in slots
-        )
+    # async def is_match_complete(self, match_id: UUID) -> bool:
+    #     match = await self._get_match_or_404(match_id)
+    #     if match.time_end is None:
+    #         return False
+    #     slots = await self._slot_repo.list_by_match(match_id)
+    #     return all(
+    #         await self._score_repo.get_by_slot_id(s.id) is not None
+    #         for s in slots
+    #     )
 
     # ── void / forfeit ───────────────────────────
 
@@ -236,11 +236,11 @@ class MatchService:
         return match
 
     async def forfeit(
-        self,
-        match_id: UUID,
-        forfeiting_team_id: UUID,
-        default_score_winner: int = 1,
-        default_score_loser: int = 0,
+            self,
+            match_id: UUID,
+            forfeiting_team_id: UUID,
+            default_score_winner: int = 1,
+            default_score_loser: int = 0,
     ) -> list[MatchScore]:
         """Record a forfeit — the opposing team wins by default scores."""
         slots = await self._slot_repo.list_by_match(match_id)

@@ -39,7 +39,7 @@ class Event(Base):
     registration_type: Mapped[str] = mapped_column()
     team_formation: Mapped[TeamFormation] = mapped_column()
     allow_multiple_drafts: Mapped[bool] = mapped_column(default=False)
-    rating_set_id: Mapped[UUID | None] = mapped_column(ForeignKey('rating_set_table.id'), nullable=True)
+    rating_set_id: Mapped[UUID | None] = mapped_column(nullable=True)
 
     applications: Mapped[list["Application"]] = relationship("Application", back_populates="event",
                                                              cascade="all, delete-orphan", lazy="raise")
