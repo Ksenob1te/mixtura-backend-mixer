@@ -101,12 +101,13 @@ class TournamentService(BaseService):
     # ══════════════════════════════════════════════
 
     @BaseService.require_organizer
-    async def create_bracket(self, event_id: UUID, member_id: UUID) -> Bracket:
+    async def create_bracket(self, event_id: UUID, issuer_id: UUID) -> Bracket:
         """Create a new bracket container for the event."""
         event = await self._event_repo.get(event_id)
         if event is None:
             raise NotFoundException("Event not found")
         # Check happens in decorator
+
 
         bracket = Bracket(event_id=event_id)
         bracket = await self._bracket_repo.create(bracket)
@@ -122,11 +123,14 @@ class TournamentService(BaseService):
     async def list_brackets(self, event_id: UUID) -> Sequence[Bracket]:
         return await self._bracket_repo.list_by_event(event_id)
 
-    async def delete_bracket(self, bracket_id: UUID, organizer_id: UUID) -> None:
+    @BaseService.require_organizer
+    async def delete_bracket(self, event_id: UUID, issuer_id: UUID, bracket_id: UUID) -> None:
         bracket = await self._bracket_repo.get(bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Bracket does not belong to the specified event")
+
         await self._bracket_repo.delete(bracket_id)
         logger.info("Bracket %s deleted", bracket_id)
 
@@ -134,10 +138,12 @@ class TournamentService(BaseService):
     #  2. SEEDING (BracketPlacement)
     # ══════════════════════════════════════════════
 
+    @BaseService.require_organizer
     async def seed_bracket(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             bracket_id: UUID,
-            organizer_id: UUID,
             team_ids: list[UUID],
             *,
             strategy: str = "MANUAL",
@@ -153,10 +159,12 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Bracket does not belong to the specified event")
 
         # Clear existing placements
         old = await self._placement_repo.list_by_bracket(bracket_id)
+
         for p in old:
             await self._placement_repo.delete(p.id)
 
@@ -192,10 +200,12 @@ class TournamentService(BaseService):
     #  3. STAGE CONFIGURATION
     # ══════════════════════════════════════════════
 
+    @BaseService.require_organizer
     async def add_stage(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             bracket_id: UUID,
-            organizer_id: UUID,
             *,
             name: str,
             stage_format: str,
@@ -209,7 +219,8 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Bracket does not belong to the specified event")
 
         if stage_index is None:
             existing = await self._stage_repo.list_by_bracket(bracket_id)
@@ -225,10 +236,12 @@ class TournamentService(BaseService):
         logger.info("Stage '%s' (format=%s) added to bracket %s", name, stage_format, bracket_id)
         return stage
 
+    @BaseService.require_organizer
     async def configure_round_robin(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             stage_id: UUID,
-            organizer_id: UUID,
             *,
             meetings_per_pair: int = 1,
             score_system: str = "POINTS",
@@ -243,7 +256,8 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(stage.bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Stage does not belong to the specified event")
 
         # Upsert
         existing = await self._rr_repo.get_by_stage_id(stage_id)
@@ -263,10 +277,12 @@ class TournamentService(BaseService):
         )
         return await self._rr_repo.create(rr)
 
+    @BaseService.require_organizer
     async def configure_swiss(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             stage_id: UUID,
-            organizer_id: UUID,
             *,
             score_per_win: int = 3,
             score_per_draw: int = 1,
@@ -280,9 +296,11 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(stage.bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Stage does not belong to the specified event")
 
         existing = await self._swiss_repo.get_by_stage_id(stage_id)
+
         if existing:
             existing.score_per_win = score_per_win
             existing.score_per_draw = score_per_draw
@@ -306,24 +324,29 @@ class TournamentService(BaseService):
     async def list_stages(self, bracket_id: UUID) -> Sequence[Stage]:
         return await self._stage_repo.list_by_bracket(bracket_id)
 
-    async def delete_stage(self, stage_id: UUID, organizer_id: UUID) -> None:
+    @BaseService.require_organizer
+    async def delete_stage(self, event_id: UUID, issuer_id: UUID, stage_id: UUID) -> None:
         stage = await self._stage_repo.get(stage_id)
         if stage is None:
             raise NotFoundException("Stage not found")
         bracket = await self._bracket_repo.get(stage.bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Stage does not belong to the specified event")
+
         await self._stage_repo.delete(stage_id)
 
     # ══════════════════════════════════════════════
     #  4. GROUPS
     # ══════════════════════════════════════════════
 
+    @BaseService.require_organizer
     async def create_group(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             stage_id: UUID,
-            organizer_id: UUID,
             *,
             name: str,
             advance_count: int | None = None,
@@ -335,7 +358,8 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(stage.bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Stage does not belong to the specified event")
 
         group = StageGroup(
             stage_id=stage_id,
@@ -359,10 +383,12 @@ class TournamentService(BaseService):
     #  5. MATCH GENERATION — SINGLE ELIMINATION
     # ══════════════════════════════════════════════
 
+    @BaseService.require_organizer
     async def generate_single_elimination(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             stage_id: UUID,
-            organizer_id: UUID,
             team_ids: list[UUID],
     ) -> list[Match]:
         """
@@ -377,9 +403,11 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(stage.bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Stage does not belong to the specified event")
 
         n = len(team_ids)
+
         if n < 2:
             raise BadRequestException("Need at least 2 teams for elimination bracket")
 
@@ -493,10 +521,12 @@ class TournamentService(BaseService):
     #  6. MATCH GENERATION — DOUBLE ELIMINATION
     # ══════════════════════════════════════════════
 
+    @BaseService.require_organizer
     async def generate_double_elimination(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             stage_id: UUID,
-            organizer_id: UUID,
             team_ids: list[UUID],
     ) -> list[Match]:
         """
@@ -512,9 +542,11 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(stage.bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Stage does not belong to the specified event")
 
         n = len(team_ids)
+
         if n < 4:
             raise BadRequestException("Need at least 4 teams for double elimination")
 
@@ -714,10 +746,12 @@ class TournamentService(BaseService):
     #  7. MATCH GENERATION — ROUND ROBIN
     # ══════════════════════════════════════════════
 
+    @BaseService.require_organizer
     async def generate_round_robin(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             group_id: UUID,
-            organizer_id: UUID,
             team_ids: list[UUID],
     ) -> list[Match]:
         """
@@ -734,7 +768,8 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(stage.bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Group does not belong to the specified event")
 
         rr = await self._rr_repo.get_by_stage_id(stage.id)
         meetings = rr.meetings_per_pair if rr else 1
@@ -807,10 +842,12 @@ class TournamentService(BaseService):
     #  8. MATCH GENERATION — SWISS
     # ══════════════════════════════════════════════
 
+    @BaseService.require_organizer
     async def generate_swiss_round(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             group_id: UUID,
-            organizer_id: UUID,
             round_number: int,
     ) -> list[Match]:
         """
@@ -829,7 +866,8 @@ class TournamentService(BaseService):
         bracket = await self._bracket_repo.get(stage.bracket_id)
         if bracket is None:
             raise NotFoundException("Bracket not found")
-        await self._assert_organizer(bracket.event_id, organizer_id)
+        if bracket.event_id != event_id:
+             raise BadRequestException("Group does not belong to the specified event")
 
         # Build standings so far
         standings = await self._compute_group_standings(group_id, stage.id)

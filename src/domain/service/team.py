@@ -156,10 +156,10 @@ class TeamService(BaseService):
 
     # ── rename ───────────────────────────────────
 
-    async def rename_team(self, team_id: UUID, requester_id: UUID, new_name: str) -> Team:
+    async def rename_team(self, team_id: UUID, issuer_id: UUID, new_name: str) -> Team:
         """Rename a team. Organizer or captain only."""
         team = await self._get_team_or_404(team_id)
-        await self._assert_organizer_or_captain(team.event_id, team_id, requester_id)
+        await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
 
         stripped = new_name.strip()
         if not stripped:
@@ -175,7 +175,7 @@ class TeamService(BaseService):
     async def appoint_captain(
             self,
             team_id: UUID,
-            requester_id: UUID,
+            issuer_id: UUID,
             member_id: UUID,
     ) -> None:
         """
@@ -186,7 +186,7 @@ class TeamService(BaseService):
         Organizer or current captain only.
         """
         team = await self._get_team_or_404(team_id)
-        await self._assert_organizer_or_captain(team.event_id, team_id, requester_id)
+        await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
 
         if team.draft_id is None:
             raise BadRequestException("Captaincy is only tracked for draft-originated teams")
@@ -219,7 +219,7 @@ class TeamService(BaseService):
     async def add_player(
             self,
             team_id: UUID,
-            requester_id: UUID,
+            issuer_id: UUID,
             member_id: UUID,
             game_role_id: UUID,
             *,
@@ -227,7 +227,7 @@ class TeamService(BaseService):
     ) -> TeamPlayer:
         """Add a player to the roster. Validates ``team_size`` cap."""
         team = await self._get_team_or_404(team_id)
-        await self._assert_organizer_or_captain(team.event_id, team_id, requester_id)
+        await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
 
         event = await self._fetch_event(team.event_id)
         roster = await self._tp_repo.list_by_team(team_id)
@@ -244,10 +244,10 @@ class TeamService(BaseService):
         logger.info("Added member %s to team %s", member_id, team_id)
         return tp
 
-    async def remove_player(self, team_id: UUID, requester_id: UUID, member_id: UUID) -> None:
+    async def remove_player(self, team_id: UUID, issuer_id: UUID, member_id: UUID) -> None:
         """Remove a player from the roster. Organizer or captain only."""
         team = await self._get_team_or_404(team_id)
-        await self._assert_organizer_or_captain(team.event_id, team_id, requester_id)
+        await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
 
         roster = await self._tp_repo.list_by_team(team_id)
         tp = next((t for t in roster if t.member_id == member_id), None)
@@ -260,7 +260,7 @@ class TeamService(BaseService):
     async def substitute_player(
             self,
             team_id: UUID,
-            requester_id: UUID,
+            issuer_id: UUID,
             old_member_id: UUID,
             new_member_id: UUID,
     ) -> TeamPlayer:
@@ -271,7 +271,7 @@ class TeamService(BaseService):
         in the same event.
         """
         team = await self._get_team_or_404(team_id)
-        await self._assert_organizer_or_captain(team.event_id, team_id, requester_id)
+        await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
 
         roster = await self._tp_repo.list_by_team(team_id)
         old_tp = next((t for t in roster if t.member_id == old_member_id), None)
@@ -306,13 +306,13 @@ class TeamService(BaseService):
     async def set_player_role(
             self,
             team_id: UUID,
-            requester_id: UUID,
+            issuer_id: UUID,
             member_id: UUID,
             game_role_id: UUID,
     ) -> TeamPlayer:
         """Change a player's game role. Organizer or captain only."""
         team = await self._get_team_or_404(team_id)
-        await self._assert_organizer_or_captain(team.event_id, team_id, requester_id)
+        await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
 
         roster = await self._tp_repo.list_by_team(team_id)
         tp = next((t for t in roster if t.member_id == member_id), None)
@@ -322,16 +322,19 @@ class TeamService(BaseService):
         tp.game_role_id = game_role_id
         return await self._tp_repo.update(tp)
 
+    @BaseService.require_organizer
     async def set_player_rating(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             team_id: UUID,
-            requester_id: UUID,
             member_id: UUID,
             rating: float,
     ) -> TeamPlayer:
         """Manually override a player's rating. Organizer only."""
         team = await self._get_team_or_404(team_id)
-        await self._assert_organizer(team.event_id, requester_id)
+        if team.event_id != event_id:
+             raise BadRequestException("Team does not belong to the specified event")
 
         roster = await self._tp_repo.list_by_team(team_id)
         tp = next((t for t in roster if t.member_id == member_id), None)
@@ -366,9 +369,12 @@ class TeamService(BaseService):
 
     # ── deletion ─────────────────────────────────
 
-    async def disband_team(self, team_id: UUID, requester_id: UUID) -> None:
+    @BaseService.require_organizer
+    async def disband_team(self, event_id: UUID, issuer_id: UUID, team_id: UUID) -> None:
         """Hard-delete team and all roster rows (cascade). Organizer only."""
         team = await self._get_team_or_404(team_id)
-        await self._assert_organizer(team.event_id, requester_id)
+        if team.event_id != event_id:
+             raise BadRequestException("Team does not belong to the specified event")
+        
         await self._team_repo.delete(team_id)
-        logger.info("Team %s disbanded by %s", team_id, requester_id)
+        logger.info("Team %s disbanded by %s", team_id, issuer_id)

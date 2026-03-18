@@ -51,12 +51,9 @@ class EventService(BaseService):
         self._game_role_repo = game_role_repo
         self._custom_field_repo = custom_field_repo
 
-    # ── creation ─────────────────────────────────
-
     async def create_event(
             self,
             member_id: UUID,
-            *,
             match_type: str,
             team_size: int,
             registration_type: str,
@@ -66,7 +63,7 @@ class EventService(BaseService):
             allow_multiple_drafts: bool = False,
             rating_set_id: UUID | None = None,
     ) -> Event:
-        """Create a new event and register *member_id* as the primary organizer."""
+        """Create a new event and register member_id as the primary organizer."""
         if team_size < 1:
             raise BadRequestException("team_size must be at least 1")
 
@@ -91,8 +88,6 @@ class EventService(BaseService):
         self.logger.info("Event %s created by %s (type=%s)", event.id, member_id, match_type)
         return event
 
-    # ── read ─────────────────────────────────────
-
     async def get_event(self, event_id: UUID) -> Event:
         """Return event with organizers & basic configuration loaded."""
         return await self._fetch_event(
@@ -105,7 +100,7 @@ class EventService(BaseService):
         )
 
     async def get_event_full(self, event_id: UUID) -> Event:
-        """Return event with **all** relationships loaded (organizer dashboard)."""
+        """Return event with all  relationships loaded (organizer dashboard)."""
         return await self._fetch_event(
             event_id,
             load_organizers=True,
@@ -121,49 +116,24 @@ class EventService(BaseService):
         )
 
     async def list_public_events(self, offset: int = 0, limit: int = 50) -> Sequence[Event]:
-        return await self._event_repo.list(offset, limit, None, Event.is_public.is_(True))
-
-    # ── config update ────────────────────────────
+        return await self._event_repo.list_public(offset, limit)
 
     @BaseService.require_organizer
     async def update_config(
             self,
             event_id: UUID,
             issuer_id: UUID,
-            *,
-            team_size: int | None = None,
             is_public: bool | None = None,
-            use_application: bool | None = None,
-            registration_type: str | None = None,
-            team_formation: str | TeamFormation | None = None,
-            allow_multiple_drafts: bool | None = None,
-            rating_set_id: UUID | None = None,
     ) -> Event:
         """Partial-update basic event configuration. Organizer only."""
         event = await self._fetch_event(event_id)
 
-        if team_size is not None:
-            if team_size < 1:
-                raise BadRequestException("team_size must be at least 1")
-            event.team_size = team_size
         if is_public is not None:
             event.is_public = is_public
-        if use_application is not None:
-            event.use_application = use_application
-        if registration_type is not None:
-            event.registration_type = registration_type
-        if team_formation is not None:
-            event.team_formation = TeamFormation(team_formation)
-        if allow_multiple_drafts is not None:
-            event.allow_multiple_drafts = allow_multiple_drafts
-        if rating_set_id is not None:
-            event.rating_set_id = rating_set_id
 
         event = await self._event_repo.update(event)
         self.logger.info("Event %s config updated by %s", event_id, issuer_id)
         return event
-
-    # ── organizer management ─────────────────────
 
     @BaseService.require_organizer
     async def add_organizer(self, event_id: UUID, issuer_id: UUID, target_member_id: UUID) -> Organizer:
@@ -183,31 +153,28 @@ class EventService(BaseService):
         await self._fetch_event(event_id)
 
         organizers = await self._organizer_repo.list_by_event(event_id)
-        target = next((o for o in organizers if o.member_id == target_member_id), None)
-        if target is None:
-            raise NotFoundException("Target is not an organizer")
         if len(organizers) <= 1:
             raise BadRequestException("Cannot remove the last organizer")
 
-        await self._organizer_repo.delete(target.id)
+        result = await self._organizer_repo.delete(target_member_id)
+
+        if not result:
+            raise NotFoundException("Organizer not found")
 
     async def list_organizers(self, event_id: UUID) -> Sequence[Organizer]:
         await self._fetch_event(event_id)
         return await self._organizer_repo.list_by_event(event_id)
 
-    # ── time-window ──────────────────────────────
-
+    @BaseService.require_organizer
     async def set_time_settings(
             self,
             event_id: UUID,
-            requester_id: UUID,
-            *,
+            issuer_id: UUID,
             start_time: datetime | None = None,
             end_time: datetime | None = None,
     ) -> ApplicationTimeSettings:
         """Set or replace the registration / check-in time window."""
         await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         if start_time and end_time and end_time <= start_time:
             raise BadRequestException("end_time must be after start_time")
@@ -224,15 +191,15 @@ class EventService(BaseService):
 
     # ── required integrations ────────────────────
 
+    @BaseService.require_organizer
     async def set_required_integrations(
             self,
             event_id: UUID,
-            requester_id: UUID,
+            issuer_id: UUID,
             integration_names: list[str],
     ) -> list[RequiredIntegration]:
         """Replace the full set of required integrations (idempotent sync)."""
         await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         existing = await self._integration_repo.list_by_event(event_id)
         existing_by_name = {i.name: i for i in existing}
@@ -251,10 +218,11 @@ class EventService(BaseService):
 
     # ── game roles ───────────────────────────────
 
+    @BaseService.require_organizer
     async def set_selected_game_roles(
             self,
             event_id: UUID,
-            requester_id: UUID,
+            issuer_id: UUID,
             roles: list[dict],
     ) -> list[SelectedGameRole]:
         """
@@ -263,7 +231,6 @@ class EventService(BaseService):
         Each dict: ``{"game_role_id": UUID, "override_min_count": int|None, "override_max_count": int|None}``
         """
         await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         existing = await self._game_role_repo.list_by_event(event_id)
         existing_map = {r.game_role_id: r for r in existing}
@@ -292,10 +259,11 @@ class EventService(BaseService):
 
     # ── custom application fields ────────────────
 
+    @BaseService.require_organizer
     async def set_custom_fields(
             self,
             event_id: UUID,
-            requester_id: UUID,
+            issuer_id: UUID,
             fields: list[dict],
     ) -> list[ApplicationCustomField]:
         """
@@ -304,7 +272,6 @@ class EventService(BaseService):
         Each dict: ``{"name": str, "is_required": bool, "is_private": bool}``
         """
         await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         for cf in await self._custom_field_repo.list_by_event(event_id):
             await self._custom_field_repo.delete(cf.id)
@@ -321,10 +288,10 @@ class EventService(BaseService):
 
     # ── lifecycle transitions ────────────────────
 
-    async def publish_event(self, event_id: UUID, requester_id: UUID) -> Event:
+    @BaseService.require_organizer
+    async def publish_event(self, event_id: UUID, issuer_id: UUID) -> Event:
         """DRAFT → REGISTRATION_OPEN. Validates minimal configuration."""
         event = await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         if event.team_size < 1:
             raise BadRequestException("team_size must be configured before publishing")
@@ -336,22 +303,22 @@ class EventService(BaseService):
 
         event.registration_type = "OPEN"
         event = await self._event_repo.update(event)
-        self.logger.info("Event %s published by %s", event_id, requester_id)
+        self.logger.info("Event %s published by %s", event_id, issuer_id)
         return event
 
-    async def cancel_event(self, event_id: UUID, requester_id: UUID, reason: str = "") -> Event:
+    @BaseService.require_organizer
+    async def cancel_event(self, event_id: UUID, issuer_id: UUID, reason: str = "") -> Event:
         """Cancel the event."""
         event = await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
 
         event.registration_type = "CANCELLED"
         event = await self._event_repo.update(event)
-        self.logger.info("Event %s cancelled by %s (reason=%s)", event_id, requester_id, reason)
+        self.logger.info("Event %s cancelled by %s (reason=%s)", event_id, issuer_id, reason)
         return event
 
     # ── clone ────────────────────────────────────
 
-    async def clone_event(self, source_event_id: UUID, requester_id: UUID) -> Event:
+    async def clone_event(self, source_event_id: UUID, issuer_id: UUID) -> Event:
         """Deep-copy settings into a fresh event (players/teams/drafts are NOT copied)."""
         source = await self._fetch_event(
             source_event_id,
@@ -359,14 +326,14 @@ class EventService(BaseService):
             load_game_roles=True,
             load_custom_fields=True,
         )
-        await self._assert_organizer(source_event_id, requester_id)
+        await self._assert_organizer(source_event_id, issuer_id)
 
         new_event = await self.create_event(
-            member_id=requester_id,
+            member_id=issuer_id,
             match_type=source.match_type,
             team_size=source.team_size,
             registration_type=source.registration_type,
-            team_formation=source.team_formation,
+            team_formation=source.team_formation.value,
             is_public=source.is_public,
             use_application=source.use_application,
             allow_multiple_drafts=source.allow_multiple_drafts,
@@ -392,15 +359,13 @@ class EventService(BaseService):
                 is_private=cf.is_private,
             ))
 
-        self.logger.info("Event %s cloned from %s by %s", new_event.id, source_event_id, requester_id)
+        self.logger.info("Event %s cloned from %s by %s", new_event.id, source_event_id, issuer_id)
         return new_event
 
-    # ── deletion ─────────────────────────────────
-
-    async def delete_event(self, event_id: UUID, requester_id: UUID) -> None:
+    @BaseService.require_organizer
+    async def delete_event(self, event_id: UUID, issuer_id: UUID) -> None:
         """Hard-delete event and all cascading children."""
         await self._fetch_event(event_id)
-        await self._assert_organizer(event_id, requester_id)
         if not await self._event_repo.delete(event_id):
             raise InternalLogicException("Failed to delete event")
-        self.logger.info("Event %s deleted by %s", event_id, requester_id)
+        self.logger.info("Event %s deleted by %s", event_id, issuer_id)

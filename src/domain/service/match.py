@@ -23,17 +23,20 @@ from src.infra.postgre.models import (
     MatchSlot,
 )
 from src.infra.postgre.repo import (
+    EventRepository,
     MatchRepository,
     MatchScoreRepository,
     MatchSlotRepository,
+    OrganizerRepository,
 )
+from ._base import BaseService
 
 logger = logging.getLogger(__name__)
 
 _MIN_SLOTS = 2  # A match always has at least 2 competitors
 
 
-class MatchService:
+class MatchService(BaseService):
     """Handles the lifecycle of a single match — scheduling, scoring, winner resolution."""
 
     def __init__(
@@ -41,10 +44,14 @@ class MatchService:
             match_repo: MatchRepository,
             match_slot_repo: MatchSlotRepository,
             match_score_repo: MatchScoreRepository,
+            event_repo: EventRepository,
+            organizer_repo: OrganizerRepository,
     ) -> None:
         self._match_repo = match_repo
         self._slot_repo = match_slot_repo
         self._score_repo = match_score_repo
+        self._event_repo = event_repo
+        self._organizer_repo = organizer_repo
 
     # ── private helpers ──────────────────────────
 
@@ -89,15 +96,33 @@ class MatchService:
 
     # ── scheduling ───────────────────────────────
 
-    async def schedule_match(self, match_id: UUID, scheduled_at: datetime) -> Match:
+    @BaseService.require_organizer
+    async def schedule_match(
+            self,
+            event_id: UUID,
+            issuer_id: UUID,
+            match_id: UUID,
+            scheduled_at: datetime,
+    ) -> Match:
         match = await self._get_match_or_404(match_id)
+        # TODO: verify match.event_id == event_id
+
         match.scheduled_at = scheduled_at
         match = await self._match_repo.update(match)
         logger.info("Match %s scheduled for %s", match_id, scheduled_at.isoformat())
         return match
 
-    async def reschedule_match(self, match_id: UUID, new_time: datetime) -> Match:
+    @BaseService.require_organizer
+    async def reschedule_match(
+            self,
+            event_id: UUID,
+            issuer_id: UUID,
+            match_id: UUID,
+            new_time: datetime,
+    ) -> Match:
         match = await self._get_match_or_404(match_id)
+        # TODO: verify match.event_id == event_id
+
         if match.time_start is not None:
             raise ConflictException("Cannot reschedule a match that has already started")
         match.scheduled_at = new_time
@@ -107,9 +132,12 @@ class MatchService:
 
     # ── start / end ──────────────────────────────
 
-    async def start_match(self, match_id: UUID) -> Match:
+    @BaseService.require_organizer
+    async def start_match(self, event_id: UUID, issuer_id: UUID, match_id: UUID) -> Match:
         """Both slots must have teams assigned before the match can start."""
         match = await self._get_match_or_404(match_id)
+        # TODO: verify match.event_id == event_id
+
         if match.time_start is not None:
             raise ConflictException("Match has already started")
 
@@ -127,8 +155,11 @@ class MatchService:
         logger.info("Match %s started", match_id)
         return match
 
-    async def end_match(self, match_id: UUID) -> Match:
+    @BaseService.require_organizer
+    async def end_match(self, event_id: UUID, issuer_id: UUID, match_id: UUID) -> Match:
         match = await self._get_match_or_404(match_id)
+        # TODO: verify match.event_id == event_id
+
         if match.time_start is None:
             raise ConflictException("Match has not started yet")
         if match.time_end is not None:
@@ -141,8 +172,11 @@ class MatchService:
 
     # ── score reporting ──────────────────────────
 
+    @BaseService.require_organizer
     async def report_score(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             match_id: UUID,
             scores: dict[int, dict[str, UUID | int]],
     ) -> list[MatchScore]:
@@ -152,6 +186,8 @@ class MatchService:
         *scores* maps ``slot_num`` → ``{"team_id": UUID, "score": int}``.
         """
         await self._get_match_or_404(match_id)
+        # TODO: verify match.event_id == event_id
+
         slots = await self._slot_repo.list_by_match(match_id)
         slot_map = {s.slot_num: s for s in slots}
 
@@ -177,8 +213,18 @@ class MatchService:
         logger.info("Match %s scores reported", match_id)
         return results
 
-    async def override_score(self, match_id: UUID, slot_num: int, score_val: int) -> MatchScore:
+    @BaseService.require_organizer
+    async def override_score(
+            self,
+            event_id: UUID,
+            issuer_id: UUID,
+            match_id: UUID,
+            slot_num: int,
+            score_val: int,
+    ) -> MatchScore:
         slot = await self._get_slot_by_num(match_id, slot_num)
+        # TODO: verify match.event_id == event_id
+
         existing = await self._score_repo.get_by_slot_id(slot.id)
         if existing is None:
             raise BadRequestException("No score to override — report first")
@@ -221,9 +267,18 @@ class MatchService:
 
     # ── void / forfeit ───────────────────────────
 
-    async def void_match(self, match_id: UUID, reason: str = "") -> Match:
+    @BaseService.require_organizer
+    async def void_match(
+            self,
+            event_id: UUID,
+            issuer_id: UUID,
+            match_id: UUID,
+            reason: str = "",
+    ) -> Match:
         """Nullify a match — remove scores and reset timestamps."""
         match = await self._get_match_or_404(match_id)
+        # TODO: verify match.event_id == event_id
+
         for slot in await self._slot_repo.list_by_match(match_id):
             ms = await self._score_repo.get_by_slot_id(slot.id)
             if ms:
@@ -235,8 +290,11 @@ class MatchService:
         logger.info("Match %s voided (reason=%s)", match_id, reason)
         return match
 
+    @BaseService.require_organizer
     async def forfeit(
             self,
+            event_id: UUID,
+            issuer_id: UUID,
             match_id: UUID,
             forfeiting_team_id: UUID,
             default_score_winner: int = 1,
@@ -244,6 +302,8 @@ class MatchService:
     ) -> list[MatchScore]:
         """Record a forfeit — the opposing team wins by default scores."""
         slots = await self._slot_repo.list_by_match(match_id)
+        # TODO: verify match.event_id == event_id
+
         if len(slots) < _MIN_SLOTS:
             raise BadRequestException(f"Match needs at least {_MIN_SLOTS} slots")
 
@@ -261,7 +321,7 @@ class MatchService:
         if not scores:
             raise BadRequestException("Cannot forfeit — teams have not been assigned to match slots")
 
-        result = await self.report_score(match_id, scores)
+        result = await self.report_score(event_id, issuer_id, match_id, scores)
 
         # End the match immediately
         match = await self._get_match_or_404(match_id)
@@ -274,9 +334,18 @@ class MatchService:
 
     # ── slot assignment ──────────────────────────
 
-    async def assign_team_to_slot(self, match_id: UUID, slot_num: int, team_id: UUID) -> MatchScore:
+    @BaseService.require_organizer
+    async def assign_team_to_slot(
+            self,
+            event_id: UUID,
+            issuer_id: UUID,
+            match_id: UUID,
+            slot_num: int,
+            team_id: UUID,
+    ) -> MatchScore:
         """Place a team into a match slot (creates a MatchScore stub with score=0)."""
         slot = await self._get_slot_by_num(match_id, slot_num)
+        # TODO: verify match.event_id == event_id
 
         existing = await self._score_repo.get_by_slot_id(slot.id)
         if existing:
@@ -288,8 +357,17 @@ class MatchService:
         logger.info("Assigned team %s to match %s slot %d", team_id, match_id, slot_num)
         return ms
 
-    async def clear_slot(self, match_id: UUID, slot_num: int) -> None:
+    @BaseService.require_organizer
+    async def clear_slot(
+            self,
+            event_id: UUID,
+            issuer_id: UUID,
+            match_id: UUID,
+            slot_num: int,
+    ) -> None:
         slot = await self._get_slot_by_num(match_id, slot_num)
+        # TODO: verify match.event_id == event_id
+
         existing = await self._score_repo.get_by_slot_id(slot.id)
         if existing:
             await self._score_repo.delete(existing.id)

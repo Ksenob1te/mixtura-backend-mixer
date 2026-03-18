@@ -20,6 +20,7 @@ from uuid import UUID
 from src.domain.exceptions import (
     BadRequestException,
     ConflictException,
+    ForbiddenException,
     NotFoundException,
 )
 from src.infra.postgre.exceptions import IntegrityUniqueException
@@ -170,10 +171,12 @@ class DraftService(BaseService):
 
     # ── generate teams ───────────────────────────
 
+    @BaseService.require_organizer
     async def generate_teams(
             self,
-            draft_id: UUID,
+            event_id: UUID,
             issuer_id: UUID,
+            draft_id: UUID,
             *,
             method: str | None = None,
     ) -> list[Team]:
@@ -184,12 +187,15 @@ class DraftService(BaseService):
         draft teams and regenerates from scratch.
         """
         draft = await self._get_draft_or_404(draft_id)
+        if draft.event_id != event_id:
+             raise BadRequestException("Draft does not belong to the specified event")
+
         await self._assert_draft_mutable(draft)
         event = await self._get_event_for_draft(draft)
-        await self._assert_organizer(event.id, issuer_id)
 
         formation = TeamFormation(method) if method else event.team_formation
         team_size = event.team_size
+
 
         infos = await self._build_player_infos(draft_id, event.id)
         if len(infos) < team_size:
@@ -243,25 +249,34 @@ class DraftService(BaseService):
 
     # ── reroll ───────────────────────────────────
 
-    async def reroll(self, draft_id: UUID, issuer_id: UUID) -> list[Team]:
+    @BaseService.require_organizer
+    async def reroll(self, event_id: UUID, issuer_id: UUID, draft_id: UUID) -> list[Team]:
         """Discard current team assignments and re-run generation."""
-        return await self.generate_teams(draft_id, issuer_id)
+        draft = await self._get_draft_or_404(draft_id)
+        if draft.event_id != event_id:
+             raise BadRequestException("Draft does not belong to the specified event")
+
+        return await self.generate_teams(event_id, issuer_id, draft_id)
 
     # ── manual swap ──────────────────────────────
 
+    @BaseService.require_organizer
     async def manual_swap(
             self,
-            draft_id: UUID,
+            event_id: UUID,
             issuer_id: UUID,
+            draft_id: UUID,
             player_a_member_id: UUID,
             player_b_member_id: UUID,
     ) -> None:
         """Swap two players between their draft teams."""
         draft = await self._get_draft_or_404(draft_id)
+        if draft.event_id != event_id:
+             raise BadRequestException("Draft does not belong to the specified event")
+
         await self._assert_draft_mutable(draft)
         event = await self._get_event_for_draft(draft)
-        await self._assert_organizer(event.id, issuer_id)
-
+        
         teams = await self._team_repo.list_by_event(event.id)
         draft_teams = {t.id: t for t in teams if t.draft_id == draft_id}
 
@@ -286,19 +301,23 @@ class DraftService(BaseService):
 
     # ── move player ──────────────────────────────
 
+    @BaseService.require_organizer
     async def move_player(
             self,
-            draft_id: UUID,
+            event_id: UUID,
             issuer_id: UUID,
+            draft_id: UUID,
             member_id: UUID,
             target_team_id: UUID,
     ) -> None:
         """Move a player from their current draft team to *target_team_id*."""
         draft = await self._get_draft_or_404(draft_id)
+        if draft.event_id != event_id:
+             raise BadRequestException("Draft does not belong to the specified event")
+
         await self._assert_draft_mutable(draft)
         event = await self._get_event_for_draft(draft)
-        await self._assert_organizer(event.id, issuer_id)
-
+        
         teams = await self._team_repo.list_by_event(event.id)
         draft_team_ids = {t.id for t in teams if t.draft_id == draft_id}
 
@@ -323,18 +342,22 @@ class DraftService(BaseService):
 
     # ── pin / unpin ──────────────────────────────
 
+    @BaseService.require_organizer
     async def pin_player(
             self,
-            draft_id: UUID,
+            event_id: UUID,
             issuer_id: UUID,
+            draft_id: UUID,
             event_player_id: UUID,
             pinned: bool = True,
     ) -> EventPlayer:
         """Pin a player so they survive rerolls."""
         draft = await self._get_draft_or_404(draft_id)
-        await self._assert_draft_mutable(draft)
-        await self._assert_organizer(draft.event_id, issuer_id)
+        if draft.event_id != event_id:
+             raise BadRequestException("Draft does not belong to the specified event")
 
+        await self._assert_draft_mutable(draft)
+        
         player = await self._player_repo.get(event_player_id)
         if player is None:
             raise NotFoundException("EventPlayer not found")
@@ -344,18 +367,22 @@ class DraftService(BaseService):
 
     # ── captain ──────────────────────────────────
 
+    @BaseService.require_organizer
     async def set_captain(
             self,
-            draft_id: UUID,
+            event_id: UUID,
             issuer_id: UUID,
+            draft_id: UUID,
             event_player_id: UUID,
             is_captain: bool = True,
     ) -> DraftedPlayer:
         """Set (or unset) the captain flag for a drafted player."""
         draft = await self._get_draft_or_404(draft_id)
-        await self._assert_draft_mutable(draft)
-        await self._assert_organizer(draft.event_id, issuer_id)
+        if draft.event_id != event_id:
+             raise BadRequestException("Draft does not belong to the specified event")
 
+        await self._assert_draft_mutable(draft)
+        
         all_dp = await self._dp_repo.list_by_draft(draft_id)
         dp = next((d for d in all_dp if d.event_player_id == event_player_id), None)
         if dp is None:
@@ -425,6 +452,80 @@ class DraftService(BaseService):
 
     async def list_drafts(self, event_id: UUID) -> Sequence[Draft]:
         return await self._draft_repo.list_by_event(event_id)
+
+    # ── captain pick ─────────────────────────────
+
+    async def pick_player(
+        self,
+        draft_id: UUID,
+        captain_member_id: UUID,
+        target_member_id: UUID,
+    ) -> TeamPlayer:
+        """
+        Captain picks an available player into their team.
+        """
+        draft = await self._get_draft_or_404(draft_id)
+        await self._assert_draft_mutable(draft)
+        event = await self._get_event_for_draft(draft)
+
+        # 1. Identify valid captain and their team
+        teams = await self._team_repo.list_by_event(event.id)
+        draft_teams = [t for t in teams if t.draft_id == draft_id]
+
+        captain_team: Team | None = None
+        for team in draft_teams:
+            roster = await self._tp_repo.list_by_team(team.id)
+            # Check if this team contains the requester and if they are marked as captain
+            # We check DraftedPlayer for the captain flag
+            for tp in roster:
+                if tp.member_id == captain_member_id:
+                    # Found the team, now verify captaincy
+                    # Map member -> event_player -> drafted_player
+                    player = await self._player_repo.get_by_event_and_member(event.id, captain_member_id)
+                    if player:
+                        dp_list = await self._dp_repo.list_by_draft(draft_id)
+                        dp = next((d for d in dp_list if d.event_player_id == player.id), None)
+                        if dp and dp.is_captain:
+                            captain_team = team
+                    break
+            if captain_team:
+                break
+
+        if captain_team is None:
+            raise ForbiddenException("You are not a captain of any team in this draft")
+
+        # 2. Check team capacity
+        current_roster = await self._tp_repo.list_by_team(captain_team.id)
+        if len(current_roster) >= event.team_size:
+            raise ConflictException("Your team is already full")
+
+        # 3. Verify target player is available
+        # They must be in the approved pool (EventPlayer) but NOT in any team
+        target_player = await self._player_repo.get_by_event_and_member(event.id, target_member_id)
+        if target_player is None:
+            raise NotFoundException("Target player is not registered for this event")
+
+        # Check if already taken
+        for team in draft_teams:
+            roster = await self._tp_repo.list_by_team(team.id)
+            if any(tp.member_id == target_member_id for tp in roster):
+                raise ConflictException("Player is already in a team")
+
+        # 4. Assign
+        default_role_id = await self._resolve_default_role_id(event.id)
+        # We need a rating snapshot, usually 0.0 or fetched from ext service
+        tp = TeamPlayer(
+            team_id=captain_team.id,
+            member_id=target_member_id,
+            game_role_id=default_role_id,
+            rating=0.0,
+        )
+        tp = await self._tp_repo.create(tp)
+        logger.info(
+            "Draft %s: Captain %s picked %s into team %s",
+            draft_id, captain_member_id, target_member_id, captain_team.id,
+        )
+        return tp
 
     async def get_draft_players(self, draft_id: UUID) -> Sequence[DraftedPlayer]:
         return await self._dp_repo.list_by_draft(draft_id)

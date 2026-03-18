@@ -46,3 +46,10 @@ class EventRepository(BaseRepository[Event]):
             options.append(selectinload(Event.brackets))
 
         return await super()._get(field_id, options=options)
+
+    async def list_public(self, offset: int, limit: int) -> Sequence[Event]:
+        return await self.list(
+            offset, limit, None,
+            Event.is_public.is_(True)
+        )
+        return await self.list(0, 1000, None, Event.status == status)

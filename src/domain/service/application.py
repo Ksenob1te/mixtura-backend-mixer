@@ -182,18 +182,20 @@ class ApplicationService(BaseService):
 
     # ── status management (organizer) ────────────
 
+    @BaseService.require_organizer
     async def manage_status(
             self,
-            application_id: UUID,
+            event_id: UUID,
             issuer_id: UUID,
+            application_id: UUID,
             new_status: ApplicationStatus,
     ) -> Application:
         """Approve / reject / waitlist a single application."""
         application = await self._app_repo.get(application_id)
         if application is None:
             raise NotFoundException("Application not found")
-
-        await self._assert_organizer(application.event_id, issuer_id)
+        if application.event_id != event_id:
+             raise BadRequestException("Application does not belong to the specified event")
 
         application.status = new_status
         application.is_approved = new_status == ApplicationStatus.APPROVED

@@ -25,6 +25,15 @@ class TeamFormation(str, enum.Enum):
     MANUAL = "MANUAL"
 
 
+class EventStatus(str, enum.Enum):
+    CREATED = "CREATED"
+    REGISTRATION = "REGISTRATION"
+    FORMATION = "FORMATION"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+
 class Event(Base):
     """
     Event table stores the configuration and status of an event.
@@ -38,6 +47,8 @@ class Event(Base):
     team_size: Mapped[int] = mapped_column()
     registration_type: Mapped[str] = mapped_column()
     team_formation: Mapped[TeamFormation] = mapped_column()
+    status: Mapped[EventStatus] = mapped_column(default=EventStatus.CREATED)
+
     allow_multiple_drafts: Mapped[bool] = mapped_column(default=False)
     rating_set_id: Mapped[UUID | None] = mapped_column(nullable=True)
 
