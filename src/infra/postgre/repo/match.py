@@ -1,8 +1,9 @@
 from uuid import UUID
 from typing import Sequence
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
-from ..models import Match, MatchSlot
+from ..models import Match, MatchSlot, StageGroup, Stage, Bracket
 from .base import BaseRepository
 
 
@@ -28,3 +29,16 @@ class MatchRepository(BaseRepository[Match]):
             offset, limit, None,
             Match.group_id == group_id
         )
+
+    async def count_incomplete_matches_by_event(self, event_id: UUID) -> int:
+        """Return the number of matches in the event that have not ended."""
+        stmt = (
+            select(func.count(Match.id))
+            .join(StageGroup, Match.group_id == StageGroup.id)
+            .join(Stage, StageGroup.stage_id == Stage.id)
+            .join(Bracket, Stage.bracket_id == Bracket.id)
+            .where(Bracket.event_id == event_id)
+            .where(Match.time_end.is_(None))
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar() or 0

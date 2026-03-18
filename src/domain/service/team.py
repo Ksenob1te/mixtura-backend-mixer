@@ -25,6 +25,7 @@ from src.infra.postgre.models import (
     Team,
     TeamPlayer,
 )
+from src.infra.postgre.models.event import EventStatus
 from src.infra.postgre.repo import (
     DraftedPlayerRepository,
     EventRepository,
@@ -117,6 +118,9 @@ class TeamService(BaseService):
         """
         event = await self._fetch_event(event_id)
 
+        if event.status != EventStatus.REGISTRATION:
+            raise BadRequestException(f"Cannot register team in {event.status} status")
+
         if captain_id not in player_member_ids:
             raise BadRequestException("Captain must be one of the team players")
         if len(player_member_ids) != event.team_size:
@@ -161,6 +165,10 @@ class TeamService(BaseService):
         team = await self._get_team_or_404(team_id)
         await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
 
+        event = await self._fetch_event(team.event_id)
+        if event.status not in [EventStatus.REGISTRATION, EventStatus.FORMATION, EventStatus.IN_PROGRESS]:
+            raise BadRequestException(f"Cannot rename team in {event.status} status")
+
         stripped = new_name.strip()
         if not stripped:
             raise BadRequestException("Team name cannot be empty")
@@ -187,6 +195,10 @@ class TeamService(BaseService):
         """
         team = await self._get_team_or_404(team_id)
         await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
+
+        event = await self._fetch_event(team.event_id)
+        if event.status not in [EventStatus.REGISTRATION, EventStatus.FORMATION]:
+            raise BadRequestException(f"Cannot change captain in {event.status} status")
 
         if team.draft_id is None:
             raise BadRequestException("Captaincy is only tracked for draft-originated teams")
@@ -230,6 +242,9 @@ class TeamService(BaseService):
         await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
 
         event = await self._fetch_event(team.event_id)
+        if event.status not in [EventStatus.REGISTRATION, EventStatus.FORMATION]:
+            raise BadRequestException(f"Cannot add player in {event.status} status")
+
         roster = await self._tp_repo.list_by_team(team_id)
         if len(roster) >= event.team_size:
             raise ConflictException("Team is already full")
@@ -248,6 +263,10 @@ class TeamService(BaseService):
         """Remove a player from the roster. Organizer or captain only."""
         team = await self._get_team_or_404(team_id)
         await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
+
+        event = await self._fetch_event(team.event_id)
+        if event.status not in [EventStatus.REGISTRATION, EventStatus.FORMATION]:
+            raise BadRequestException(f"Cannot remove player in {event.status} status")
 
         roster = await self._tp_repo.list_by_team(team_id)
         tp = next((t for t in roster if t.member_id == member_id), None)
@@ -272,6 +291,10 @@ class TeamService(BaseService):
         """
         team = await self._get_team_or_404(team_id)
         await self._assert_organizer_or_captain(team.event_id, team_id, issuer_id)
+
+        event = await self._fetch_event(team.event_id)
+        if event.status not in [EventStatus.REGISTRATION, EventStatus.FORMATION, EventStatus.IN_PROGRESS]:
+            raise BadRequestException(f"Cannot substitute player in {event.status} status")
 
         roster = await self._tp_repo.list_by_team(team_id)
         old_tp = next((t for t in roster if t.member_id == old_member_id), None)
@@ -375,6 +398,10 @@ class TeamService(BaseService):
         team = await self._get_team_or_404(team_id)
         if team.event_id != event_id:
              raise BadRequestException("Team does not belong to the specified event")
+
+        event = await self._fetch_event(event_id)
+        if event.status not in [EventStatus.REGISTRATION, EventStatus.FORMATION]:
+            raise BadRequestException(f"Cannot disband team in {event.status} status")
         
         await self._team_repo.delete(team_id)
         logger.info("Team %s disbanded by %s", team_id, issuer_id)

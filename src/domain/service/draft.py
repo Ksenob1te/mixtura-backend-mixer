@@ -23,16 +23,16 @@ from src.domain.exceptions import (
     ForbiddenException,
     NotFoundException,
 )
-from src.infra.postgre.exceptions import IntegrityUniqueException
 from src.infra.postgre.models import (
     Draft,
+    DraftStatus,
     DraftedPlayer,
     EventPlayer,
     Team,
     TeamPlayer,
+    TeamFormation,
+    EventStatus,
 )
-from src.infra.postgre.models.draft import DraftStatus
-from src.infra.postgre.models.event import TeamFormation
 from src.infra.postgre.repo import (
     DraftRepository,
     DraftedPlayerRepository,
@@ -145,6 +145,17 @@ class DraftService(BaseService):
         Creates a DraftedPlayer snapshot for every EventPlayer.
         """
         event = await self._fetch_event(event_id)
+        
+        # Auto-transition: REGISTRATION -> FORMATION
+        if event.status == EventStatus.REGISTRATION:
+            try:
+                event.transition_to(EventStatus.FORMATION)
+                event = await self._event_repo.update(event)
+            except ValueError as e:
+                raise BadRequestException(str(e))
+                
+        if event.status != EventStatus.FORMATION:
+            raise BadRequestException(f"Draft can only be initialized during FORMATION phase (current: {event.status})")
 
         existing = await self._draft_repo.list_by_event(event_id)
         open_drafts = [d for d in existing if d.status != DraftStatus.COMPLETED]
@@ -192,6 +203,8 @@ class DraftService(BaseService):
 
         await self._assert_draft_mutable(draft)
         event = await self._get_event_for_draft(draft)
+        if event.status != EventStatus.FORMATION:
+            raise BadRequestException(f"Teams can only be generated during FORMATION phase (current: {event.status})")
 
         formation = TeamFormation(method) if method else event.team_formation
         team_size = event.team_size

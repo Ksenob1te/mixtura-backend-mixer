@@ -12,10 +12,12 @@ from src.infra.postgre.exceptions import IntegrityUniqueException
 from src.infra.postgre.models import (
     Application,
     ApplicationIntegration,
+    Event,
     EventPlayer,
     FilledApplicationField,
 )
 from src.infra.postgre.models.application import ApplicationStatus
+from src.infra.postgre.models.event import EventStatus
 from src.infra.postgre.repo import (
     ApplicationCustomFieldRepository,
     ApplicationIntegrationRepository,
@@ -54,8 +56,11 @@ class ApplicationService(BaseService):
 
     # ── private helpers ──────────────────────────
 
-    async def _assert_registration_open(self, event_id: UUID) -> None:
-        ts = await self._time_settings_repo.get_by_event_id(event_id)
+    async def _assert_registration_open(self, event: Event) -> None:
+        if event.status != EventStatus.REGISTRATION:
+            raise BadRequestException(f"Event registration is not open (status: {event.status})")
+
+        ts = await self._time_settings_repo.get_by_event_id(event.id)
         if ts is None:
             return  # No window → always open (typical for MIX)
         now = datetime.now(timezone.utc)
@@ -98,7 +103,7 @@ class ApplicationService(BaseService):
         """
         event = await self._fetch_event(event_id)
         await self._assert_no_duplicate(event_id, member_id)
-        await self._assert_registration_open(event_id)
+        await self._assert_registration_open(event)
 
         # Capacity check
         player_count = await self._player_repo.count(EventPlayer.event_id == event_id)
@@ -143,7 +148,7 @@ class ApplicationService(BaseService):
         """
         event = await self._fetch_event(event_id)
         await self._assert_no_duplicate(event_id, member_id)
-        await self._assert_registration_open(event_id)
+        await self._assert_registration_open(event)
 
         # Validate required custom fields
         if event.use_application:

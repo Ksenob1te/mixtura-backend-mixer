@@ -1,4 +1,4 @@
-from .event import Event
+from .event import Event, EventStatus, TeamFormation
 from .organizer import Organizer
 from .selected_game_role import SelectedGameRole
 from .required_integration import RequiredIntegration
@@ -9,7 +9,7 @@ from .filled_application_field import FilledApplicationField
 from .application_integration import ApplicationIntegration
 from .event_player import EventPlayer
 from .player_role import PlayerRole
-from .draft import Draft
+from .draft import Draft, DraftStatus
 from .drafted_player import DraftedPlayer
 from .team import Team
 from .team_player import TeamPlayer

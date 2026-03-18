@@ -14,11 +14,12 @@ from src.infra.postgre.models import (
     ApplicationCustomField,
     ApplicationTimeSettings,
     Event,
+    EventStatus,
     Organizer,
     RequiredIntegration,
     SelectedGameRole,
+    TeamFormation,
 )
-from src.infra.postgre.models.event import TeamFormation
 from src.infra.postgre.repo import (
     ApplicationCustomFieldRepository,
     ApplicationTimeSettingsRepository,
@@ -301,7 +302,11 @@ class EventService(BaseService):
             if ts is None or ts.start_time is None:
                 raise BadRequestException("Tournament events require a registration time window")
 
-        event.registration_type = "OPEN"
+        try:
+            event.transition_to(EventStatus.REGISTRATION)
+        except ValueError as e:
+            raise BadRequestException(str(e))
+
         event = await self._event_repo.update(event)
         self.logger.info("Event %s published by %s", event_id, issuer_id)
         return event
@@ -311,7 +316,11 @@ class EventService(BaseService):
         """Cancel the event."""
         event = await self._fetch_event(event_id)
 
-        event.registration_type = "CANCELLED"
+        try:
+            event.transition_to(EventStatus.CANCELLED)
+        except ValueError as e:
+            raise BadRequestException(str(e))
+
         event = await self._event_repo.update(event)
         self.logger.info("Event %s cancelled by %s (reason=%s)", event_id, issuer_id, reason)
         return event

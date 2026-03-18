@@ -34,6 +34,16 @@ class EventStatus(str, enum.Enum):
     CANCELLED = "CANCELLED"
 
 
+EVENT_STATUS_TRANSITIONS = {
+    EventStatus.CREATED: {EventStatus.REGISTRATION, EventStatus.CANCELLED},
+    EventStatus.REGISTRATION: {EventStatus.FORMATION, EventStatus.CANCELLED},
+    EventStatus.FORMATION: {EventStatus.IN_PROGRESS, EventStatus.REGISTRATION, EventStatus.CANCELLED},
+    EventStatus.IN_PROGRESS: {EventStatus.COMPLETED, EventStatus.CANCELLED},
+    EventStatus.COMPLETED: {EventStatus.IN_PROGRESS},  # Allow reopening if needed?
+    EventStatus.CANCELLED: set(),
+}
+
+
 class Event(Base):
     """
     Event table stores the configuration and status of an event.
@@ -76,3 +86,16 @@ class Event(Base):
     time_settings: Mapped["ApplicationTimeSettings"] = relationship("ApplicationTimeSettings", back_populates="event",
                                                                     uselist=False, cascade="all, delete-orphan",
                                                                     lazy="raise")
+
+    def validate_transition(self, new_status: EventStatus) -> None:
+        allowed = EVENT_STATUS_TRANSITIONS.get(self.status, set())
+        if new_status not in allowed:
+            raise ValueError(
+                f"Invalid status transition: {self.status} -> {new_status}. Allowed: {allowed}"
+            )
+
+    def transition_to(self, new_status: EventStatus) -> None:
+        if self.status == new_status:
+            return
+        self.validate_transition(new_status)
+        self.status = new_status

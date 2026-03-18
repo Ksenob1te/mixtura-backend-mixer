@@ -35,6 +35,7 @@ from src.infra.postgre.models import (
     Stage,
     StageGroup,
     SwissSettings,
+    EventStatus,
 )
 from src.infra.postgre.models.match import BracketPosition
 from src.infra.postgre.models.match_slot import MatchSlotSourceType
@@ -423,7 +424,7 @@ class TournamentService(BaseService):
         # Ensure we have a group to hold the matches
         groups = await self._group_repo.list_by_stage(stage_id)
         if not groups:
-            group = await self.create_group(stage_id, organizer_id, name="Main Bracket")
+            group = await self.create_group(stage_id, issuer_id, name="Main Bracket")
         else:
             group = groups[0]
 
@@ -556,7 +557,7 @@ class TournamentService(BaseService):
 
         groups = await self._group_repo.list_by_stage(stage_id)
         if not groups:
-            group = await self.create_group(stage_id, organizer_id, name="Double Elim Bracket")
+            group = await self.create_group(stage_id, issuer_id, name="Double Elim Bracket")
         else:
             group = groups[0]
 
@@ -1188,6 +1189,7 @@ class TournamentService(BaseService):
     #  12. START STAGE
     # ══════════════════════════════════════════════
 
+    @BaseService.require_organizer
     async def start_stage(
             self,
             stage_id: UUID,
@@ -1206,6 +1208,15 @@ class TournamentService(BaseService):
         if bracket is None:
             raise NotFoundException("Bracket not found")
         await self._assert_organizer(bracket.event_id, organizer_id)
+
+        # Auto-transition: REGISTRATION -> FORMATION
+        event = await self._event_repo.get(bracket.event_id)
+        if event and event.status == EventStatus.REGISTRATION:
+            try:
+                event.transition_to(EventStatus.FORMATION)
+                await self._event_repo.update(event)
+            except ValueError:
+                pass  # Ignore if invalid, logic might validly proceed or fail later
 
         fmt = stage.format.upper()
 

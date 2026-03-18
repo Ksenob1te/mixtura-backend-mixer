@@ -21,6 +21,7 @@ from src.infra.postgre.models import (
     Match,
     MatchScore,
     MatchSlot,
+    EventStatus,
 )
 from src.infra.postgre.repo import (
     EventRepository,
@@ -105,7 +106,13 @@ class MatchService(BaseService):
             scheduled_at: datetime,
     ) -> Match:
         match = await self._get_match_or_404(match_id)
-        # TODO: verify match.event_id == event_id
+
+        event = await self._event_repo.get(event_id)
+        if event is None:
+            raise NotFoundException("Event not found")
+
+        if event.status not in [EventStatus.FORMATION, EventStatus.IN_PROGRESS]:
+            raise BadRequestException(f"Cannot schedule match in {event.status} status")
 
         match.scheduled_at = scheduled_at
         match = await self._match_repo.update(match)
@@ -121,7 +128,13 @@ class MatchService(BaseService):
             new_time: datetime,
     ) -> Match:
         match = await self._get_match_or_404(match_id)
-        # TODO: verify match.event_id == event_id
+
+        event = await self._event_repo.get(event_id)
+        if event is None:
+            raise NotFoundException("Event not found")
+        
+        if event.status not in [EventStatus.FORMATION, EventStatus.IN_PROGRESS]:
+            raise BadRequestException(f"Cannot reschedule match in {event.status} status")
 
         if match.time_start is not None:
             raise ConflictException("Cannot reschedule a match that has already started")
@@ -136,7 +149,21 @@ class MatchService(BaseService):
     async def start_match(self, event_id: UUID, issuer_id: UUID, match_id: UUID) -> Match:
         """Both slots must have teams assigned before the match can start."""
         match = await self._get_match_or_404(match_id)
-        # TODO: verify match.event_id == event_id
+
+        event = await self._event_repo.get(event_id)
+        if event is None:
+            raise NotFoundException("Event not found")
+        
+        # Auto-transition: FORMATION -> IN_PROGRESS
+        if event.status == EventStatus.FORMATION:
+            try:
+                event.transition_to(EventStatus.IN_PROGRESS)
+                event = await self._event_repo.update(event)
+            except ValueError as e:
+                raise BadRequestException(str(e))
+
+        if event.status != EventStatus.IN_PROGRESS:
+            raise BadRequestException(f"Cannot start match in {event.status} status (must be IN_PROGRESS)")
 
         if match.time_start is not None:
             raise ConflictException("Match has already started")
@@ -158,7 +185,6 @@ class MatchService(BaseService):
     @BaseService.require_organizer
     async def end_match(self, event_id: UUID, issuer_id: UUID, match_id: UUID) -> Match:
         match = await self._get_match_or_404(match_id)
-        # TODO: verify match.event_id == event_id
 
         if match.time_start is None:
             raise ConflictException("Match has not started yet")
@@ -167,6 +193,19 @@ class MatchService(BaseService):
 
         match.time_end = datetime.now(timezone.utc)
         match = await self._match_repo.update(match)
+
+        # Check for event completion
+        incomplete_count = await self._match_repo.count_incomplete_matches_by_event(event_id)
+        if incomplete_count == 0:
+            event = await self._event_repo.get(event_id)
+            if event and event.status == EventStatus.IN_PROGRESS:
+                try:
+                    event.transition_to(EventStatus.COMPLETED)
+                    await self._event_repo.update(event)
+                    logger.info("Event %s completed (all matches finished)", event_id)
+                except ValueError:
+                    logger.warning("Could not auto-complete event %s", event_id)
+
         logger.info("Match %s ended", match_id)
         return match
 
@@ -186,7 +225,13 @@ class MatchService(BaseService):
         *scores* maps ``slot_num`` → ``{"team_id": UUID, "score": int}``.
         """
         await self._get_match_or_404(match_id)
-        # TODO: verify match.event_id == event_id
+        
+        event = await self._event_repo.get(event_id)
+        if event is None:
+            raise NotFoundException("Event not found")
+        
+        if event.status != EventStatus.IN_PROGRESS:
+             raise BadRequestException(f"Cannot report scores in {event.status} status (must be IN_PROGRESS)")
 
         slots = await self._slot_repo.list_by_match(match_id)
         slot_map = {s.slot_num: s for s in slots}
@@ -222,9 +267,10 @@ class MatchService(BaseService):
             slot_num: int,
             score_val: int,
     ) -> MatchScore:
-        slot = await self._get_slot_by_num(match_id, slot_num)
-        # TODO: verify match.event_id == event_id
+        match = await self._get_match_or_404(match_id)
 
+        slot = await self._get_slot_by_num(match_id, slot_num)
+        
         existing = await self._score_repo.get_by_slot_id(slot.id)
         if existing is None:
             raise BadRequestException("No score to override — report first")
@@ -277,7 +323,6 @@ class MatchService(BaseService):
     ) -> Match:
         """Nullify a match — remove scores and reset timestamps."""
         match = await self._get_match_or_404(match_id)
-        # TODO: verify match.event_id == event_id
 
         for slot in await self._slot_repo.list_by_match(match_id):
             ms = await self._score_repo.get_by_slot_id(slot.id)
@@ -301,9 +346,9 @@ class MatchService(BaseService):
             default_score_loser: int = 0,
     ) -> list[MatchScore]:
         """Record a forfeit — the opposing team wins by default scores."""
-        slots = await self._slot_repo.list_by_match(match_id)
-        # TODO: verify match.event_id == event_id
+        match = await self._get_match_or_404(match_id)
 
+        slots = await self._slot_repo.list_by_match(match_id)
         if len(slots) < _MIN_SLOTS:
             raise BadRequestException(f"Match needs at least {_MIN_SLOTS} slots")
 
@@ -344,8 +389,9 @@ class MatchService(BaseService):
             team_id: UUID,
     ) -> MatchScore:
         """Place a team into a match slot (creates a MatchScore stub with score=0)."""
+        match = await self._get_match_or_404(match_id)
+
         slot = await self._get_slot_by_num(match_id, slot_num)
-        # TODO: verify match.event_id == event_id
 
         existing = await self._score_repo.get_by_slot_id(slot.id)
         if existing:
@@ -365,8 +411,9 @@ class MatchService(BaseService):
             match_id: UUID,
             slot_num: int,
     ) -> None:
+        match = await self._get_match_or_404(match_id)
+
         slot = await self._get_slot_by_num(match_id, slot_num)
-        # TODO: verify match.event_id == event_id
 
         existing = await self._score_repo.get_by_slot_id(slot.id)
         if existing:
