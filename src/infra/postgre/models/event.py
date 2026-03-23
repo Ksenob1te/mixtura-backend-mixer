@@ -2,9 +2,9 @@ import enum
 from typing import TYPE_CHECKING
 import uuid
 from uuid import UUID
-from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
+from src.env_config import env
 
 if TYPE_CHECKING:
     from .application import Application
@@ -19,29 +19,23 @@ if TYPE_CHECKING:
     from .application_time_settings import ApplicationTimeSettings
 
 
-class TeamFormation(str, enum.Enum):
-    DRAFT = "DRAFT"
-    BALANCE = "BALANCE"
-    MANUAL = "MANUAL"
-
-
 class EventStatus(str, enum.Enum):
     CREATED = "CREATED"
     REGISTRATION = "REGISTRATION"
+    IDLE = "IDLE"
     FORMATION = "FORMATION"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
 
 
-EVENT_STATUS_TRANSITIONS = {
-    EventStatus.CREATED: {EventStatus.REGISTRATION, EventStatus.CANCELLED},
-    EventStatus.REGISTRATION: {EventStatus.FORMATION, EventStatus.CANCELLED},
-    EventStatus.FORMATION: {EventStatus.IN_PROGRESS, EventStatus.REGISTRATION, EventStatus.CANCELLED},
-    EventStatus.IN_PROGRESS: {EventStatus.COMPLETED, EventStatus.CANCELLED},
-    EventStatus.COMPLETED: {EventStatus.IN_PROGRESS},  # Allow reopening if needed?
-    EventStatus.CANCELLED: set(),
-}
+class TeamFormation(str, enum.Enum):
+    DRAFT = "DRAFT"
+    BALANCE = "BALANCE"
+    MANUAL = "MANUAL"
+
+
+EVENT_STATUS_TRANSITIONS = env.event_flow.get_transitions(EventStatus)
 
 
 class Event(Base):
@@ -57,7 +51,7 @@ class Event(Base):
     team_size: Mapped[int] = mapped_column()
     registration_type: Mapped[str] = mapped_column()
     team_formation: Mapped[TeamFormation] = mapped_column()
-    status: Mapped[EventStatus] = mapped_column(default=EventStatus.CREATED)
+    status: Mapped[EventStatus] = mapped_column(default=EventStatus.CREATED)  # type: ignore
 
     allow_multiple_drafts: Mapped[bool] = mapped_column(default=False)
     rating_set_id: Mapped[UUID | None] = mapped_column(nullable=True)
@@ -87,7 +81,7 @@ class Event(Base):
                                                                     uselist=False, cascade="all, delete-orphan",
                                                                     lazy="raise")
 
-    def validate_transition(self, new_status: EventStatus) -> None:
+    def _validate_transition(self, new_status: EventStatus) -> None:  # type: ignore
         allowed = EVENT_STATUS_TRANSITIONS.get(self.status, set())
         if new_status not in allowed:
             raise ValueError(
@@ -97,5 +91,5 @@ class Event(Base):
     def transition_to(self, new_status: EventStatus) -> None:
         if self.status == new_status:
             return
-        self.validate_transition(new_status)
+        self._validate_transition(new_status)
         self.status = new_status

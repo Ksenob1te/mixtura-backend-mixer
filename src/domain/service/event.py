@@ -137,8 +137,14 @@ class EventService(BaseService):
         return event
 
     @BaseService.require_organizer
-    async def add_organizer(self, event_id: UUID, issuer_id: UUID, target_member_id: UUID) -> Organizer:
+    async def add_organizer(
+            self,
+            event_id: UUID,
+            issuer_id: UUID,
+            target_member_id: UUID
+    ) -> Organizer:
         """Add a co-organizer. Requester must already be an organizer."""
+        _ = issuer_id  # used by @require_organizer
         await self._fetch_event(event_id)
 
         try:
@@ -151,6 +157,7 @@ class EventService(BaseService):
     @BaseService.require_organizer
     async def remove_organizer(self, event_id: UUID, issuer_id: UUID, target_member_id: UUID) -> None:
         """Remove a co-organizer. Cannot remove the last remaining one."""
+        _ = issuer_id  # used by @require_organizer
         await self._fetch_event(event_id)
 
         organizers = await self._organizer_repo.list_by_event(event_id)
@@ -175,6 +182,7 @@ class EventService(BaseService):
             end_time: datetime | None = None,
     ) -> ApplicationTimeSettings:
         """Set or replace the registration / check-in time window."""
+        _ = issuer_id  # used by @require_organizer
         await self._fetch_event(event_id)
 
         if start_time and end_time and end_time <= start_time:
@@ -303,7 +311,7 @@ class EventService(BaseService):
                 raise BadRequestException("Tournament events require a registration time window")
 
         try:
-            event.transition_to(EventStatus.REGISTRATION)
+            event.open_registration()
         except ValueError as e:
             raise BadRequestException(str(e))
 
@@ -317,7 +325,7 @@ class EventService(BaseService):
         event = await self._fetch_event(event_id)
 
         try:
-            event.transition_to(EventStatus.CANCELLED)
+            event.cancel_event()
         except ValueError as e:
             raise BadRequestException(str(e))
 

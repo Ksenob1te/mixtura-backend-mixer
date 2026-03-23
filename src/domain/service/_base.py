@@ -36,7 +36,7 @@ class BaseService:
         return wrapper
 
     async def _assert_organizer(self, event_id: UUID, member_id: UUID) -> None:
-        """Raise ``ForbiddenException`` unless *member_id* is an organizer of *event_id*."""
+        """Raise ``ForbiddenException`` unless member_id is an organizer of event_id."""
         organizers = await self._organizer_repo.list_by_event(event_id)
         if not any(o.member_id == member_id for o in organizers):
             raise ForbiddenException("You are not an organizer of this event")

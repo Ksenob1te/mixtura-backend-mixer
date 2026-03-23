@@ -200,7 +200,7 @@ class ApplicationService(BaseService):
         if application is None:
             raise NotFoundException("Application not found")
         if application.event_id != event_id:
-             raise BadRequestException("Application does not belong to the specified event")
+            raise BadRequestException("Application does not belong to the specified event")
 
         application.status = new_status
         application.is_approved = new_status == ApplicationStatus.APPROVED
@@ -264,8 +264,6 @@ class ApplicationService(BaseService):
         logger.info("Bulk rejected %d applications for event %s", len(targets), event_id)
         return len(targets)
 
-    # ── check-in ─────────────────────────────────
-
     async def check_in(self, event_id: UUID, member_id: UUID) -> Application:
         """Mark an approved player as present before the event starts."""
         await self._fetch_event(event_id)
@@ -322,8 +320,6 @@ class ApplicationService(BaseService):
         await self._remove_event_player(event_id, member_id)
         await self._app_repo.delete(app.id)
         logger.info("Member %s left event %s", member_id, event_id)
-
-    # ── waitlist ─────────────────────────────────
 
     async def get_waitlist(self, event_id: UUID) -> list[Application]:
         """Return waitlisted applications in FIFO order."""

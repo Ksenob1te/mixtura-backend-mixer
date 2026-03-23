@@ -1213,7 +1213,7 @@ class TournamentService(BaseService):
         event = await self._event_repo.get(bracket.event_id)
         if event and event.status == EventStatus.REGISTRATION:
             try:
-                event.transition_to(EventStatus.FORMATION)
+                event.start_formation()
                 await self._event_repo.update(event)
             except ValueError:
                 pass  # Ignore if invalid, logic might validly proceed or fail later

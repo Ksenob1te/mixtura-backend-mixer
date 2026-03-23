@@ -149,7 +149,7 @@ class DraftService(BaseService):
         # Auto-transition: REGISTRATION -> FORMATION
         if event.status == EventStatus.REGISTRATION:
             try:
-                event.transition_to(EventStatus.FORMATION)
+                event.start_formation()
                 event = await self._event_repo.update(event)
             except ValueError as e:
                 raise BadRequestException(str(e))

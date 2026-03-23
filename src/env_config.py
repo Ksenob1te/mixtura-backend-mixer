@@ -1,5 +1,9 @@
+import configparser
+import os
+import enum
+from typing import Dict, Set, Any
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 
 class LocalSettings(BaseSettings):
@@ -41,10 +45,44 @@ class RabbitConfig(LocalSettings):
         return f"amqp://{self.user}:{self.password}@{self.host}:{self.port}{self.vhost}"
 
 
+class EventFlowConfig(BaseModel):
+    transitions: Dict[str, Set[str]]
+    _transition_map: Dict[Any, Set[Any]] | None = PrivateAttr(default=None)
+
+    def get_transitions(self, enum_cls: type[enum.Enum]) -> Dict[Any, Set[Any]]:
+        if self._transition_map is None:
+            self._transition_map = {}
+            for src_name, targets in self.transitions.items():
+                if src_name not in enum_cls.__members__:
+                    continue
+                source_state = enum_cls[src_name]
+                valid_targets = {enum_cls[t] for t in targets if t in enum_cls.__members__}
+                self._transition_map[source_state] = valid_targets
+        return self._transition_map
+
+    @classmethod
+    def load_from_ini(cls) -> "EventFlowConfig":
+        config_parser = configparser.ConfigParser()
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(current_dir, 'config', 'event_flow.ini')
+
+        if os.path.exists(config_path):
+            config_parser.read(config_path)
+
+        transitions = {}
+        if 'Transitions' in config_parser:
+            for key, val in config_parser['Transitions'].items():
+                targets = {t.strip().upper() for t in val.split(',') if t.strip()}
+                transitions[key.upper()] = targets
+
+        return cls(transitions=transitions)
+
+
 class Env(LocalSettings):
-    redis: RedisConfig = Field(default_factory=RedisConfig)  # type: ignore
-    rabbit: RabbitConfig = Field(default_factory=RabbitConfig)  # type: ignore
-    postgres: PostgresConfig = Field(default_factory=PostgresConfig)  # type: ignore
+    redis: RedisConfig = Field(default_factory=RedisConfig)
+    rabbit: RabbitConfig = Field(default_factory=RabbitConfig)
+    postgres: PostgresConfig = Field(default_factory=PostgresConfig)
+    event_flow: EventFlowConfig = Field(default_factory=EventFlowConfig.load_from_ini)
 
     @classmethod
     def load(cls) -> "Env":

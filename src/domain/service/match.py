@@ -157,7 +157,7 @@ class MatchService(BaseService):
         # Auto-transition: FORMATION -> IN_PROGRESS
         if event.status == EventStatus.FORMATION:
             try:
-                event.transition_to(EventStatus.IN_PROGRESS)
+                event.start_event()
                 event = await self._event_repo.update(event)
             except ValueError as e:
                 raise BadRequestException(str(e))
@@ -200,7 +200,7 @@ class MatchService(BaseService):
             event = await self._event_repo.get(event_id)
             if event and event.status == EventStatus.IN_PROGRESS:
                 try:
-                    event.transition_to(EventStatus.COMPLETED)
+                    event.complete_event()
                     await self._event_repo.update(event)
                     logger.info("Event %s completed (all matches finished)", event_id)
                 except ValueError:
