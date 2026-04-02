@@ -6,11 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .match_slot import MatchSlot
-    from .team import Team
+    from .match_slot import MatchSlotModel
+    from .team import TeamModel
 
 
-class MatchScore(Base):
+class MatchScoreModel(Base):
     """
     MatchScore table stores the score of a team in a match slot.
     """
@@ -21,5 +21,5 @@ class MatchScore(Base):
     team_id: Mapped[UUID] = mapped_column(ForeignKey('team_table.id', ondelete="CASCADE"))
     score: Mapped[int] = mapped_column(default=0)
 
-    slot: Mapped["MatchSlot"] = relationship("MatchSlot", back_populates="score", lazy="raise")
-    team: Mapped["Team"] = relationship("Team", back_populates="match_scores", lazy="raise")
+    slot: Mapped["MatchSlotModel"] = relationship("MatchSlotModel", back_populates="score", lazy="raise")
+    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="match_scores", lazy="raise")

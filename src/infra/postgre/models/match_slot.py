@@ -3,24 +3,22 @@ from typing import TYPE_CHECKING
 import uuid
 from uuid import UUID
 from sqlalchemy import ForeignKey, UniqueConstraint
+from src.core.models.match_slot import MatchSlotSourceType
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .match import Match
-    from .stage_group import StageGroup
-    from .match_score import MatchScore
+    from .match import MatchModel
+    from .stage_group import StageGroupModel
+    from .match_score import MatchScoreModel
 
 
-class MatchSlotSourceType(str, enum.Enum):
-    WINNER_OF = "WINNER_OF"
-    LOSER_OF = "LOSER_OF"
-    GROUP_PLACEMENT = "GROUP_PLACEMENT"
-    MANUAL = "MANUAL"
-    AUTO = "AUTO"
 
 
-class MatchSlot(Base):
+
+
+class MatchSlotModel(Base):
     """
     MatchSlot table represents a slot in a match, which can be filled by a team or another match result.
     """
@@ -36,12 +34,12 @@ class MatchSlot(Base):
                                                          nullable=True)
     group_placement: Mapped[int | None] = mapped_column(nullable=True)
 
-    match: Mapped["Match"] = relationship("Match", foreign_keys=[match_id], back_populates="slots", lazy="raise")
-    source_match: Mapped["Match"] = relationship("Match", foreign_keys=[source_match_id], back_populates="source_slots",
+    match: Mapped["MatchModel"] = relationship("MatchModel", foreign_keys=[match_id], back_populates="slots", lazy="raise")
+    source_match: Mapped["MatchModel"] = relationship("MatchModel", foreign_keys=[source_match_id], back_populates="source_slots",
                                                  lazy="raise")
-    source_group: Mapped["StageGroup"] = relationship("StageGroup", back_populates="source_slots", lazy="raise")
+    source_group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="source_slots", lazy="raise")
 
-    score: Mapped["MatchScore"] = relationship("MatchScore", back_populates="slot", uselist=False,
+    score: Mapped["MatchScoreModel"] = relationship("MatchScoreModel", back_populates="slot", uselist=False,
                                                cascade="all, delete-orphan", lazy="raise")
 
     __table_args__ = (

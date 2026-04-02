@@ -2,12 +2,12 @@ from uuid import UUID
 from typing import Sequence
 from sqlalchemy.orm import selectinload
 
-from ..models import Event
+from ..models import EventModel
 from .base import BaseRepository
 
 
-class EventRepository(BaseRepository[Event]):
-    model = Event
+class EventRepository(BaseRepository[EventModel]):
+    model = EventModel
 
     async def get(
             self,
@@ -22,34 +22,34 @@ class EventRepository(BaseRepository[Event]):
             load_drafts: bool = False,
             load_players: bool = False,
             load_brackets: bool = False
-    ) -> Event | None:
+    ) -> EventModel | None:
         options = []
         if load_organizers:
-            options.append(selectinload(Event.organizers))
+            options.append(selectinload(EventModel.organizers))
         if load_integrations:
-            options.append(selectinload(Event.required_integrations))
+            options.append(selectinload(EventModel.required_integrations))
         if load_time_settings:
-            options.append(selectinload(Event.time_settings))
+            options.append(selectinload(EventModel.time_settings))
         if load_game_roles:
-            options.append(selectinload(Event.selected_game_roles))
+            options.append(selectinload(EventModel.selected_game_roles))
         if load_custom_fields:
-            options.append(selectinload(Event.custom_fields))
+            options.append(selectinload(EventModel.custom_fields))
         if load_applications:
-            options.append(selectinload(Event.applications))
+            options.append(selectinload(EventModel.applications))
         if load_teams:
-            options.append(selectinload(Event.teams))
+            options.append(selectinload(EventModel.teams))
         if load_drafts:
-            options.append(selectinload(Event.drafts))
+            options.append(selectinload(EventModel.drafts))
         if load_players:
-            options.append(selectinload(Event.event_players))
+            options.append(selectinload(EventModel.event_players))
         if load_brackets:
-            options.append(selectinload(Event.brackets))
+            options.append(selectinload(EventModel.brackets))
 
         return await super()._get(field_id, options=options)
 
-    async def list_public(self, offset: int, limit: int) -> Sequence[Event]:
+    async def list_public(self, offset: int, limit: int) -> Sequence[EventModel]:
         return await self.list(
             offset, limit, None,
-            Event.is_public.is_(True)
+            EventModel.is_public.is_(True)
         )
-        return await self.list(0, 1000, None, Event.status == status)
+        return await self.list(0, 1000, None, EventModel.status == status)

@@ -2,29 +2,29 @@ from uuid import UUID
 from typing import Sequence
 from sqlalchemy.orm import selectinload
 
-from ..models import DraftedPlayer
+from ..models import DraftedPlayerModel
 from .base import BaseRepository
 
 
-class DraftedPlayerRepository(BaseRepository[DraftedPlayer]):
-    model = DraftedPlayer
+class DraftedPlayerRepository(BaseRepository[DraftedPlayerModel]):
+    model = DraftedPlayerModel
 
     async def get(
             self,
             field_id: UUID,
             load_draft: bool = False,
             load_player: bool = False
-    ) -> DraftedPlayer | None:
+    ) -> DraftedPlayerModel | None:
         options = []
         if load_draft:
-            options.append(selectinload(DraftedPlayer.draft))
+            options.append(selectinload(DraftedPlayerModel.draft))
         if load_player:
-            options.append(selectinload(DraftedPlayer.event_player))
+            options.append(selectinload(DraftedPlayerModel.event_player))
 
         return await super()._get(field_id, options=options)
 
-    async def list_by_draft(self, draft_id: UUID) -> Sequence[DraftedPlayer]:
+    async def list_by_draft(self, draft_id: UUID) -> Sequence[DraftedPlayerModel]:
         return await self.list(
             0, None, None,
-            DraftedPlayer.draft_id == draft_id
+            DraftedPlayerModel.draft_id == draft_id
         )

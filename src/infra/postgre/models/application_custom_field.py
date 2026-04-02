@@ -6,10 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .event import Event
+    from .event import EventModel
 
 
-class ApplicationCustomField(Base):
+class ApplicationCustomFieldModel(Base):
     """
     ApplicationCustomField table stores custom fields defined for an event application.
     """
@@ -21,4 +21,4 @@ class ApplicationCustomField(Base):
     is_private: Mapped[bool] = mapped_column(default=False)
     is_required: Mapped[bool] = mapped_column(default=False)
 
-    event: Mapped["Event"] = relationship("Event", back_populates="custom_fields", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="custom_fields", lazy="raise")

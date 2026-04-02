@@ -2,26 +2,26 @@ from uuid import UUID
 from typing import Sequence
 from sqlalchemy.orm import selectinload
 
-from ..models import BracketPlacement
+from ..models import BracketPlacementModel
 from .base import BaseRepository
 
 
-class BracketPlacementRepository(BaseRepository[BracketPlacement]):
-    model = BracketPlacement
+class BracketPlacementRepository(BaseRepository[BracketPlacementModel]):
+    model = BracketPlacementModel
 
     async def get(
             self,
             field_id: UUID,
             load_bracket: bool = False
-    ) -> BracketPlacement | None:
+    ) -> BracketPlacementModel | None:
         options = []
         if load_bracket:
-            options.append(selectinload(BracketPlacement.bracket))
+            options.append(selectinload(BracketPlacementModel.bracket))
 
         return await super()._get(field_id, options=options)
 
-    async def list_by_bracket(self, bracket_id: UUID) -> Sequence[BracketPlacement]:
+    async def list_by_bracket(self, bracket_id: UUID) -> Sequence[BracketPlacementModel]:
         return await self.list(
             0, None, None,
-            BracketPlacement.bracket_id == bracket_id
+            BracketPlacementModel.bracket_id == bracket_id
         )

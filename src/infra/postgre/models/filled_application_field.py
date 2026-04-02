@@ -7,11 +7,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .application_custom_field import ApplicationCustomField
-    from .application import Application
+    from .application_custom_field import ApplicationCustomFieldModel
+    from .application import ApplicationModel
 
 
-class FilledApplicationField(Base):
+class FilledApplicationFieldModel(Base):
     """
     FilledApplicationField table stores the values provided by users for custom application fields.
     """
@@ -24,9 +24,9 @@ class FilledApplicationField(Base):
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
-    custom_field: Mapped["ApplicationCustomField"] = relationship("ApplicationCustomField",
+    custom_field: Mapped["ApplicationCustomFieldModel"] = relationship("ApplicationCustomFieldModel",
                                                                   back_populates="filled_fields", lazy="raise")
-    application: Mapped["Application"] = relationship("Application", back_populates="filled_fields", lazy="raise")
+    application: Mapped["ApplicationModel"] = relationship("ApplicationModel", back_populates="filled_fields", lazy="raise")
 
     __table_args__ = (
         UniqueConstraint('custom_field_id', 'application_id', name='uq_filled_app_field_custom_app'),

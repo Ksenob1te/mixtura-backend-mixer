@@ -6,10 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .application import Application
+    from .application import ApplicationModel
 
 
-class ApplicationIntegration(Base):
+class ApplicationIntegrationModel(Base):
     """
     ApplicationIntegration table stores the integration of an application with external user providers.
     """
@@ -19,7 +19,7 @@ class ApplicationIntegration(Base):
     application_id: Mapped[UUID] = mapped_column(ForeignKey('application_table.id', ondelete="CASCADE"))
     user_provider_id: Mapped[UUID]
 
-    application: Mapped["Application"] = relationship("Application", back_populates="integrations", lazy="raise")
+    application: Mapped["ApplicationModel"] = relationship("ApplicationModel", back_populates="integrations", lazy="raise")
 
     __table_args__ = (
         UniqueConstraint('application_id', 'user_provider_id', name='uq_app_integration_app_provider'),

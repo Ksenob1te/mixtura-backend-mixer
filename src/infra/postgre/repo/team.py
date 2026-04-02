@@ -2,29 +2,29 @@ from uuid import UUID
 from typing import Sequence
 from sqlalchemy.orm import selectinload
 
-from ..models import Team
+from ..models import TeamModel
 from .base import BaseRepository
 
 
-class TeamRepository(BaseRepository[Team]):
-    model = Team
+class TeamRepository(BaseRepository[TeamModel]):
+    model = TeamModel
 
     async def get(
             self,
             field_id: UUID,
             load_event: bool = False,
             load_players: bool = False
-    ) -> Team | None:
+    ) -> TeamModel | None:
         options = []
         if load_event:
-            options.append(selectinload(Team.event))
+            options.append(selectinload(TeamModel.event))
         if load_players:
-            options.append(selectinload(Team.players))
+            options.append(selectinload(TeamModel.players))
 
         return await super()._get(field_id, options=options)
 
-    async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[Team]:
+    async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[TeamModel]:
          return await self.list(
             offset, limit, None,
-            Team.event_id == event_id
+            TeamModel.event_id == event_id
         )

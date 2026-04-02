@@ -6,12 +6,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .event import Event
-    from .player_role import PlayerRole
-    from .team_player import TeamPlayer
+    from .event import EventModel
+    from .player_role import PlayerRoleModel
+    from .team_player import TeamPlayerModel
 
 
-class SelectedGameRole(Base):
+class SelectedGameRoleModel(Base):
     """
     SelectedGameRole table stores the game roles selected for an event.
     """
@@ -23,11 +23,11 @@ class SelectedGameRole(Base):
     override_max_count: Mapped[int | None] = mapped_column(nullable=True)
     override_min_count: Mapped[int | None] = mapped_column(nullable=True)
 
-    event: Mapped["Event"] = relationship("Event", back_populates="selected_game_roles", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="selected_game_roles", lazy="raise")
 
-    player_roles: Mapped[list["PlayerRole"]] = relationship("PlayerRole", back_populates="game_role",
+    player_roles: Mapped[list["PlayerRoleModel"]] = relationship("PlayerRoleModel", back_populates="game_role",
                                                             cascade="all, delete-orphan", lazy="raise")
-    team_players: Mapped[list["TeamPlayer"]] = relationship("TeamPlayer", back_populates="game_role",
+    team_players: Mapped[list["TeamPlayerModel"]] = relationship("TeamPlayerModel", back_populates="game_role",
                                                             cascade="all, delete-orphan", lazy="raise")
 
     __table_args__ = (

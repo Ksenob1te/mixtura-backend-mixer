@@ -2,22 +2,22 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ..models import SwissSettings
+from ..models import SwissSettingsModel
 from .base import BaseRepository
 
 
-class SwissSettingsRepository(BaseRepository[SwissSettings]):
-    model = SwissSettings
+class SwissSettingsRepository(BaseRepository[SwissSettingsModel]):
+    model = SwissSettingsModel
 
     async def get_by_stage_id(
             self,
             stage_id: UUID,
             load_stage: bool = False
-    ) -> SwissSettings | None:
-        stmt = select(SwissSettings).where(SwissSettings.stage_id == stage_id)
+    ) -> SwissSettingsModel | None:
+        stmt = select(SwissSettingsModel).where(SwissSettingsModel.stage_id == stage_id)
 
         if load_stage:
-            stmt = stmt.options(selectinload(SwissSettings.stage))
+            stmt = stmt.options(selectinload(SwissSettingsModel.stage))
 
         return await self._session.scalar(stmt)
 

@@ -6,13 +6,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .bracket import Bracket
-    from .stage_group import StageGroup
-    from .round_robin_settings import RoundRobinSettings
-    from .swiss_settings import SwissSettings
+    from .bracket import BracketModel
+    from .stage_group import StageGroupModel
+    from .round_robin_settings import RoundRobinSettingsModel
+    from .swiss_settings import SwissSettingsModel
 
 
-class Stage(Base):
+class StageModel(Base):
     """
     Stage table represents a competitive stage within a bracket.
     """
@@ -24,14 +24,14 @@ class Stage(Base):
     name: Mapped[str] = mapped_column()
     bracket_id: Mapped[UUID] = mapped_column(ForeignKey('bracket_table.id', ondelete="CASCADE"))
 
-    bracket: Mapped["Bracket"] = relationship("Bracket", back_populates="stages", lazy="raise")
+    bracket: Mapped["BracketModel"] = relationship("BracketModel", back_populates="stages", lazy="raise")
 
-    groups: Mapped[list["StageGroup"]] = relationship("StageGroup", back_populates="stage",
+    groups: Mapped[list["StageGroupModel"]] = relationship("StageGroupModel", back_populates="stage",
                                                       cascade="all, delete-orphan", lazy="raise")
-    round_robin_settings: Mapped["RoundRobinSettings"] = relationship("RoundRobinSettings", back_populates="stage",
+    round_robin_settings: Mapped["RoundRobinSettingsModel"] = relationship("RoundRobinSettingsModel", back_populates="stage",
                                                                       uselist=False, cascade="all, delete-orphan",
                                                                       lazy="raise")
-    swiss_settings: Mapped["SwissSettings"] = relationship("SwissSettings", back_populates="stage", uselist=False,
+    swiss_settings: Mapped["SwissSettingsModel"] = relationship("SwissSettingsModel", back_populates="stage", uselist=False,
                                                            cascade="all, delete-orphan", lazy="raise")
 
     __table_args__ = (

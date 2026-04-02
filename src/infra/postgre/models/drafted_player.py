@@ -6,11 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .draft import Draft
-    from .event_player import EventPlayer
+    from .draft import DraftModel
+    from .event_player import EventPlayerModel
 
 
-class DraftedPlayer(Base):
+class DraftedPlayerModel(Base):
     """
     DraftedPlayer table stores the players involved in a draft and their status.
     """
@@ -21,8 +21,8 @@ class DraftedPlayer(Base):
     event_player_id: Mapped[UUID] = mapped_column(ForeignKey('event_player_table.id', ondelete="CASCADE"))
     is_captain: Mapped[bool | None] = mapped_column(default=None, nullable=True)
 
-    draft: Mapped["Draft"] = relationship("Draft", back_populates="drafted_players", lazy="raise")
-    event_player: Mapped["EventPlayer"] = relationship("EventPlayer", back_populates="drafted_players", lazy="raise")
+    draft: Mapped["DraftModel"] = relationship("DraftModel", back_populates="drafted_players", lazy="raise")
+    event_player: Mapped["EventPlayerModel"] = relationship("EventPlayerModel", back_populates="drafted_players", lazy="raise")
 
     __table_args__ = (
         UniqueConstraint('draft_id', 'event_player_id', name='uq_drafted_player_draft_player'),

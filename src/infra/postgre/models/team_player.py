@@ -6,11 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .team import Team
-    from .selected_game_role import SelectedGameRole
+    from .team import TeamModel
+    from .selected_game_role import SelectedGameRoleModel
 
 
-class TeamPlayer(Base):
+class TeamPlayerModel(Base):
     """
     TeamPlayer table stores the players assigned to a team.
     """
@@ -22,8 +22,8 @@ class TeamPlayer(Base):
     game_role_id: Mapped[UUID] = mapped_column(ForeignKey('selected_game_role_table.id'))
     rating: Mapped[float] = mapped_column(default=0.0)
 
-    team: Mapped["Team"] = relationship("Team", back_populates="players", lazy="raise")
-    game_role: Mapped["SelectedGameRole"] = relationship("SelectedGameRole", back_populates="team_players",
+    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="players", lazy="raise")
+    game_role: Mapped["SelectedGameRoleModel"] = relationship("SelectedGameRoleModel", back_populates="team_players",
                                                          lazy="raise")
 
     __table_args__ = (

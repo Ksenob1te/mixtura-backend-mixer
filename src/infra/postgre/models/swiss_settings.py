@@ -6,10 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .stage import Stage
+    from .stage import StageModel
 
 
-class SwissSettings(Base):
+class SwissSettingsModel(Base):
     """
     SwissSettings table stores configuration for swiss system stages.
     """
@@ -21,4 +21,4 @@ class SwissSettings(Base):
     score_per_draw: Mapped[int] = mapped_column()
     score_per_bye: Mapped[int] = mapped_column()
 
-    stage: Mapped["Stage"] = relationship("Stage", back_populates="swiss_settings", lazy="raise")
+    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="swiss_settings", lazy="raise")

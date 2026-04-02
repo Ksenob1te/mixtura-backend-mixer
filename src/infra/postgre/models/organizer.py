@@ -6,10 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .event import Event
+    from .event import EventModel
 
 
-class Organizer(Base):
+class OrganizerModel(Base):
     """
     Organizer table stores the organizers of an event.
     """
@@ -19,7 +19,7 @@ class Organizer(Base):
     event_id: Mapped[UUID] = mapped_column(ForeignKey('event_table.id', ondelete="CASCADE"))
     member_id: Mapped[UUID]
 
-    event: Mapped["Event"] = relationship("Event", back_populates="organizers", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="organizers", lazy="raise")
 
     # __table_args__ = (
     #     UniqueConstraint('event_id', 'member_id', name='uq_organizer_event_member'),

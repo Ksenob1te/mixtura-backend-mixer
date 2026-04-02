@@ -6,12 +6,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .event import Event
-    from .draft import Draft
-    from .team_player import TeamPlayer
+    from .event import EventModel
+    from .draft import DraftModel
+    from .team_player import TeamPlayerModel
 
 
-class Team(Base):
+class TeamModel(Base):
     """
     Team table represents a team participating in an event.
     """
@@ -22,8 +22,8 @@ class Team(Base):
     draft_id: Mapped[UUID | None] = mapped_column(ForeignKey('draft_table.id'), nullable=True)
     name: Mapped[str] = mapped_column()
 
-    event: Mapped["Event"] = relationship("Event", back_populates="teams", lazy="raise")
-    draft: Mapped["Draft"] = relationship("Draft", back_populates="teams", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="teams", lazy="raise")
+    draft: Mapped["DraftModel"] = relationship("DraftModel", back_populates="teams", lazy="raise")
 
-    players: Mapped[list["TeamPlayer"]] = relationship("TeamPlayer", back_populates="team",
+    players: Mapped[list["TeamPlayerModel"]] = relationship("TeamPlayerModel", back_populates="team",
                                                        cascade="all, delete-orphan", lazy="raise")

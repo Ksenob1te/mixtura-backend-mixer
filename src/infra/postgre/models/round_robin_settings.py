@@ -6,10 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .stage import Stage
+    from .stage import StageModel
 
 
-class RoundRobinSettings(Base):
+class RoundRobinSettingsModel(Base):
     """
     RoundRobinSettings table stores configuration for round-robin stages.
     """
@@ -22,4 +22,4 @@ class RoundRobinSettings(Base):
     score_per_win: Mapped[int | None] = mapped_column(nullable=True)
     score_per_draw: Mapped[int | None] = mapped_column(nullable=True)
 
-    stage: Mapped["Stage"] = relationship("Stage", back_populates="round_robin_settings", lazy="raise")
+    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="round_robin_settings", lazy="raise")

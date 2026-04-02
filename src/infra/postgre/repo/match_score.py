@@ -2,24 +2,24 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
-from ..models import MatchScore
+from ..models import MatchScoreModel
 from .base import BaseRepository
 
 
-class MatchScoreRepository(BaseRepository[MatchScore]):
-    model = MatchScore
+class MatchScoreRepository(BaseRepository[MatchScoreModel]):
+    model = MatchScoreModel
 
     async def get(
             self,
             field_id: UUID,
             load_slot: bool = False,
             load_team: bool = False
-    ) -> MatchScore | None:
+    ) -> MatchScoreModel | None:
         options = []
         if load_slot:
-            options.append(selectinload(MatchScore.slot))
+            options.append(selectinload(MatchScoreModel.slot))
         if load_team:
-            options.append(selectinload(MatchScore.team))
+            options.append(selectinload(MatchScoreModel.team))
 
         return await super()._get(field_id, options=options)
 
@@ -28,14 +28,14 @@ class MatchScoreRepository(BaseRepository[MatchScore]):
             slot_id: UUID,
             load_slot: bool = False,
             load_team: bool = False
-    ) -> MatchScore | None:
+    ) -> MatchScoreModel | None:
         options = []
         if load_slot:
-            options.append(selectinload(MatchScore.slot))
+            options.append(selectinload(MatchScoreModel.slot))
         if load_team:
-            options.append(selectinload(MatchScore.team))
+            options.append(selectinload(MatchScoreModel.team))
 
-        stmt = select(MatchScore).where(MatchScore.slot_id == slot_id)
+        stmt = select(MatchScoreModel).where(MatchScoreModel.slot_id == slot_id)
         if options:
             stmt = stmt.options(*options)
 

@@ -4,20 +4,21 @@ import uuid
 from uuid import UUID
 from datetime import datetime
 from sqlalchemy import ForeignKey, UniqueConstraint
+from src.core.models.match import BracketPosition
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .stage_group import StageGroup
-    from .match_slot import MatchSlot
+    from .stage_group import StageGroupModel
+    from .match_slot import MatchSlotModel
 
 
-class BracketPosition(str, enum.Enum):
-    UPPER = "UPPER"
-    LOWER = "LOWER"
 
 
-class Match(Base):
+
+
+class MatchModel(Base):
     """
     Match table stores the match details within a stage group or bracket.
     """
@@ -32,11 +33,11 @@ class Match(Base):
     round_number: Mapped[int | None] = mapped_column(nullable=True)
     bracket_position: Mapped[BracketPosition | None] = mapped_column(nullable=True)
 
-    group: Mapped["StageGroup"] = relationship("StageGroup", back_populates="matches", lazy="raise")
-    slots: Mapped[list["MatchSlot"]] = relationship("MatchSlot", back_populates="match",
+    group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="matches", lazy="raise")
+    slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="match",
                                                     foreign_keys="MatchSlot.match_id",
                                                     cascade="all, delete-orphan", lazy="raise")
-    source_slots: Mapped[list["MatchSlot"]] = relationship("MatchSlot", back_populates="source_match",
+    source_slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="source_match",
                                                            foreign_keys="MatchSlot.source_match_id", lazy="raise")
 
     __table_args__ = (

@@ -3,24 +3,19 @@ import enum
 import uuid
 from uuid import UUID
 from sqlalchemy import ForeignKey, UniqueConstraint
+from src.core.models.application import ApplicationStatus
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .event import Event
-    from .application_integration import ApplicationIntegration
-    from .filled_application_field import FilledApplicationField
-    from .event_player import EventPlayer
+    from .event import EventModel
+    from .application_integration import ApplicationIntegrationModel
+    from .filled_application_field import FilledApplicationFieldModel
+    from .event_player import EventPlayerModel
 
 
-class ApplicationStatus(str, enum.Enum):
-    PENDING = "PENDING"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-    WAITLIST = "WAITLIST"
-
-
-class Application(Base):
+class ApplicationModel(Base):
     """
     Application table stores the application of a member to an event.
     """
@@ -32,15 +27,15 @@ class Application(Base):
     is_approved: Mapped[bool] = mapped_column(default=False)
     status: Mapped[ApplicationStatus] = mapped_column(default=ApplicationStatus.PENDING)
 
-    event: Mapped["Event"] = relationship("Event", back_populates="applications", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="applications", lazy="raise")
 
-    integrations: Mapped[list["ApplicationIntegration"]] = relationship("ApplicationIntegration",
+    integrations: Mapped[list["ApplicationIntegrationModel"]] = relationship("ApplicationIntegrationModel",
                                                                         back_populates="application",
                                                                         cascade="all, delete-orphan", lazy="raise")
-    filled_fields: Mapped[list["FilledApplicationField"]] = relationship("FilledApplicationField",
+    filled_fields: Mapped[list["FilledApplicationFieldModel"]] = relationship("FilledApplicationFieldModel",
                                                                          back_populates="application",
                                                                          cascade="all, delete-orphan", lazy="raise")
-    event_player: Mapped["EventPlayer"] = relationship("EventPlayer", back_populates="application", uselist=False,
+    event_player: Mapped["EventPlayerModel"] = relationship("EventPlayerModel", back_populates="application", uselist=False,
                                                        lazy="raise")
 
     __table_args__ = (

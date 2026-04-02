@@ -6,10 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .event import Event
+    from .event import EventModel
 
 
-class RequiredIntegration(Base):
+class RequiredIntegrationModel(Base):
     """
     RequiredIntegration table stores integrations required for an event.
     """
@@ -19,4 +19,4 @@ class RequiredIntegration(Base):
     name: Mapped[str] = mapped_column()
     event_id: Mapped[UUID] = mapped_column(ForeignKey('event_table.id', ondelete="CASCADE"))
 
-    event: Mapped["Event"] = relationship("Event", back_populates="required_integrations", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="required_integrations", lazy="raise")

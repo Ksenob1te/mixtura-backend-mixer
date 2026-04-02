@@ -6,13 +6,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .event import Event
-    from .application import Application
-    from .drafted_player import DraftedPlayer
-    from .player_role import PlayerRole
+    from .event import EventModel
+    from .application import ApplicationModel
+    from .drafted_player import DraftedPlayerModel
+    from .player_role import PlayerRoleModel
 
 
-class EventPlayer(Base):
+class EventPlayerModel(Base):
     """
     EventPlayer table stores the players registered for an event.
     """
@@ -25,12 +25,12 @@ class EventPlayer(Base):
     custom_id: Mapped[UUID | None] = mapped_column(nullable=True)
     is_draft_pinned: Mapped[bool] = mapped_column(default=False)
 
-    event: Mapped["Event"] = relationship("Event", back_populates="event_players", lazy="raise")
-    application: Mapped["Application"] = relationship("Application", back_populates="event_player", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="event_players", lazy="raise")
+    application: Mapped["ApplicationModel"] = relationship("ApplicationModel", back_populates="event_player", lazy="raise")
 
-    drafted_players: Mapped[list["DraftedPlayer"]] = relationship("DraftedPlayer", back_populates="event_player",
+    drafted_players: Mapped[list["DraftedPlayerModel"]] = relationship("DraftedPlayerModel", back_populates="event_player",
                                                                   cascade="all, delete-orphan", lazy="raise")
-    player_roles: Mapped[list["PlayerRole"]] = relationship("PlayerRole", back_populates="event_player",
+    player_roles: Mapped[list["PlayerRoleModel"]] = relationship("PlayerRoleModel", back_populates="event_player",
                                                             cascade="all, delete-orphan", lazy="raise")
 
     __table_args__ = (

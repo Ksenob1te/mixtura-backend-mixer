@@ -6,11 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .stage import Stage
-    from .match import Match
+    from .stage import StageModel
+    from .match import MatchModel
 
 
-class StageGroup(Base):
+class StageGroupModel(Base):
     """
     StageGroup table represents a group of teams within a stage.
     """
@@ -21,7 +21,7 @@ class StageGroup(Base):
     name: Mapped[str] = mapped_column()
     advance_count: Mapped[int | None] = mapped_column(nullable=True) # TODO: что это
 
-    stage: Mapped["Stage"] = relationship("Stage", back_populates="groups", lazy="raise")
+    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="groups", lazy="raise")
 
-    matches: Mapped[list["Match"]] = relationship("Match", back_populates="group",
+    matches: Mapped[list["MatchModel"]] = relationship("MatchModel", back_populates="group",
                                                   cascade="all, delete-orphan", lazy="raise")

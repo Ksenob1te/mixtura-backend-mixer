@@ -7,10 +7,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .event import Event
+    from .event import EventModel
 
 
-class ApplicationTimeSettings(Base):
+class ApplicationTimeSettingsModel(Base):
     """
     ApplicationTimeSettings table stores time configuration for event applications.
     """
@@ -21,4 +21,4 @@ class ApplicationTimeSettings(Base):
     start_time: Mapped[datetime | None] = mapped_column(nullable=True)
     end_time: Mapped[datetime | None] = mapped_column(nullable=True)
 
-    event: Mapped["Event"] = relationship("Event", back_populates="time_settings", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="time_settings", lazy="raise")

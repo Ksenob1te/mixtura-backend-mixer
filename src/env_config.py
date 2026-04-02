@@ -49,7 +49,7 @@ class EventFlowConfig(BaseModel):
     transitions: Dict[str, Set[str]]
     _transition_map: Dict[Any, Set[Any]] | None = PrivateAttr(default=None)
 
-    def get_transitions(self, enum_cls: type[enum.Enum]) -> Dict[Any, Set[Any]]:
+    def get_transitions(self, enum_cls: type[enum.Enum]) -> Dict[Any, Set[Any]] | None:
         if self._transition_map is None:
             self._transition_map = {}
             for src_name, targets in self.transitions.items():

@@ -1,7 +1,7 @@
 from .engine import Base, DatabaseSessionManager
-from .models import (Application, ApplicationCustomField, ApplicationIntegration, ApplicationTimeSettings, Event,
-                     RequiredIntegration, Organizer, PlayerRole, RoundRobinSettings, SelectedGameRole, Stage,
-                     StageGroup, SwissSettings, Team, TeamPlayer, Draft, DraftedPlayer, EventPlayer, Bracket,
-                     BracketPlacement, Match, MatchSlot, MatchScore, FilledApplicationField)
+from .models import (ApplicationModel, ApplicationCustomFieldModel, ApplicationIntegrationModel, ApplicationTimeSettingsModel, EventModel,
+                     RequiredIntegrationModel, OrganizerModel, PlayerRoleModel, RoundRobinSettingsModel, SelectedGameRoleModel, StageModel,
+                     StageGroupModel, SwissSettingsModel, TeamModel, TeamPlayerModel, DraftModel, DraftedPlayerModel, EventPlayerModel, BracketModel,
+                     BracketPlacementModel, MatchModel, MatchSlotModel, MatchScoreModel, FilledApplicationFieldModel)
 
 # from .repo import UserRepository, ProviderRepository

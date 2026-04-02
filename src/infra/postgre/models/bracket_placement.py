@@ -6,11 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..engine import Base
 
 if TYPE_CHECKING:
-    from .bracket import Bracket
-    from .team import Team
+    from .bracket import BracketModel
+    from .team import TeamModel
 
 
-class BracketPlacement(Base):
+class BracketPlacementModel(Base):
     """
     BracketPlacement table stores the initial placement of teams in a bracket.
     """
@@ -21,8 +21,8 @@ class BracketPlacement(Base):
     team_id: Mapped[UUID] = mapped_column(ForeignKey('team_table.id'))
     placement: Mapped[int] = mapped_column()
 
-    bracket: Mapped["Bracket"] = relationship("Bracket", back_populates="placements", lazy="raise")
-    team: Mapped["Team"] = relationship("Team", back_populates="bracket_placements", lazy="raise")
+    bracket: Mapped["BracketModel"] = relationship("BracketModel", back_populates="placements", lazy="raise")
+    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="bracket_placements", lazy="raise")
 
     __table_args__ = (
         UniqueConstraint('bracket_id', 'placement', name='uq_bracket_placement_placement'),
