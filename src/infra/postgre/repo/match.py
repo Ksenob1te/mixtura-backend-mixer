@@ -5,33 +5,34 @@ from sqlalchemy.orm import selectinload
 
 from ..models import MatchModel, MatchSlotModel, StageGroupModel, StageModel, BracketModel
 from .base import BaseRepository
+from src.core.models.match import Match
 
 
-class MatchRepository(BaseRepository[MatchModel]):
+class MatchRepository(BaseRepository[MatchModel, Match]):
     model = MatchModel
+    dto_model = Match
 
     async def get(
             self,
             field_id: UUID,
             load_slots: bool = False,
             load_group: bool = False
-    ) -> MatchModel | None:
+    ) -> Match | None:
         options = []
         if load_slots:
             options.append(selectinload(MatchModel.slots).selectinload(MatchSlotModel.score))
         if load_group:
             options.append(selectinload(MatchModel.group))
 
-        return await super()._get(field_id, options=options)
+        return await self._get(field_id, options=options)
 
-    async def list_by_stage_group(self, group_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[MatchModel]:
+    async def list_by_stage_group(self, group_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[Match]:
         return await self.list(
             offset, limit, None,
             MatchModel.group_id == group_id
         )
 
     async def count_incomplete_matches_by_event(self, event_id: UUID) -> int:
-        """Return the number of matches in the event that have not ended."""
         stmt = (
             select(func.count(MatchModel.id))
             .join(StageGroupModel, MatchModel.group_id == StageGroupModel.id)

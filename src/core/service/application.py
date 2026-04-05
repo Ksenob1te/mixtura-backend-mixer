@@ -62,20 +62,19 @@ class ApplicationService(BaseService):
 
         ts = await self._time_settings_repo.get_by_event_id(event.id)
         if ts is None:
-            return  # No window → always open (typical for MIX)
+            return  # No window → always open
         now = datetime.now(timezone.utc)
         if ts.start_time and now < ts.start_time.replace(tzinfo=timezone.utc):
             raise BadRequestException("Registration has not started yet")
         if ts.end_time and now > ts.end_time.replace(tzinfo=timezone.utc):
             raise BadRequestException("Registration has ended")
 
-    async def _assert_no_duplicate(self, event_id: UUID, member_id: UUID) -> None:
-        existing = await self._app_repo.get_by_event_and_member(event_id, member_id)
-        if existing is not None:
-            raise ConflictException("You have already applied to this event")
+    # async def _assert_no_duplicate(self, event_id: UUID, member_id: UUID) -> None:
+    #     existing = await self._app_repo.get_by_event_and_member(event_id, member_id)
+    #     if existing is not None:
+    #         raise ConflictException("You have already applied to this event")
 
     async def _ensure_event_player(self, application: Application) -> EventPlayer:
-        """Create an EventPlayer for the application's member if one doesn't exist yet."""
         existing = await self._player_repo.get_by_event_and_member(
             application.event_id, application.member_id,
         )

@@ -4,25 +4,32 @@ from sqlalchemy.orm import selectinload
 
 from ..models import RoundRobinSettingsModel
 from .base import BaseRepository
+from src.core.models.round_robin_settings import RoundRobinSettings
 
 
-class RoundRobinSettingsRepository(BaseRepository[RoundRobinSettingsModel]):
+class RoundRobinSettingsRepository(BaseRepository[RoundRobinSettingsModel, RoundRobinSettings]):
     model = RoundRobinSettingsModel
+    dto_model = RoundRobinSettings
 
     async def get_by_stage_id(
             self,
             stage_id: UUID,
             load_stage: bool = False
-    ) -> RoundRobinSettingsModel | None:
+    ) -> RoundRobinSettings | None:
         stmt = select(RoundRobinSettingsModel).where(RoundRobinSettingsModel.stage_id == stage_id)
 
         if load_stage:
             stmt = stmt.options(selectinload(RoundRobinSettingsModel.stage))
 
-        return await self._session.scalar(stmt)
+        obj = await self._session.scalar(stmt)
+
+
+        return self._to_dto(obj) if obj else None
 
     async def delete_by_stage(self, stage_id: UUID) -> None:
-        settings = await self.get_by_stage_id(stage_id)
+        settings = await self._session.scalar(
+            select(RoundRobinSettingsModel).where(RoundRobinSettingsModel.stage_id == stage_id)
+        )
         if settings:
             await self._session.delete(settings)
             await self._flush()

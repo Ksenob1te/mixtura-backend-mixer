@@ -36,17 +36,11 @@ class BaseService:
         return wrapper
 
     async def _assert_organizer(self, event_id: UUID, member_id: UUID) -> None:
-        """Raise ``ForbiddenException`` unless member_id is an organizer of event_id."""
         organizers = await self._organizer_repo.list_by_event(event_id)
         if not any(o.member_id == member_id for o in organizers):
             raise ForbiddenException("You are not an organizer of this event")
 
     async def _fetch_event(self, event_id: UUID, **kwargs) -> Event:
-        """
-        Fetch event by id or raise ``NotFoundException``.
-
-        :raises NotFoundException: if event is not found.
-        """
         event = await self._event_repo.get(event_id, **kwargs)
         if event is None:
             raise NotFoundException("Event not found")

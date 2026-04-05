@@ -4,17 +4,19 @@ from sqlalchemy.orm import selectinload
 
 from ..models import StageModel
 from .base import BaseRepository
+from src.core.models.stage import Stage
 
 
-class StageRepository(BaseRepository[StageModel]):
+class StageRepository(BaseRepository[StageModel, Stage]):
     model = StageModel
+    dto_model = Stage
 
     async def get(
             self,
             field_id: UUID,
             load_groups: bool = False,
             load_settings: bool = False
-    ) -> StageModel | None:
+    ) -> Stage | None:
         options = []
         if load_groups:
             options.append(selectinload(StageModel.groups))
@@ -24,9 +26,9 @@ class StageRepository(BaseRepository[StageModel]):
                 selectinload(StageModel.swiss_settings)
             ])
 
-        return await super()._get(field_id, options=options)
+        return await self._get(field_id, options=options)
 
-    async def list_by_bracket(self, bracket_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[StageModel]:
+    async def list_by_bracket(self, bracket_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[Stage]:
         return await self.list(
             offset, limit, None,
             StageModel.bracket_id == bracket_id

@@ -4,10 +4,12 @@ from sqlalchemy.orm import selectinload
 
 from ..models import EventModel
 from .base import BaseRepository
+from src.core.models.event import Event
 
 
-class EventRepository(BaseRepository[EventModel]):
+class EventRepository(BaseRepository[EventModel, Event]):
     model = EventModel
+    dto_model = Event
 
     async def get(
             self,
@@ -22,7 +24,7 @@ class EventRepository(BaseRepository[EventModel]):
             load_drafts: bool = False,
             load_players: bool = False,
             load_brackets: bool = False
-    ) -> EventModel | None:
+    ) -> Event | None:
         options = []
         if load_organizers:
             options.append(selectinload(EventModel.organizers))
@@ -45,11 +47,10 @@ class EventRepository(BaseRepository[EventModel]):
         if load_brackets:
             options.append(selectinload(EventModel.brackets))
 
-        return await super()._get(field_id, options=options)
+        return await self._get(field_id, options=options)
 
-    async def list_public(self, offset: int, limit: int) -> Sequence[EventModel]:
+    async def list_public(self, offset: int, limit: int) -> Sequence[Event]:
         return await self.list(
             offset, limit, None,
             EventModel.is_public.is_(True)
         )
-        return await self.list(0, 1000, None, EventModel.status == status)

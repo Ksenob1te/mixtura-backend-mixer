@@ -4,31 +4,33 @@ from sqlalchemy import select
 
 from ..models import MatchScoreModel
 from .base import BaseRepository
+from src.core.models.match_score import MatchScore
 
 
-class MatchScoreRepository(BaseRepository[MatchScoreModel]):
+class MatchScoreRepository(BaseRepository[MatchScoreModel, MatchScore]):
     model = MatchScoreModel
+    dto_model = MatchScore
 
     async def get(
             self,
             field_id: UUID,
             load_slot: bool = False,
             load_team: bool = False
-    ) -> MatchScoreModel | None:
+    ) -> MatchScore | None:
         options = []
         if load_slot:
             options.append(selectinload(MatchScoreModel.slot))
         if load_team:
             options.append(selectinload(MatchScoreModel.team))
 
-        return await super()._get(field_id, options=options)
+        return await self._get(field_id, options=options)
 
     async def get_by_slot_id(
             self,
             slot_id: UUID,
             load_slot: bool = False,
             load_team: bool = False
-    ) -> MatchScoreModel | None:
+    ) -> MatchScore | None:
         options = []
         if load_slot:
             options.append(selectinload(MatchScoreModel.slot))
@@ -39,4 +41,6 @@ class MatchScoreRepository(BaseRepository[MatchScoreModel]):
         if options:
             stmt = stmt.options(*options)
 
-        return await self._session.scalar(stmt)
+        obj = await self._session.scalar(stmt)
+
+        return self._to_dto(obj) if obj else None

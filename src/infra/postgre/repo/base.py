@@ -1,5 +1,6 @@
-from typing import Generic, TypeVar, Any, Sequence, Type, Protocol
+from typing import Generic, TypeVar, Any, Sequence, Type, Mapping
 from uuid import UUID
+from pydantic import BaseModel
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,17 +10,19 @@ from ..exceptions import IntegrityForeignException, IntegrityUniqueException, In
 from ..engine import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
+DTOType = TypeVar("DTOType", bound=BaseModel)
 
 
-class BaseRepository(Generic[ModelType]):
+class BaseRepository(Generic[ModelType, DTOType]):
     model: Type[ModelType]
+    dto_model: Type[DTOType]
 
     def __init__(self, session: AsyncSession):
         self._session = session
         if not hasattr(self, "model"):
-            # This allows repositories to define model as a class attribute
-            # But falls back to dynamic resolution or requires setting it if logic depends on it
             raise NotImplementedError("Repository must define 'model' class attribute")
+        if not hasattr(self, "dto_model"):
+            raise NotImplementedError("Repository must define 'dto_model' class attribute")
 
     async def _flush(self) -> None:
         try:
@@ -32,17 +35,24 @@ class BaseRepository(Generic[ModelType]):
                 raise IntegrityUniqueException() from exc
             raise IntegrityUnknownException() from exc
 
-    async def _get(self, field_id: UUID, options: list[Any] | None = None) -> ModelType | None:
+    async def _get_model(self, field_id: UUID, options: list[Any] | None = None) -> ModelType | None:
         stmt = select(self.model).where(getattr(self.model, "id") == field_id)
         if options:
             stmt = stmt.options(*options)
         result = await self._session.scalar(stmt)
         return result
 
-    async def get(self, field_id: UUID) -> ModelType | None:
+    def _to_dto(self, obj: Any) -> DTOType:
+        return self.dto_model.model_validate(obj, from_attributes=True)
+
+    async def _get(self, field_id: UUID, options: list[Any] | None = None) -> DTOType | None:
+        obj = await self._get_model(field_id, options=options)
+        return self._to_dto(obj) if obj else None
+
+    async def get(self, field_id: UUID) -> DTOType | None:
         return await self._get(field_id)
 
-    async def list(
+    async def _list_model(
             self,
             offset: int = 0,
             limit: int | None = 100,
@@ -62,20 +72,45 @@ class BaseRepository(Generic[ModelType]):
         result = await self._session.scalars(stmt)
         return result.all()
 
-    async def create(self, obj: ModelType) -> ModelType:
+    async def list(
+            self,
+            offset: int = 0,
+            limit: int | None = 100,
+            options: list[Any] | None = None,
+            *where_clauses
+    ) -> Sequence[DTOType]:
+        items = await self._list_model(offset, limit, options, *where_clauses)
+        return [self._to_dto(item) for item in items]
+
+    def _dto_to_data(self, dto: DTOType, *, exclude_unset: bool = False) -> dict[str, Any]:
+        if hasattr(dto, "model_dump"):
+            raw_data = dto.model_dump(exclude_unset=exclude_unset)
+        elif isinstance(dto, Mapping):
+            raw_data = dict(dto)
+        else:
+            raw_data = dict(dto.__dict__)
+
+        column_names = {column.name for column in self.model.__table__.columns}
+        return {k: v for k, v in raw_data.items() if k in column_names}
+
+    async def create(self, dto: DTOType) -> DTOType:
+        create_data = self._dto_to_data(dto)
+        obj = self.model(**create_data)
         self._session.add(obj)
         await self._flush()
         await self._session.refresh(obj)
-        return obj
+        return self._to_dto(obj)
 
-    async def update(self, obj: ModelType) -> ModelType:
-        if obj not in self._session:
-            obj = await self._session.merge(obj)
+    async def update(self, dto: DTOType) -> DTOType:
+        update_data = self._dto_to_data(dto, exclude_unset=True)
+        obj = self.model(**update_data)
+        obj = await self._session.merge(obj)
         await self._flush()
-        return obj
+        await self._session.refresh(obj)
+        return self._to_dto(obj)
 
     async def delete(self, field_id: UUID) -> bool:
-        obj = await self._get(field_id)
+        obj = await self._get_model(field_id)
         if obj:
             await self._session.delete(obj)
             await self._flush()

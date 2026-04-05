@@ -4,23 +4,25 @@ from sqlalchemy.orm import selectinload
 
 from ..models import StageGroupModel
 from .base import BaseRepository
+from src.core.models.stage_group import StageGroup
 
 
-class StageGroupRepository(BaseRepository[StageGroupModel]):
+class StageGroupRepository(BaseRepository[StageGroupModel, StageGroup]):
     model = StageGroupModel
+    dto_model = StageGroup
 
     async def get(
             self,
             field_id: UUID,
             load_matches: bool = False
-    ) -> StageGroupModel | None:
+    ) -> StageGroup | None:
         options = []
         if load_matches:
             options.append(selectinload(StageGroupModel.matches))
 
-        return await super()._get(field_id, options=options)
+        return await self._get(field_id, options=options)
 
-    async def list_by_stage(self, stage_id: UUID) -> Sequence[StageGroupModel]:
+    async def list_by_stage(self, stage_id: UUID) -> Sequence[StageGroup]:
         return await self.list(
             0, None, None,
             StageGroupModel.stage_id == stage_id

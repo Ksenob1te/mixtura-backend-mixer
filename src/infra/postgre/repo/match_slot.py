@@ -5,24 +5,26 @@ from sqlalchemy.orm import selectinload
 
 from ..models import MatchSlotModel
 from .base import BaseRepository
+from src.core.models.match_slot import MatchSlot
 
 
-class MatchSlotRepository(BaseRepository[MatchSlotModel]):
+class MatchSlotRepository(BaseRepository[MatchSlotModel, MatchSlot]):
     model = MatchSlotModel
+    dto_model = MatchSlot
 
     async def get(
             self,
             field_id: UUID,
             load_score: bool = False
-    ) -> MatchSlotModel | None:
+    ) -> MatchSlot | None:
         options = []
         if load_score:
             options.append(selectinload(MatchSlotModel.score))
 
-        return await super()._get(field_id, options=options)
+        return await self._get(field_id, options=options)
 
-    async def list_by_match(self, match_id: UUID) -> Sequence[MatchSlotModel]:
+    async def list_by_match(self, match_id: UUID) -> Sequence[MatchSlot]:
         # Custom query because of order_by
         stmt = select(MatchSlotModel).where(MatchSlotModel.match_id == match_id).order_by(MatchSlotModel.slot_num)
         result = await self._session.scalars(stmt)
-        return result.all()
+        return [self._to_dto(item) for item in result.all()]
