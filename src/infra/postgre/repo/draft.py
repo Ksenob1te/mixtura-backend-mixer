@@ -6,8 +6,10 @@ from ..models import DraftModel
 from .base import BaseRepository
 from src.core.models.draft import Draft
 
+from src.core.interfaces.repo.draft import DraftRepositoryProtocol
 
-class DraftRepository(BaseRepository[DraftModel, Draft]):
+
+class DraftRepository(DraftRepositoryProtocol, BaseRepository[DraftModel, Draft]):
     model = DraftModel
     dto_model = Draft
 

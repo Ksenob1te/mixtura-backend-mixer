@@ -7,8 +7,10 @@ from ..models import MatchSlotModel
 from .base import BaseRepository
 from src.core.models.match_slot import MatchSlot
 
+from src.core.interfaces.repo.match_slot import MatchSlotRepositoryProtocol
 
-class MatchSlotRepository(BaseRepository[MatchSlotModel, MatchSlot]):
+
+class MatchSlotRepository(MatchSlotRepositoryProtocol, BaseRepository[MatchSlotModel, MatchSlot]):
     model = MatchSlotModel
     dto_model = MatchSlot
 

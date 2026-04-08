@@ -7,7 +7,9 @@ from .base import BaseRepository
 from src.core.models.swiss_settings import SwissSettings
 
 
-class SwissSettingsRepository(BaseRepository[SwissSettingsModel, SwissSettings]):
+from src.core.interfaces.repo.swiss_settings import SwissSettingsRepositoryProtocol
+
+class SwissSettingsRepository(SwissSettingsRepositoryProtocol, BaseRepository[SwissSettingsModel, SwissSettings]):
     model = SwissSettingsModel
     dto_model = SwissSettings
 

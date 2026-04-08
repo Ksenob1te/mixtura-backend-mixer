@@ -3,13 +3,14 @@ from typing import Sequence
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
-from src.core.models.application import Application
+from src.core.models.application import Application, ApplicationStatus
 from ..models import ApplicationModel
-from ..models.application import ApplicationStatus
 from .base import BaseRepository
 
+from src.core.interfaces.repo.application import ApplicationRepositoryProtocol
 
-class ApplicationRepository(BaseRepository[ApplicationModel, Application]):
+
+class ApplicationRepository(ApplicationRepositoryProtocol, BaseRepository[ApplicationModel, Application]):
     model = ApplicationModel
     dto_model = Application
 

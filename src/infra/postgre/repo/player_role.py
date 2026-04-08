@@ -6,8 +6,10 @@ from ..models import PlayerRoleModel
 from .base import BaseRepository
 from src.core.models.player_role import PlayerRole
 
+from src.core.interfaces.repo.player_role import PlayerRoleRepositoryProtocol
 
-class PlayerRoleRepository(BaseRepository[PlayerRoleModel, PlayerRole]):
+
+class PlayerRoleRepository(PlayerRoleRepositoryProtocol, BaseRepository[PlayerRoleModel, PlayerRole]):
     model = PlayerRoleModel
     dto_model = PlayerRole
 

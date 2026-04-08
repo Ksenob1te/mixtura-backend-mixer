@@ -6,8 +6,10 @@ from ..models import EventModel
 from .base import BaseRepository
 from src.core.models.event import Event
 
+from src.core.interfaces.repo.event import EventRepositoryProtocol
 
-class EventRepository(BaseRepository[EventModel, Event]):
+
+class EventRepository(EventRepositoryProtocol, BaseRepository[EventModel, Event]):
     model = EventModel
     dto_model = Event
 

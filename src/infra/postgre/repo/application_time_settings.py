@@ -6,8 +6,11 @@ from ..models import ApplicationTimeSettingsModel
 from .base import BaseRepository
 from src.core.models.application_time_settings import ApplicationTimeSettings
 
+from src.core.interfaces.repo.application_time_settings import ApplicationTimeSettingsRepositoryProtocol
 
-class ApplicationTimeSettingsRepository(BaseRepository[ApplicationTimeSettingsModel, ApplicationTimeSettings]):
+
+class ApplicationTimeSettingsRepository(ApplicationTimeSettingsRepositoryProtocol,
+                                        BaseRepository[ApplicationTimeSettingsModel, ApplicationTimeSettings]):
     model = ApplicationTimeSettingsModel
     dto_model = ApplicationTimeSettings
 

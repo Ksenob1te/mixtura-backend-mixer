@@ -6,8 +6,10 @@ from ..models import StageModel
 from .base import BaseRepository
 from src.core.models.stage import Stage
 
+from src.core.interfaces.repo.stage import StageRepositoryProtocol
 
-class StageRepository(BaseRepository[StageModel, Stage]):
+
+class StageRepository(StageRepositoryProtocol, BaseRepository[StageModel, Stage]):
     model = StageModel
     dto_model = Stage
 

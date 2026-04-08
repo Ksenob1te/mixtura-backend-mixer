@@ -6,8 +6,10 @@ from ..models import DraftedPlayerModel
 from .base import BaseRepository
 from src.core.models.drafted_player import DraftedPlayer
 
+from src.core.interfaces.repo.drafted_player import DraftedPlayerRepositoryProtocol
 
-class DraftedPlayerRepository(BaseRepository[DraftedPlayerModel, DraftedPlayer]):
+
+class DraftedPlayerRepository(DraftedPlayerRepositoryProtocol, BaseRepository[DraftedPlayerModel, DraftedPlayer]):
     model = DraftedPlayerModel
     dto_model = DraftedPlayer
 

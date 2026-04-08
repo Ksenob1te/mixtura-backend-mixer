@@ -6,8 +6,10 @@ from ..models import MatchScoreModel
 from .base import BaseRepository
 from src.core.models.match_score import MatchScore
 
+from src.core.interfaces.repo.match_score import MatchScoreRepositoryProtocol
 
-class MatchScoreRepository(BaseRepository[MatchScoreModel, MatchScore]):
+
+class MatchScoreRepository(MatchScoreRepositoryProtocol, BaseRepository[MatchScoreModel, MatchScore]):
     model = MatchScoreModel
     dto_model = MatchScore
 

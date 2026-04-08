@@ -6,8 +6,11 @@ from ..models import RoundRobinSettingsModel
 from .base import BaseRepository
 from src.core.models.round_robin_settings import RoundRobinSettings
 
+from src.core.interfaces.repo.round_robin_settings import RoundRobinSettingsRepositoryProtocol
 
-class RoundRobinSettingsRepository(BaseRepository[RoundRobinSettingsModel, RoundRobinSettings]):
+
+class RoundRobinSettingsRepository(RoundRobinSettingsRepositoryProtocol,
+                                   BaseRepository[RoundRobinSettingsModel, RoundRobinSettings]):
     model = RoundRobinSettingsModel
     dto_model = RoundRobinSettings
 
@@ -22,7 +25,6 @@ class RoundRobinSettingsRepository(BaseRepository[RoundRobinSettingsModel, Round
             stmt = stmt.options(selectinload(RoundRobinSettingsModel.stage))
 
         obj = await self._session.scalar(stmt)
-
 
         return self._to_dto(obj) if obj else None
 

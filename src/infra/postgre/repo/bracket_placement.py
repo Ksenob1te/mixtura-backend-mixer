@@ -6,8 +6,11 @@ from ..models import BracketPlacementModel
 from .base import BaseRepository
 from src.core.models.bracket_placement import BracketPlacement
 
+from src.core.interfaces.repo.bracket_placement import BracketPlacementRepositoryProtocol
 
-class BracketPlacementRepository(BaseRepository[BracketPlacementModel, BracketPlacement]):
+
+class BracketPlacementRepository(BracketPlacementRepositoryProtocol,
+                                 BaseRepository[BracketPlacementModel, BracketPlacement]):
     model = BracketPlacementModel
     dto_model = BracketPlacement
 

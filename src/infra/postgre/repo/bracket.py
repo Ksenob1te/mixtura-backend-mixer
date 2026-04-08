@@ -6,8 +6,10 @@ from ..models import BracketModel
 from .base import BaseRepository
 from src.core.models.bracket import Bracket
 
+from src.core.interfaces.repo.bracket import BracketRepositoryProtocol
 
-class BracketRepository(BaseRepository[BracketModel, Bracket]):
+
+class BracketRepository(BracketRepositoryProtocol, BaseRepository[BracketModel, Bracket]):
     model = BracketModel
     dto_model = Bracket
 

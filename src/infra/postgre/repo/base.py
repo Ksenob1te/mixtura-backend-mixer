@@ -57,7 +57,7 @@ class BaseRepository(Generic[ModelType, DTOType]):
             offset: int = 0,
             limit: int | None = 100,
             options: list[Any] | None = None,
-            *where_clauses
+            *where_clauses: Any,
     ) -> Sequence[ModelType]:
         stmt = select(self.model).offset(offset)
         if limit is not None:
@@ -77,7 +77,7 @@ class BaseRepository(Generic[ModelType, DTOType]):
             offset: int = 0,
             limit: int | None = 100,
             options: list[Any] | None = None,
-            *where_clauses
+            *where_clauses: Any,
     ) -> Sequence[DTOType]:
         items = await self._list_model(offset, limit, options, *where_clauses)
         return [self._to_dto(item) for item in items]
@@ -90,7 +90,7 @@ class BaseRepository(Generic[ModelType, DTOType]):
         else:
             raw_data = dict(dto.__dict__)
 
-        column_names = {column.name for column in self.model.__table__.columns}
+        column_names = set(self.model.__mapper__.columns.keys())
         return {k: v for k, v in raw_data.items() if k in column_names}
 
     async def create(self, dto: DTOType) -> DTOType:
@@ -122,7 +122,7 @@ class BaseRepository(Generic[ModelType, DTOType]):
         count = await self._session.scalar(stmt)
         return (count or 0) > 0
 
-    async def count(self, *where_clauses) -> int:
+    async def count(self, *where_clauses: Any) -> int:
         stmt = select(func.count()).select_from(self.model)
         if where_clauses:
             for clause in where_clauses:

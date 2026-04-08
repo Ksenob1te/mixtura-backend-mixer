@@ -7,8 +7,10 @@ from ..models import MatchModel, MatchSlotModel, StageGroupModel, StageModel, Br
 from .base import BaseRepository
 from src.core.models.match import Match
 
+from src.core.interfaces.repo.match import MatchRepositoryProtocol
 
-class MatchRepository(BaseRepository[MatchModel, Match]):
+
+class MatchRepository(MatchRepositoryProtocol, BaseRepository[MatchModel, Match]):
     model = MatchModel
     dto_model = Match
 

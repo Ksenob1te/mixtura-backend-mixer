@@ -7,8 +7,10 @@ from ..models import EventPlayerModel
 from .base import BaseRepository
 from src.core.models.event_player import EventPlayer
 
+from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 
-class PlayerRepository(BaseRepository[EventPlayerModel, EventPlayer]):
+
+class PlayerRepository(PlayerRepositoryProtocol, BaseRepository[EventPlayerModel, EventPlayer]):
     model = EventPlayerModel
     dto_model = EventPlayer
 

@@ -6,8 +6,11 @@ from ..models import ApplicationCustomFieldModel
 from .base import BaseRepository
 from src.core.models.application_custom_field import ApplicationCustomField
 
+from src.core.interfaces.repo.application_custom_field import ApplicationCustomFieldRepositoryProtocol
 
-class ApplicationCustomFieldRepository(BaseRepository[ApplicationCustomFieldModel, ApplicationCustomField]):
+
+class ApplicationCustomFieldRepository(ApplicationCustomFieldRepositoryProtocol,
+                                       BaseRepository[ApplicationCustomFieldModel, ApplicationCustomField]):
     model = ApplicationCustomFieldModel
     dto_model = ApplicationCustomField
 

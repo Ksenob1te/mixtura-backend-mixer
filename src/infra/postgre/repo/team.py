@@ -7,7 +7,9 @@ from .base import BaseRepository
 from src.core.models.team import Team
 
 
-class TeamRepository(BaseRepository[TeamModel, Team]):
+from src.core.interfaces.repo.team import TeamRepositoryProtocol
+
+class TeamRepository(TeamRepositoryProtocol, BaseRepository[TeamModel, Team]):
     model = TeamModel
     dto_model = Team
 

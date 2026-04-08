@@ -6,8 +6,11 @@ from ..models import FilledApplicationFieldModel
 from .base import BaseRepository
 from src.core.models.filled_application_field import FilledApplicationField
 
+from src.core.interfaces.repo.filled_application_field import FilledApplicationFieldRepositoryProtocol
 
-class FilledApplicationFieldRepository(BaseRepository[FilledApplicationFieldModel, FilledApplicationField]):
+
+class FilledApplicationFieldRepository(FilledApplicationFieldRepositoryProtocol,
+                                       BaseRepository[FilledApplicationFieldModel, FilledApplicationField]):
     model = FilledApplicationFieldModel
     dto_model = FilledApplicationField
 

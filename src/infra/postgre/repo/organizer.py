@@ -6,8 +6,10 @@ from ..models import OrganizerModel
 from .base import BaseRepository
 from src.core.models.organizer import Organizer
 
+from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 
-class OrganizerRepository(BaseRepository[OrganizerModel, Organizer]):
+
+class OrganizerRepository(OrganizerRepositoryProtocol, BaseRepository[OrganizerModel, Organizer]):
     model = OrganizerModel
     dto_model = Organizer
 

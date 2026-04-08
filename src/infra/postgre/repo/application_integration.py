@@ -6,8 +6,11 @@ from ..models import ApplicationIntegrationModel
 from .base import BaseRepository
 from src.core.models.application_integration import ApplicationIntegration
 
+from src.core.interfaces.repo.application_integration import ApplicationIntegrationRepositoryProtocol
 
-class ApplicationIntegrationRepository(BaseRepository[ApplicationIntegrationModel, ApplicationIntegration]):
+
+class ApplicationIntegrationRepository(ApplicationIntegrationRepositoryProtocol,
+                                       BaseRepository[ApplicationIntegrationModel, ApplicationIntegration]):
     model = ApplicationIntegrationModel
     dto_model = ApplicationIntegration
 

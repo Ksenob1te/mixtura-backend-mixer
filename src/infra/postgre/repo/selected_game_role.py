@@ -6,8 +6,11 @@ from ..models import SelectedGameRoleModel
 from .base import BaseRepository
 from src.core.models.selected_game_role import SelectedGameRole
 
+from src.core.interfaces.repo.selected_game_role import SelectedGameRoleRepositoryProtocol
 
-class SelectedGameRoleRepository(BaseRepository[SelectedGameRoleModel, SelectedGameRole]):
+
+class SelectedGameRoleRepository(SelectedGameRoleRepositoryProtocol,
+                                 BaseRepository[SelectedGameRoleModel, SelectedGameRole]):
     model = SelectedGameRoleModel
     dto_model = SelectedGameRole
 

@@ -6,8 +6,11 @@ from ..models import RequiredIntegrationModel
 from .base import BaseRepository
 from src.core.models.required_integration import RequiredIntegration
 
+from src.core.interfaces.repo.required_integration import RequiredIntegrationRepositoryProtocol
 
-class RequiredIntegrationRepository(BaseRepository[RequiredIntegrationModel, RequiredIntegration]):
+
+class RequiredIntegrationRepository(RequiredIntegrationRepositoryProtocol,
+                                    BaseRepository[RequiredIntegrationModel, RequiredIntegration]):
     model = RequiredIntegrationModel
     dto_model = RequiredIntegration
 
