@@ -1,12 +1,12 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import PlayerRoleModel
-from .base import BaseRepository
-from src.core.models.player_role import PlayerRole
-
 from src.core.interfaces.repo.player_role import PlayerRoleRepositoryProtocol
+from src.core.models.player_role import PlayerRole
+from .base import BaseRepository
+from ..models import PlayerRoleModel
 
 
 class PlayerRoleRepository(PlayerRoleRepositoryProtocol, BaseRepository[PlayerRoleModel, PlayerRole]):

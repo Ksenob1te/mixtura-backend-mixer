@@ -1,13 +1,13 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
-from ..models import MatchModel, MatchSlotModel, StageGroupModel, StageModel, BracketModel
-from .base import BaseRepository
-from src.core.models.match import Match
-
 from src.core.interfaces.repo.match import MatchRepositoryProtocol
+from src.core.models.match import Match
+from .base import BaseRepository
+from ..models import MatchModel, MatchSlotModel, StageGroupModel, StageModel, BracketModel
 
 
 class MatchRepository(MatchRepositoryProtocol, BaseRepository[MatchModel, Match]):

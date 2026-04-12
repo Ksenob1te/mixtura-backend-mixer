@@ -1,13 +1,13 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ..models import MatchSlotModel
-from .base import BaseRepository
-from src.core.models.match_slot import MatchSlot
-
 from src.core.interfaces.repo.match_slot import MatchSlotRepositoryProtocol
+from src.core.models.match_slot import MatchSlot
+from .base import BaseRepository
+from ..models import MatchSlotModel
 
 
 class MatchSlotRepository(MatchSlotRepositoryProtocol, BaseRepository[MatchSlotModel, MatchSlot]):

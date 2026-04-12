@@ -1,8 +1,10 @@
-from typing import TYPE_CHECKING
 import uuid
+from typing import TYPE_CHECKING
 from uuid import UUID
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from ..engine import Base
 
 if TYPE_CHECKING:
@@ -12,9 +14,6 @@ if TYPE_CHECKING:
 
 
 class TeamModel(Base):
-    """
-    Team table represents a team participating in an event.
-    """
     __tablename__ = 'team_table'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -26,4 +25,4 @@ class TeamModel(Base):
     draft: Mapped["DraftModel"] = relationship("DraftModel", back_populates="teams", lazy="raise")
 
     players: Mapped[list["TeamPlayerModel"]] = relationship("TeamPlayerModel", back_populates="team",
-                                                       cascade="all, delete-orphan", lazy="raise")
+                                                            cascade="all, delete-orphan", lazy="raise")

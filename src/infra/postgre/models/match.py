@@ -1,12 +1,12 @@
-import enum
-from typing import TYPE_CHECKING
 import uuid
-from uuid import UUID
 from datetime import datetime
-from sqlalchemy import ForeignKey, UniqueConstraint
-from src.core.models.match import BracketPosition
+from typing import TYPE_CHECKING
+from uuid import UUID
 
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.core.models.match import BracketPosition
 from ..engine import Base
 
 if TYPE_CHECKING:
@@ -14,14 +14,7 @@ if TYPE_CHECKING:
     from .match_slot import MatchSlotModel
 
 
-
-
-
-
 class MatchModel(Base):
-    """
-    Match table stores the match details within a stage group or bracket.
-    """
     __tablename__ = 'match_table'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -35,10 +28,10 @@ class MatchModel(Base):
 
     group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="matches", lazy="raise")
     slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="match",
-                                                    foreign_keys="MatchSlot.match_id",
-                                                    cascade="all, delete-orphan", lazy="raise")
+                                                         foreign_keys="MatchSlot.match_id",
+                                                         cascade="all, delete-orphan", lazy="raise")
     source_slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="source_match",
-                                                           foreign_keys="MatchSlot.source_match_id", lazy="raise")
+                                                                foreign_keys="MatchSlot.source_match_id", lazy="raise")
 
     __table_args__ = (
         UniqueConstraint('group_id', 'match_index', name='uq_match_group_index'),

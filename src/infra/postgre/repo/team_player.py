@@ -1,13 +1,13 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import TeamPlayerModel
-from .base import BaseRepository
-from src.core.models.team_player import TeamPlayer
-
-
 from src.core.interfaces.repo.team_player import TeamPlayerRepositoryProtocol
+from src.core.models.team_player import TeamPlayer
+from .base import BaseRepository
+from ..models import TeamPlayerModel
+
 
 class TeamPlayerRepository(TeamPlayerRepositoryProtocol, BaseRepository[TeamPlayerModel, TeamPlayer]):
     model = TeamPlayerModel

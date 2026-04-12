@@ -1,13 +1,13 @@
 from typing import Generic, TypeVar, Any, Sequence, Type, Mapping
 from uuid import UUID
+
 from pydantic import BaseModel
-
 from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..exceptions import IntegrityForeignException, IntegrityUniqueException, IntegrityUnknownException
 from ..engine import Base
+from ..exceptions import IntegrityForeignException, IntegrityUniqueException, IntegrityUnknownException
 
 ModelType = TypeVar("ModelType", bound=Base)
 DTOType = TypeVar("DTOType", bound=BaseModel)

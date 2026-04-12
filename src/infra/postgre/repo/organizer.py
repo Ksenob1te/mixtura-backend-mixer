@@ -1,12 +1,12 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import OrganizerModel
-from .base import BaseRepository
-from src.core.models.organizer import Organizer
-
 from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
+from src.core.models.organizer import Organizer
+from .base import BaseRepository
+from ..models import OrganizerModel
 
 
 class OrganizerRepository(OrganizerRepositoryProtocol, BaseRepository[OrganizerModel, Organizer]):

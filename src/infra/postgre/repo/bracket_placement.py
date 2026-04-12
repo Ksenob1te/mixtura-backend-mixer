@@ -1,12 +1,12 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import BracketPlacementModel
-from .base import BaseRepository
-from src.core.models.bracket_placement import BracketPlacement
-
 from src.core.interfaces.repo.bracket_placement import BracketPlacementRepositoryProtocol
+from src.core.models.bracket_placement import BracketPlacement
+from .base import BaseRepository
+from ..models import BracketPlacementModel
 
 
 class BracketPlacementRepository(BracketPlacementRepositoryProtocol,

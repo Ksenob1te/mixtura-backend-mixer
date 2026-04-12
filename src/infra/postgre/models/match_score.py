@@ -1,8 +1,10 @@
-from typing import TYPE_CHECKING
 import uuid
+from typing import TYPE_CHECKING
 from uuid import UUID
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from ..engine import Base
 
 if TYPE_CHECKING:
@@ -11,9 +13,6 @@ if TYPE_CHECKING:
 
 
 class MatchScoreModel(Base):
-    """
-    MatchScore table stores the score of a team in a match slot.
-    """
     __tablename__ = 'match_score_table'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

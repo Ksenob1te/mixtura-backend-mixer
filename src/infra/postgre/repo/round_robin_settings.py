@@ -1,12 +1,12 @@
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ..models import RoundRobinSettingsModel
-from .base import BaseRepository
-from src.core.models.round_robin_settings import RoundRobinSettings
-
 from src.core.interfaces.repo.round_robin_settings import RoundRobinSettingsRepositoryProtocol
+from src.core.models.round_robin_settings import RoundRobinSettings
+from .base import BaseRepository
+from ..models import RoundRobinSettingsModel
 
 
 class RoundRobinSettingsRepository(RoundRobinSettingsRepositoryProtocol,

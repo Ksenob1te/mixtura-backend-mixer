@@ -1,12 +1,12 @@
 from uuid import UUID
-from sqlalchemy.orm import selectinload
-from sqlalchemy import select
 
-from ..models import MatchScoreModel
-from .base import BaseRepository
-from src.core.models.match_score import MatchScore
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.match_score import MatchScoreRepositoryProtocol
+from src.core.models.match_score import MatchScore
+from .base import BaseRepository
+from ..models import MatchScoreModel
 
 
 class MatchScoreRepository(MatchScoreRepositoryProtocol, BaseRepository[MatchScoreModel, MatchScore]):

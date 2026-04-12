@@ -1,12 +1,12 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import ApplicationIntegrationModel
-from .base import BaseRepository
-from src.core.models.application_integration import ApplicationIntegration
-
 from src.core.interfaces.repo.application_integration import ApplicationIntegrationRepositoryProtocol
+from src.core.models.application_integration import ApplicationIntegration
+from .base import BaseRepository
+from ..models import ApplicationIntegrationModel
 
 
 class ApplicationIntegrationRepository(ApplicationIntegrationRepositoryProtocol,

@@ -1,12 +1,12 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import FilledApplicationFieldModel
-from .base import BaseRepository
-from src.core.models.filled_application_field import FilledApplicationField
-
 from src.core.interfaces.repo.filled_application_field import FilledApplicationFieldRepositoryProtocol
+from src.core.models.filled_application_field import FilledApplicationField
+from .base import BaseRepository
+from ..models import FilledApplicationFieldModel
 
 
 class FilledApplicationFieldRepository(FilledApplicationFieldRepositoryProtocol,

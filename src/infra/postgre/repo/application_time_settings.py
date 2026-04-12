@@ -1,12 +1,12 @@
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ..models import ApplicationTimeSettingsModel
-from .base import BaseRepository
-from src.core.models.application_time_settings import ApplicationTimeSettings
-
 from src.core.interfaces.repo.application_time_settings import ApplicationTimeSettingsRepositoryProtocol
+from src.core.models.application_time_settings import ApplicationTimeSettings
+from .base import BaseRepository
+from ..models import ApplicationTimeSettingsModel
 
 
 class ApplicationTimeSettingsRepository(ApplicationTimeSettingsRepositoryProtocol,

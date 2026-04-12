@@ -1,12 +1,12 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import StageGroupModel
-from .base import BaseRepository
-from src.core.models.stage_group import StageGroup
-
 from src.core.interfaces.repo.stage_group import StageGroupRepositoryProtocol
+from src.core.models.stage_group import StageGroup
+from .base import BaseRepository
+from ..models import StageGroupModel
 
 
 class StageGroupRepository(StageGroupRepositoryProtocol, BaseRepository[StageGroupModel, StageGroup]):

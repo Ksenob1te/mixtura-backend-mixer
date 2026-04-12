@@ -1,13 +1,13 @@
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ..models import SwissSettingsModel
-from .base import BaseRepository
-from src.core.models.swiss_settings import SwissSettings
-
-
 from src.core.interfaces.repo.swiss_settings import SwissSettingsRepositoryProtocol
+from src.core.models.swiss_settings import SwissSettings
+from .base import BaseRepository
+from ..models import SwissSettingsModel
+
 
 class SwissSettingsRepository(SwissSettingsRepositoryProtocol, BaseRepository[SwissSettingsModel, SwissSettings]):
     model = SwissSettingsModel

@@ -1,11 +1,11 @@
-from typing import TYPE_CHECKING
-import enum
 import uuid
+from typing import TYPE_CHECKING
 from uuid import UUID
-from sqlalchemy import ForeignKey, UniqueConstraint
-from src.core.models.application import ApplicationStatus
 
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.core.models.application import ApplicationStatus
 from ..engine import Base
 
 if TYPE_CHECKING:
@@ -16,9 +16,6 @@ if TYPE_CHECKING:
 
 
 class ApplicationModel(Base):
-    """
-    Application table stores the application of a member to an event.
-    """
     __tablename__ = 'application_table'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -30,13 +27,15 @@ class ApplicationModel(Base):
     event: Mapped["EventModel"] = relationship("EventModel", back_populates="applications", lazy="raise")
 
     integrations: Mapped[list["ApplicationIntegrationModel"]] = relationship("ApplicationIntegrationModel",
-                                                                        back_populates="application",
-                                                                        cascade="all, delete-orphan", lazy="raise")
+                                                                             back_populates="application",
+                                                                             cascade="all, delete-orphan", lazy="raise")
     filled_fields: Mapped[list["FilledApplicationFieldModel"]] = relationship("FilledApplicationFieldModel",
-                                                                         back_populates="application",
-                                                                         cascade="all, delete-orphan", lazy="raise")
-    event_player: Mapped["EventPlayerModel"] = relationship("EventPlayerModel", back_populates="application", uselist=False,
-                                                       lazy="raise")
+                                                                              back_populates="application",
+                                                                              cascade="all, delete-orphan",
+                                                                              lazy="raise")
+    event_player: Mapped["EventPlayerModel"] = relationship("EventPlayerModel", back_populates="application",
+                                                            uselist=False,
+                                                            lazy="raise")
 
     __table_args__ = (
         UniqueConstraint('event_id', 'member_id', name='uq_application_event_member'),

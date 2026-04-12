@@ -1,8 +1,10 @@
-from typing import TYPE_CHECKING
 import uuid
+from typing import TYPE_CHECKING
 from uuid import UUID
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from ..engine import Base
 
 if TYPE_CHECKING:
@@ -10,9 +12,6 @@ if TYPE_CHECKING:
 
 
 class ApplicationCustomFieldModel(Base):
-    """
-    ApplicationCustomField table stores custom fields defined for an event application.
-    """
     __tablename__ = 'application_custom_field_table'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

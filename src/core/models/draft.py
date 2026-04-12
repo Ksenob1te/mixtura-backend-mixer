@@ -1,9 +1,10 @@
 from __future__ import annotations
-from pydantic import BaseModel, ConfigDict, Field
+
 import enum
-from typing import Optional, List, Any, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
-from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
     from .drafted_player import DraftedPlayer
@@ -17,6 +18,7 @@ class DraftStatus(str, enum.Enum):
     BALANCE_SELECTED = 'BALANCE_SELECTED'
     COMPLETED = 'COMPLETED'
 
+
 class Draft(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
     id: UUID
@@ -25,4 +27,3 @@ class Draft(BaseModel):
     event: Optional[Event] = None
     teams: list[Team] = Field(default_factory=list)
     drafted_players: list[DraftedPlayer] = Field(default_factory=list)
-

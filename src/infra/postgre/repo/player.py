@@ -1,13 +1,13 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ..models import EventPlayerModel
-from .base import BaseRepository
-from src.core.models.event_player import EventPlayer
-
 from src.core.interfaces.repo.player import PlayerRepositoryProtocol
+from src.core.models.event_player import EventPlayer
+from .base import BaseRepository
+from ..models import EventPlayerModel
 
 
 class PlayerRepository(PlayerRepositoryProtocol, BaseRepository[EventPlayerModel, EventPlayer]):

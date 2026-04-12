@@ -1,12 +1,12 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import EventModel
-from .base import BaseRepository
-from src.core.models.event import Event
-
 from src.core.interfaces.repo.event import EventRepositoryProtocol
+from src.core.models.event import Event
+from .base import BaseRepository
+from ..models import EventModel
 
 
 class EventRepository(EventRepositoryProtocol, BaseRepository[EventModel, Event]):

@@ -1,8 +1,10 @@
 from __future__ import annotations
-from pydantic import BaseModel, ConfigDict
+
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from uuid import UUID
-from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
     from .application import Application

@@ -1,12 +1,12 @@
-from uuid import UUID
 from typing import Sequence
+from uuid import UUID
+
 from sqlalchemy.orm import selectinload
 
-from ..models import DraftModel
-from .base import BaseRepository
-from src.core.models.draft import Draft
-
 from src.core.interfaces.repo.draft import DraftRepositoryProtocol
+from src.core.models.draft import Draft
+from .base import BaseRepository
+from ..models import DraftModel
 
 
 class DraftRepository(DraftRepositoryProtocol, BaseRepository[DraftModel, Draft]):
