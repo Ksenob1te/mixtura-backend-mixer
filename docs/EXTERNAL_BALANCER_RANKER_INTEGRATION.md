@@ -6,10 +6,10 @@
 - `C:/Users/dmela/Desktop/desktop/programming/mixtura_ranker`
 
 ## Общий Поток Для Формирования Команд
-- Модуль мероприятий не должен напрямую отправлять в балансировщик оценку из `custom`/экспертной оценки.
-- Сначала модуль мероприятий собирает открытые оценки игроков по ролям и отправляет их в рейтинг-сервис на `rating.effective.calculate`.
-- Рейтинг-сервис возвращает скорректированный `effective_rating` по каждой паре `member_id + role_id`.
-- В балансировщик передается именно `effective_rating`, приведенный к `int`, в поле `PlayerRole.rating`.
+- Модуль мероприятий собирает открытые оценки игроков по ролям и формирует rating snapshot.
+- Если интеграция `rating.effective.calculate` включена, модуль отправляет snapshot в рейтинг-сервис и получает скорректированный `effective_rating` по каждой паре `member_id + role_id`.
+- Если `rating.effective.calculate` выключен, модуль использует open-rating snapshot как расчетный рейтинг для балансировщика и помечает источник рейтинга в snapshot.
+- В балансировщик передается расчетный рейтинг, приведенный к `int`, в поле `PlayerRole.rating`.
 - После выбора варианта баланса модуль мероприятий должен сохранить использованные рейтинги в `TeamPlayer.rating`, чтобы состав команды отражал снимок рейтинга на момент формирования.
 
 ## Rating Service
@@ -20,6 +20,7 @@
 
 ### Очередь `rating.effective.calculate`
 - Назначение: получить эффективные рейтинги для формирования команд.
+- Использование: опционально, включается настройкой Event Service. При выключенной интеграции Event Service не вызывает очередь и использует open-rating snapshot как расчетный рейтинг.
 - Handler: `src/domain/api/rating.py::calculate_effective_ratings`.
 - Request model: `src/domain/models/requests.py::EffectiveRatingRequest`.
 - Response model: `src/domain/models/responses.py::EffectiveRatingResponse`.
@@ -62,12 +63,13 @@ EffectiveRatingResponse(
 
 Integration notes:
 - `open_rating` is the external/open rating supplied by the event module from organizer/player rating data.
-- `effective_rating` is the only rating that should be sent to team balancers.
+- When effective rating calculation is enabled, `effective_rating` is the rating that should be sent to team balancers. When it is disabled, use the open-rating snapshot as the calculated rating and mark that source explicitly.
 - `hidden_rating` in the response is the hidden rating projected back to the open scale; it is useful for diagnostics, not for direct balancing.
 - If no hidden rating exists in the ranker DB, ranker derives one from the supplied `open_rating`.
 
 ### Очередь `rating.match.process`
 - Назначение: обновить рейтинги после результата матча.
+- Использование: опционально, включается настройкой Event Service. При выключенной интеграции Event Service только сохраняет локальный match result payload/snapshot и не публикует его в рейтинг-сервис.
 - Handler: `src/domain/api/rating.py::process_match_result`.
 - Request model: `src/domain/models/requests.py::MatchResult`.
 - Response model: `src/domain/models/responses.py::MatchResultResponse`.
@@ -114,7 +116,7 @@ BalanceRequest(
             roles={
                 role_id: PlayerRole(
                     priority=int,
-                    rating=int,  # effective rating from ranker
+                    rating=int,  # calculated rating from snapshot
                 ),
             },
         ),
@@ -185,8 +187,7 @@ BalanceRequest(
             roles={
                 role_id: PlayerRole(
                     priority=int,
-                    rating=int,  # effective rating from ranker
-                    subrole_ids=[UUID] | None,
+                    rating=int,  # calculated rating from snapshot
                 ),
             },
         ),
@@ -197,7 +198,6 @@ BalanceRequest(
             role_id: RoleSettings(
                 original_game_role=UUID,
                 count_in_team=int,
-                subroles={subrole_id: SubroleSettings(capacity=int)},
             ),
         },
         priority=PrioritySettings(max_priority=int, power_coef=float),
@@ -223,8 +223,6 @@ DraftBalances(
                 fitness_priority=float,
                 fitness_role_imbalance=float,
                 fitness_team_spread=float,
-                fitness_subrole=float,
-                role_subrole_penalty=float,
                 evaluation=float,
             ),
             teams=[
@@ -253,7 +251,6 @@ ResponseMessage(
         fitness_priority=ProgressMetricSummary(...),
         fitness_role_imbalance=ProgressMetricSummary(...),
         fitness_team_spread=ProgressMetricSummary(...),
-        fitness_subrole=ProgressMetricSummary(...),
     ),
 )
 ```
@@ -263,15 +260,15 @@ Validation and usage notes:
 - Sum of all `RoleSettings.count_in_team` must exactly equal `players_in_team`.
 - Player role priority must be `>= 1` and `<= priority.max_priority`.
 - Tournament service describes higher priority value as higher preference. Normalize priorities separately from the mix balancer until both services share one convention.
-- Optional subroles allow constraints inside a role, for example primary/secondary DPS; undefined subroles are rejected.
+- Subroles are intentionally excluded from Event Service integration for now. The tournament balancer supports them, but Server Service does not currently expose subroles in role sets, so Event Service must not send `subrole_ids` or `subroles` until that upstream contract exists.
 
 ## Event Module Responsibilities
 - Build the initial player-role snapshot from event players, selected roles and player role priorities.
 - Fetch open role ratings from local event/custom data or the user-space/rating source decided by architecture.
-- Call `rating.effective.calculate` and replace open ratings with `effective_rating` for all balancer requests.
+- Call `rating.effective.calculate` only when effective rating calculation is enabled. If disabled, use the open-rating snapshot as the calculated rating for balancer requests and persist the rating source.
 - Select balancer by event/team-formation context:
 - `mix_balance_service.balance` for two-team single-match balancing.
 - `tournament_balance_service.balance` for tournament/team formation with multiple teams.
 - Persist returned balance variants and quality metrics until organizer chooses one.
-- Materialize the chosen balance into `Team` and `TeamPlayer`; store assigned `game_role_id`, `member_id`, and effective rating snapshot.
-- After match completion, call `rating.match.process` with team ranks and player open-rating snapshots.
+- Materialize the chosen balance into `Team` and `TeamPlayer`; store assigned `game_role_id`, `member_id`, calculated rating and rating source snapshot.
+- After match completion, build `rating.match.process` payload with team ranks and player open-rating snapshots. Publish it only when rating match processing is enabled.

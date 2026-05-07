@@ -1,3 +1,5 @@
+> Legacy/reference document. Для реализации Event Service source of truth: `EVENT_MODULE_IMPLEMENTATION_PLAN.md`, `EVENT_STAGE_*_TZ.md`, `SERVER_GATEWAY_EVENT_INTEGRATION.md`, `EXTERNAL_BALANCER_RANKER_INTEGRATION.md`.
+
 ![][image1]  
 **МИНОБРНАУКИ РОССИИ**  
 **федеральное государственное автономное образовательное учреждение**  
