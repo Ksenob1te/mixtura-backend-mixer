@@ -3,8 +3,9 @@ from uuid import UUID
 
 from sqlalchemy.orm import selectinload
 
+from src.core.exceptions import NotFoundException
 from src.core.interfaces.repo.event import EventRepositoryProtocol
-from src.core.models.event import Event, EventCreate, EventUpdate
+from src.core.models.event import Event, EventCreate, EventUpdate, EventStatus
 from .base import BaseRepository
 from ..models import EventModel
 
@@ -56,3 +57,23 @@ class EventRepository(EventRepositoryProtocol, BaseRepository[EventModel, EventC
             offset, limit, None,
             EventModel.is_public.is_(True)
         )
+
+    async def update(self, event_id: UUID, dto: EventUpdate) -> Event:  # type: ignore[override]
+        obj = await self._get_model(event_id)
+        if not obj:
+            raise NotFoundException("Event not found")
+        update_data = self._dto_to_data(dto, exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(obj, key, value)
+        await self._flush()
+        await self._session.refresh(obj)
+        return self._to_dto(obj)
+
+    async def transition_status(self, event_id: UUID, new_status: EventStatus) -> Event:
+        obj = await self._get_model(event_id)
+        if not obj:
+            raise NotFoundException("Event not found")
+        obj.transition_to(new_status)
+        await self._flush()
+        await self._session.refresh(obj)
+        return self._to_dto(obj)

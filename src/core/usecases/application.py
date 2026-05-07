@@ -1,0 +1,339 @@
+from datetime import datetime, timezone
+
+from src.core.commands.application import (
+    GetApplicationCommand,
+    ListApplicationsCommand,
+    ReviewApplicationCommand,
+    SubmitApplicationCommand,
+)
+from src.core.exceptions import BadRequestException, ConflictException, ForbiddenException, NotFoundException
+from src.core.models.application import ApplicationCreate, ApplicationStatus, ApplicationUpdate
+from src.core.models.application_integration import ApplicationIntegrationCreate
+from src.core.models.event import EventMatchType, EventStatus
+from src.core.models.event_player import EventPlayerCreate, EventPlayerStatus
+from src.core.models.filled_application_field import FilledApplicationFieldCreate
+from src.core.models.player_role import PlayerRoleCreate
+from src.core.usecases._access import (
+    R_MIX_BAN,
+    R_SERVER_BAN,
+    R_TOURNAMENT_BAN,
+    P_EVENT_ADMIN_MANAGE_PLAYERS,
+    has_restriction,
+    has_permission,
+)
+
+
+class SubmitApplicationUseCase:
+    def __init__(self, event_repo, application_repo, player_repo, player_role_repo,
+                 filled_field_repo, application_integration_repo):
+        self._event_repo = event_repo
+        self._application_repo = application_repo
+        self._player_repo = player_repo
+        self._player_role_repo = player_role_repo
+        self._filled_field_repo = filled_field_repo
+        self._application_integration_repo = application_integration_repo
+
+    async def __call__(self, command: SubmitApplicationCommand) -> dict:
+        access = command.access_data
+
+        event = await self._event_repo.get(
+            command.event_id,
+            load_time_settings=True,
+            load_custom_fields=True,
+            load_integrations=True,
+            load_game_roles=True,
+        )
+        if not event:
+            raise NotFoundException("Event not found")
+
+        if event.status in (EventStatus.COMPLETED, EventStatus.CANCELLED):
+            raise BadRequestException("Event is not accepting applications")
+
+        if access.member_id is None:
+            raise ForbiddenException("Member identification required")
+
+        if event.server_id != access.server_id:
+            raise ForbiddenException("Event belongs to a different server")
+
+        if has_restriction(access.restriction_mask, R_SERVER_BAN):
+            raise ForbiddenException("Server ban prevents participation")
+
+        if event.match_type == EventMatchType.SINGLE:
+            if has_restriction(access.restriction_mask, R_MIX_BAN):
+                raise ForbiddenException("Mix ban prevents participation in single match event")
+        elif event.match_type == EventMatchType.TOURNAMENT:
+            if has_restriction(access.restriction_mask, R_TOURNAMENT_BAN):
+                raise ForbiddenException("Tournament ban prevents participation")
+
+        existing = await self._application_repo.get_by_event_and_member(command.event_id, access.member_id)
+        if existing:
+            raise ConflictException("Application already exists for this member in this event")
+
+        if event.time_settings:
+            now = datetime.now(timezone.utc)
+            if event.time_settings.start_time and now < event.time_settings.start_time:
+                raise BadRequestException("Application period has not started yet")
+            if event.time_settings.end_time and now > event.time_settings.end_time:
+                raise BadRequestException("Application period has ended")
+
+        valid_field_ids = {str(f.id) for f in event.custom_fields}
+        required_ids = {str(f.id) for f in event.custom_fields if f.is_required}
+        provided_field_ids = {str(k) for k in command.filled_fields}
+
+        for fid in command.filled_fields:
+            if str(fid) not in valid_field_ids:
+                raise BadRequestException(f"Unknown custom field: {fid}")
+
+        missing_required = required_ids - provided_field_ids
+        if missing_required:
+            raise BadRequestException(f"Missing required custom fields: {missing_required}")
+
+        if command.role_priorities:
+            valid_role_ids = {str(r.game_role_id) for r in event.selected_game_roles}
+            for rid in command.role_priorities:
+                if str(rid) not in valid_role_ids:
+                    raise BadRequestException(f"Unknown game role: {rid}")
+
+        role_priorities = {str(k): v for k, v in command.role_priorities.items()}
+
+        application = await self._application_repo.create(
+            ApplicationCreate(
+                event_id=command.event_id,
+                member_id=access.member_id,
+                is_approved=not event.use_application,
+                status=ApplicationStatus.APPROVED if not event.use_application else ApplicationStatus.PENDING,
+                role_priorities=role_priorities,
+            )
+        )
+
+        for custom_field_id, value in command.filled_fields.items():
+            await self._filled_field_repo.create(
+                FilledApplicationFieldCreate(
+                    value=value,
+                    custom_field_id=custom_field_id,
+                    application_id=application.id,
+                )
+            )
+
+        for integration_id in command.integration_ids:
+            await self._application_integration_repo.create(
+                ApplicationIntegrationCreate(
+                    application_id=application.id,
+                    user_provider_id=integration_id,
+                )
+            )
+
+        if event.use_application:
+            return {
+                "id": str(application.id),
+                "status": application.status.value,
+                "auto_approved": False,
+            }
+
+        player = await self._player_repo.create(
+            EventPlayerCreate(
+                event_id=command.event_id,
+                member_id=access.member_id,
+                application_id=application.id,
+            )
+        )
+
+        for role_id_str, priority in application.role_priorities.items():
+            await self._player_role_repo.create(
+                PlayerRoleCreate(
+                    game_role_id=role_id_str,
+                    priority=priority,
+                    event_player_id=player.id,
+                )
+            )
+
+        return {
+            "id": str(application.id),
+            "status": application.status.value,
+            "auto_approved": True,
+            "player_id": str(player.id),
+        }
+
+
+class ReviewApplicationUseCase:
+    def __init__(self, event_repo, application_repo, player_repo, player_role_repo):
+        self._event_repo = event_repo
+        self._application_repo = application_repo
+        self._player_repo = player_repo
+        self._player_role_repo = player_role_repo
+
+    async def __call__(self, command: ReviewApplicationCommand) -> dict:
+        application = await self._application_repo.get(
+            command.application_id,
+            load_filled_fields=True,
+            load_integrations=True,
+            load_event_player=True,
+        )
+        if not application:
+            raise NotFoundException("Application not found")
+
+        event = await self._event_repo.get(application.event_id, load_organizers=True)
+        if not event:
+            raise NotFoundException("Event not found")
+
+        access = command.access_data
+        is_organizer = any(o.member_id == access.member_id for o in event.organizers)
+        has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_PLAYERS)
+
+        if not is_organizer and not has_admin:
+            raise ForbiddenException("Only organizer or event admin can review applications")
+
+        if event.status in (EventStatus.COMPLETED, EventStatus.CANCELLED):
+            raise BadRequestException("Cannot review applications for completed or cancelled event")
+
+        new_status = command.status
+
+        if new_status == ApplicationStatus.APPROVED:
+            if event.server_id != access.server_id:
+                raise ForbiddenException("Cannot approve application from a different server")
+
+            existing_player = await self._player_repo.get_by_event_and_member(
+                application.event_id, application.member_id
+            )
+            if existing_player:
+                raise ConflictException("EventPlayer already exists for this member")
+
+            await self._application_repo.update(
+                application.id,
+                ApplicationUpdate(
+                    id=application.id,
+                    is_approved=True,
+                    status=ApplicationStatus.APPROVED,
+                ),
+            )
+
+            player = await self._player_repo.create(
+                EventPlayerCreate(
+                    event_id=application.event_id,
+                    member_id=application.member_id,
+                    application_id=application.id,
+                )
+            )
+
+            for role_id_str, priority in application.role_priorities.items():
+                await self._player_role_repo.create(
+                    PlayerRoleCreate(
+                        game_role_id=role_id_str,
+                        priority=priority,
+                        event_player_id=player.id,
+                    )
+                )
+
+            return {"id": str(application.id), "status": "APPROVED", "player_id": str(player.id)}
+
+        elif new_status == ApplicationStatus.REJECTED:
+            if application.event_player:
+                await self._player_repo.delete(application.event_player.id)
+
+            await self._application_repo.update(
+                application.id,
+                ApplicationUpdate(
+                    id=application.id,
+                    is_approved=False,
+                    status=ApplicationStatus.REJECTED,
+                ),
+            )
+            return {"id": str(application.id), "status": "REJECTED"}
+
+        elif new_status == ApplicationStatus.WAITLIST:
+            await self._application_repo.update(
+                application.id,
+                ApplicationUpdate(
+                    id=application.id,
+                    is_approved=False,
+                    status=ApplicationStatus.WAITLIST,
+                ),
+            )
+            return {"id": str(application.id), "status": "WAITLIST"}
+
+        else:
+            raise BadRequestException(f"Unsupported application status: {new_status}")
+
+
+class GetApplicationUseCase:
+    def __init__(self, event_repo, application_repo):
+        self._event_repo = event_repo
+        self._application_repo = application_repo
+
+    async def __call__(self, command: GetApplicationCommand) -> dict:
+        application = await self._application_repo.get(
+            command.application_id,
+            load_filled_fields=True,
+            load_integrations=True,
+            load_event_player=True,
+        )
+        if not application:
+            raise NotFoundException("Application not found")
+
+        access = command.access_data
+        if access is not None:
+            event = await self._event_repo.get(application.event_id, load_organizers=True)
+            if not event:
+                raise NotFoundException("Event not found")
+            is_organizer = any(o.member_id == access.member_id for o in event.organizers)
+            is_own = application.member_id == access.member_id
+            if not is_organizer and not is_own:
+                raise ForbiddenException("Access denied")
+        else:
+            raise ForbiddenException("Access denied")
+
+        return {
+            "id": str(application.id),
+            "event_id": str(application.event_id),
+            "member_id": str(application.member_id),
+            "status": application.status.value,
+            "role_priorities": application.role_priorities,
+            "filled_fields": [
+                {"custom_field_id": str(f.custom_field_id), "value": f.value}
+                for f in application.filled_fields
+            ],
+            "integrations": [
+                {"user_provider_id": str(i.user_provider_id)}
+                for i in application.integrations
+            ],
+            "event_player_id": str(application.event_player.id) if application.event_player else None,
+        }
+
+
+class ListApplicationsUseCase:
+    def __init__(self, event_repo, application_repo):
+        self._event_repo = event_repo
+        self._application_repo = application_repo
+
+    async def __call__(self, command: ListApplicationsCommand) -> list[dict]:
+        event = await self._event_repo.get(command.event_id, load_organizers=True)
+        if not event:
+            raise NotFoundException("Event not found")
+
+        access = command.access_data
+        if access is not None:
+            is_organizer = any(o.member_id == access.member_id for o in event.organizers)
+            has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_PLAYERS)
+            if not is_organizer and not has_admin:
+                if not event.is_public:
+                    raise NotFoundException("Event not found")
+                raise ForbiddenException("Only organizer or event admin can list applications")
+        elif not event.is_public:
+            raise NotFoundException("Event not found")
+
+        offset = (command.pagination.page - 1) * command.pagination.page_size if command.pagination.page else 0
+        limit = command.pagination.page_size
+
+        applications = await self._application_repo.list_by_event(
+            command.event_id, offset=offset, limit=limit, status=command.status
+        )
+
+        return [
+            {
+                "id": str(a.id),
+                "member_id": str(a.member_id),
+                "status": a.status.value,
+                "is_approved": a.is_approved,
+            }
+            for a in applications
+        ]
