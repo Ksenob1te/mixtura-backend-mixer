@@ -20,3 +20,15 @@ class Team(BaseModel):
     event: Optional[Event] = None
     draft: Optional[Draft] = None
     players: list[TeamPlayer] = Field(default_factory=list)
+
+
+class TeamCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    event_id: UUID
+    draft_id: UUID | None = None
+    name: str
+
+
+class TeamUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    name: str | None = None

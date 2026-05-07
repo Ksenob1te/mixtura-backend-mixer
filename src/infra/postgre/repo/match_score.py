@@ -4,12 +4,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.match_score import MatchScoreRepositoryProtocol
-from src.core.models.match_score import MatchScore
+from src.core.models.match_score import MatchScore, MatchScoreCreate, MatchScoreUpdate
 from .base import BaseRepository
 from ..models import MatchScoreModel
 
 
-class MatchScoreRepository(MatchScoreRepositoryProtocol, BaseRepository[MatchScoreModel, MatchScore]):
+class MatchScoreRepository(MatchScoreRepositoryProtocol, BaseRepository[MatchScoreModel, MatchScoreCreate, MatchScore, MatchScoreUpdate]):
     model = MatchScoreModel
     dto_model = MatchScore
 

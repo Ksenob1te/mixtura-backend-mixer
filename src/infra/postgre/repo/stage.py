@@ -4,12 +4,12 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.stage import StageRepositoryProtocol
-from src.core.models.stage import Stage
+from src.core.models.stage import Stage, StageCreate, StageUpdate
 from .base import BaseRepository
 from ..models import StageModel
 
 
-class StageRepository(StageRepositoryProtocol, BaseRepository[StageModel, Stage]):
+class StageRepository(StageRepositoryProtocol, BaseRepository[StageModel, StageCreate, Stage, StageUpdate]):
     model = StageModel
     dto_model = Stage
 

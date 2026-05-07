@@ -4,13 +4,13 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.selected_game_role import SelectedGameRoleRepositoryProtocol
-from src.core.models.selected_game_role import SelectedGameRole
+from src.core.models.selected_game_role import SelectedGameRole, SelectedGameRoleCreate, SelectedGameRoleUpdate
 from .base import BaseRepository
 from ..models import SelectedGameRoleModel
 
 
 class SelectedGameRoleRepository(SelectedGameRoleRepositoryProtocol,
-                                 BaseRepository[SelectedGameRoleModel, SelectedGameRole]):
+                                 BaseRepository[SelectedGameRoleModel, SelectedGameRoleCreate, SelectedGameRole, SelectedGameRoleUpdate]):
     model = SelectedGameRoleModel
     dto_model = SelectedGameRole
 

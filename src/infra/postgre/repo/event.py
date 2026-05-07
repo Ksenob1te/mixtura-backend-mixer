@@ -4,12 +4,12 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.event import EventRepositoryProtocol
-from src.core.models.event import Event
+from src.core.models.event import Event, EventCreate, EventUpdate
 from .base import BaseRepository
 from ..models import EventModel
 
 
-class EventRepository(EventRepositoryProtocol, BaseRepository[EventModel, Event]):
+class EventRepository(EventRepositoryProtocol, BaseRepository[EventModel, EventCreate, Event, EventUpdate]):
     model = EventModel
     dto_model = Event
 

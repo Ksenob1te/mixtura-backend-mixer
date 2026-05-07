@@ -27,3 +27,14 @@ class Draft(BaseModel):
     event: Optional[Event] = None
     teams: list[Team] = Field(default_factory=list)
     drafted_players: list[DraftedPlayer] = Field(default_factory=list)
+
+
+class DraftCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    event_id: UUID
+    status: DraftStatus = DraftStatus.OPEN
+
+
+class DraftUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    status: DraftStatus | None = None

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.models.event import EventStatus, TeamFormation
+from src.core.models.event import EventMatchType, EventStatus, RegistrationType, TeamFormation
 from src.env_config import env
 from ..engine import Base
 
@@ -27,11 +27,12 @@ class EventModel(Base):
     __tablename__ = 'event_table'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    match_type: Mapped[str] = mapped_column()
+    server_id: Mapped[UUID] = mapped_column()
+    match_type: Mapped[EventMatchType] = mapped_column()
     use_application: Mapped[bool] = mapped_column(default=False)
     is_public: Mapped[bool] = mapped_column(default=False)
     team_size: Mapped[int] = mapped_column()
-    registration_type: Mapped[str] = mapped_column()
+    registration_type: Mapped[RegistrationType] = mapped_column()
     team_formation: Mapped[TeamFormation] = mapped_column()
     status: Mapped[EventStatus] = mapped_column(default=EventStatus.CREATED)  # type: ignore
 

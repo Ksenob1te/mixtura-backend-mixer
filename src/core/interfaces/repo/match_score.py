@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.match_score import MatchScore
+from src.core.models.match_score import MatchScore, MatchScoreCreate, MatchScoreUpdate
 
 
 class MatchScoreRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class MatchScoreRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[MatchScore]: ...
 
-    async def create(self, dto: MatchScore) -> MatchScore: ...
+    async def create(self, dto: MatchScoreCreate) -> MatchScore: ...
 
-    async def update(self, dto: MatchScore) -> MatchScore: ...
+    async def update(self, dto: MatchScoreUpdate) -> MatchScore: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

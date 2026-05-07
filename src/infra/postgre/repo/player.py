@@ -5,12 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.player import PlayerRepositoryProtocol
-from src.core.models.event_player import EventPlayer
+from src.core.models.event_player import EventPlayer, EventPlayerCreate, EventPlayerUpdate
 from .base import BaseRepository
 from ..models import EventPlayerModel
 
 
-class PlayerRepository(PlayerRepositoryProtocol, BaseRepository[EventPlayerModel, EventPlayer]):
+class PlayerRepository(PlayerRepositoryProtocol, BaseRepository[EventPlayerModel, EventPlayerCreate, EventPlayer, EventPlayerUpdate]):
     model = EventPlayerModel
     dto_model = EventPlayer
 

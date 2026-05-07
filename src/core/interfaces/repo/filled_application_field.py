@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.filled_application_field import FilledApplicationField
+from src.core.models.filled_application_field import FilledApplicationField, FilledApplicationFieldCreate
 
 
 class FilledApplicationFieldRepositoryProtocol(Protocol):
@@ -13,9 +13,9 @@ class FilledApplicationFieldRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[FilledApplicationField]: ...
 
-    async def create(self, dto: FilledApplicationField) -> FilledApplicationField: ...
+    async def create(self, dto: FilledApplicationFieldCreate) -> FilledApplicationField: ...
 
-    async def update(self, dto: FilledApplicationField) -> FilledApplicationField: ...
+    async def update(self, dto: FilledApplicationFieldCreate) -> FilledApplicationField: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

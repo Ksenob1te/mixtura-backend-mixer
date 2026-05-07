@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.application import Application, ApplicationStatus
+from src.core.models.application import Application, ApplicationCreate, ApplicationUpdate, ApplicationStatus
 
 
 class ApplicationRepositoryProtocol(Protocol):
@@ -17,9 +17,9 @@ class ApplicationRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[Application]: ...
 
-    async def create(self, dto: Application) -> Application: ...
+    async def create(self, dto: ApplicationCreate) -> Application: ...
 
-    async def update(self, dto: Application) -> Application: ...
+    async def update(self, dto: ApplicationUpdate) -> Application: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

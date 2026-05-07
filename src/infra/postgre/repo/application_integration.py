@@ -4,13 +4,13 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.application_integration import ApplicationIntegrationRepositoryProtocol
-from src.core.models.application_integration import ApplicationIntegration
+from src.core.models.application_integration import ApplicationIntegration, ApplicationIntegrationCreate
 from .base import BaseRepository
 from ..models import ApplicationIntegrationModel
 
 
 class ApplicationIntegrationRepository(ApplicationIntegrationRepositoryProtocol,
-                                       BaseRepository[ApplicationIntegrationModel, ApplicationIntegration]):
+                                       BaseRepository[ApplicationIntegrationModel, ApplicationIntegrationCreate, ApplicationIntegration, ApplicationIntegrationCreate]):
     model = ApplicationIntegrationModel
     dto_model = ApplicationIntegration
 

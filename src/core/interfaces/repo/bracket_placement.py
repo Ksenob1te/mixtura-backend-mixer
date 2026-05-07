@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.bracket_placement import BracketPlacement
+from src.core.models.bracket_placement import BracketPlacement, BracketPlacementCreate, BracketPlacementUpdate
 
 
 class BracketPlacementRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class BracketPlacementRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[BracketPlacement]: ...
 
-    async def create(self, dto: BracketPlacement) -> BracketPlacement: ...
+    async def create(self, dto: BracketPlacementCreate) -> BracketPlacement: ...
 
-    async def update(self, dto: BracketPlacement) -> BracketPlacement: ...
+    async def update(self, dto: BracketPlacementUpdate) -> BracketPlacement: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

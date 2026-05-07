@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.match_slot import MatchSlot
+from src.core.models.match_slot import MatchSlot, MatchSlotCreate
 
 
 class MatchSlotRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class MatchSlotRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[MatchSlot]: ...
 
-    async def create(self, dto: MatchSlot) -> MatchSlot: ...
+    async def create(self, dto: MatchSlotCreate) -> MatchSlot: ...
 
-    async def update(self, dto: MatchSlot) -> MatchSlot: ...
+    async def update(self, dto: MatchSlotCreate) -> MatchSlot: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

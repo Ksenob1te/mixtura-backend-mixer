@@ -21,3 +21,17 @@ class SelectedGameRole(BaseModel):
     event: Optional[Event] = None
     player_roles: list[PlayerRole] = Field(default_factory=list)
     team_players: list[TeamPlayer] = Field(default_factory=list)
+
+
+class SelectedGameRoleCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    game_role_id: UUID
+    event_id: UUID
+    override_max_count: int | None = None
+    override_min_count: int | None = None
+
+
+class SelectedGameRoleUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    override_max_count: int | None = None
+    override_min_count: int | None = None

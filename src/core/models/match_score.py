@@ -18,3 +18,15 @@ class MatchScore(BaseModel):
     score: int
     slot: Optional[MatchSlot] = None
     team: Optional[Team] = None
+
+
+class MatchScoreCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    slot_id: UUID
+    team_id: UUID
+    score: int
+
+
+class MatchScoreUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    score: int | None = None

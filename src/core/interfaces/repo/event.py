@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.event import Event
+from src.core.models.event import Event, EventCreate, EventUpdate
 
 
 class EventRepositoryProtocol(Protocol):
@@ -14,9 +14,9 @@ class EventRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[Event]: ...
 
-    async def create(self, dto: Event) -> Event: ...
+    async def create(self, dto: EventCreate) -> Event: ...
 
-    async def update(self, dto: Event) -> Event: ...
+    async def update(self, dto: EventUpdate) -> Event: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

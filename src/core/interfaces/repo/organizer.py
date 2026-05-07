@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.organizer import Organizer
+from src.core.models.organizer import Organizer, OrganizerCreate
 
 
 class OrganizerRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class OrganizerRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[Organizer]: ...
 
-    async def create(self, dto: Organizer) -> Organizer: ...
+    async def create(self, dto: OrganizerCreate) -> Organizer: ...
 
-    async def update(self, dto: Organizer) -> Organizer: ...
+    async def update(self, dto: OrganizerCreate) -> Organizer: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

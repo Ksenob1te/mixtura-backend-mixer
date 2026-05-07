@@ -18,3 +18,8 @@ class Bracket(BaseModel):
     event: Optional[Event] = None
     stages: list[Stage] = Field(default_factory=list)
     placements: list[BracketPlacement] = Field(default_factory=list)
+
+
+class BracketCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    event_id: UUID

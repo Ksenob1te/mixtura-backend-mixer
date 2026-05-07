@@ -20,3 +20,10 @@ class FilledApplicationField(BaseModel):
     created_at: datetime
     custom_field: Optional[ApplicationCustomField] = None
     application: Optional[Application] = None
+
+
+class FilledApplicationFieldCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    value: str
+    custom_field_id: UUID
+    application_id: UUID

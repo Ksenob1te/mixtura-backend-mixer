@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.player_role import PlayerRole
+from src.core.models.player_role import PlayerRole, PlayerRoleCreate, PlayerRoleUpdate
 
 
 class PlayerRoleRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class PlayerRoleRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[PlayerRole]: ...
 
-    async def create(self, dto: PlayerRole) -> PlayerRole: ...
+    async def create(self, dto: PlayerRoleCreate) -> PlayerRole: ...
 
-    async def update(self, dto: PlayerRole) -> PlayerRole: ...
+    async def update(self, dto: PlayerRoleUpdate) -> PlayerRole: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

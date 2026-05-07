@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.event_player import EventPlayer
+from src.core.models.event_player import EventPlayer, EventPlayerCreate, EventPlayerUpdate
 
 
 class PlayerRepositoryProtocol(Protocol):
@@ -16,9 +16,9 @@ class PlayerRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[EventPlayer]: ...
 
-    async def create(self, dto: EventPlayer) -> EventPlayer: ...
+    async def create(self, dto: EventPlayerCreate) -> EventPlayer: ...
 
-    async def update(self, dto: EventPlayer) -> EventPlayer: ...
+    async def update(self, dto: EventPlayerUpdate) -> EventPlayer: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

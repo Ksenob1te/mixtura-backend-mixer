@@ -4,13 +4,13 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.filled_application_field import FilledApplicationFieldRepositoryProtocol
-from src.core.models.filled_application_field import FilledApplicationField
+from src.core.models.filled_application_field import FilledApplicationField, FilledApplicationFieldCreate
 from .base import BaseRepository
 from ..models import FilledApplicationFieldModel
 
 
 class FilledApplicationFieldRepository(FilledApplicationFieldRepositoryProtocol,
-                                       BaseRepository[FilledApplicationFieldModel, FilledApplicationField]):
+                                       BaseRepository[FilledApplicationFieldModel, FilledApplicationFieldCreate, FilledApplicationField, FilledApplicationFieldCreate]):
     model = FilledApplicationFieldModel
     dto_model = FilledApplicationField
 

@@ -19,3 +19,17 @@ class TeamPlayer(BaseModel):
     rating: float
     team: Optional[Team] = None
     game_role: Optional[SelectedGameRole] = None
+
+
+class TeamPlayerCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    team_id: UUID
+    member_id: UUID
+    game_role_id: UUID
+    rating: float
+
+
+class TeamPlayerUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    game_role_id: UUID | None = None
+    rating: float | None = None

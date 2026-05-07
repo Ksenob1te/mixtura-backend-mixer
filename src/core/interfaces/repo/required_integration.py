@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.required_integration import RequiredIntegration
+from src.core.models.required_integration import RequiredIntegration, RequiredIntegrationCreate, RequiredIntegrationUpdate
 
 
 class RequiredIntegrationRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class RequiredIntegrationRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[RequiredIntegration]: ...
 
-    async def create(self, dto: RequiredIntegration) -> RequiredIntegration: ...
+    async def create(self, dto: RequiredIntegrationCreate) -> RequiredIntegration: ...
 
-    async def update(self, dto: RequiredIntegration) -> RequiredIntegration: ...
+    async def update(self, dto: RequiredIntegrationUpdate) -> RequiredIntegration: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

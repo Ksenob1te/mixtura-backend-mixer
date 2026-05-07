@@ -5,12 +5,12 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.match import MatchRepositoryProtocol
-from src.core.models.match import Match
+from src.core.models.match import Match, MatchCreate, MatchUpdate
 from .base import BaseRepository
 from ..models import MatchModel, MatchSlotModel, StageGroupModel, StageModel, BracketModel
 
 
-class MatchRepository(MatchRepositoryProtocol, BaseRepository[MatchModel, Match]):
+class MatchRepository(MatchRepositoryProtocol, BaseRepository[MatchModel, MatchCreate, Match, MatchUpdate]):
     model = MatchModel
     dto_model = Match
 

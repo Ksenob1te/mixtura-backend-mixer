@@ -4,12 +4,12 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.draft import DraftRepositoryProtocol
-from src.core.models.draft import Draft
+from src.core.models.draft import Draft, DraftCreate, DraftUpdate
 from .base import BaseRepository
 from ..models import DraftModel
 
 
-class DraftRepository(DraftRepositoryProtocol, BaseRepository[DraftModel, Draft]):
+class DraftRepository(DraftRepositoryProtocol, BaseRepository[DraftModel, DraftCreate, Draft, DraftUpdate]):
     model = DraftModel
     dto_model = Draft
 

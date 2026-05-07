@@ -17,3 +17,18 @@ class ApplicationCustomField(BaseModel):
     is_private: bool
     is_required: bool
     event: Optional[Event] = None
+
+
+class ApplicationCustomFieldCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    event_id: UUID
+    name: str
+    is_private: bool = False
+    is_required: bool = False
+
+
+class ApplicationCustomFieldUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    name: str | None = None
+    is_private: bool | None = None
+    is_required: bool | None = None

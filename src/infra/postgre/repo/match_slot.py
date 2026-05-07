@@ -5,12 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.match_slot import MatchSlotRepositoryProtocol
-from src.core.models.match_slot import MatchSlot
+from src.core.models.match_slot import MatchSlot, MatchSlotCreate
 from .base import BaseRepository
 from ..models import MatchSlotModel
 
 
-class MatchSlotRepository(MatchSlotRepositoryProtocol, BaseRepository[MatchSlotModel, MatchSlot]):
+class MatchSlotRepository(MatchSlotRepositoryProtocol, BaseRepository[MatchSlotModel, MatchSlotCreate, MatchSlot, MatchSlotCreate]):
     model = MatchSlotModel
     dto_model = MatchSlot
 

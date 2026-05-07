@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.application_time_settings import ApplicationTimeSettings
+from src.core.models.application_time_settings import ApplicationTimeSettings, ApplicationTimeSettingsCreate, ApplicationTimeSettingsUpdate
 
 
 class ApplicationTimeSettingsRepositoryProtocol(Protocol):
@@ -14,9 +14,9 @@ class ApplicationTimeSettingsRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[ApplicationTimeSettings]: ...
 
-    async def create(self, dto: ApplicationTimeSettings) -> ApplicationTimeSettings: ...
+    async def create(self, dto: ApplicationTimeSettingsCreate) -> ApplicationTimeSettings: ...
 
-    async def update(self, dto: ApplicationTimeSettings) -> ApplicationTimeSettings: ...
+    async def update(self, dto: ApplicationTimeSettingsUpdate) -> ApplicationTimeSettings: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

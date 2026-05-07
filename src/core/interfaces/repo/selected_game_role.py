@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.selected_game_role import SelectedGameRole
+from src.core.models.selected_game_role import SelectedGameRole, SelectedGameRoleCreate, SelectedGameRoleUpdate
 
 
 class SelectedGameRoleRepositoryProtocol(Protocol):
@@ -13,9 +13,9 @@ class SelectedGameRoleRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[SelectedGameRole]: ...
 
-    async def create(self, dto: SelectedGameRole) -> SelectedGameRole: ...
+    async def create(self, dto: SelectedGameRoleCreate) -> SelectedGameRole: ...
 
-    async def update(self, dto: SelectedGameRole) -> SelectedGameRole: ...
+    async def update(self, dto: SelectedGameRoleUpdate) -> SelectedGameRole: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.round_robin_settings import RoundRobinSettings
+from src.core.models.round_robin_settings import RoundRobinSettings, RoundRobinSettingsCreate, RoundRobinSettingsUpdate
 
 
 class RoundRobinSettingsRepositoryProtocol(Protocol):
@@ -14,9 +14,9 @@ class RoundRobinSettingsRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[RoundRobinSettings]: ...
 
-    async def create(self, dto: RoundRobinSettings) -> RoundRobinSettings: ...
+    async def create(self, dto: RoundRobinSettingsCreate) -> RoundRobinSettings: ...
 
-    async def update(self, dto: RoundRobinSettings) -> RoundRobinSettings: ...
+    async def update(self, dto: RoundRobinSettingsUpdate) -> RoundRobinSettings: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

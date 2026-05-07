@@ -4,13 +4,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.application_time_settings import ApplicationTimeSettingsRepositoryProtocol
-from src.core.models.application_time_settings import ApplicationTimeSettings
+from src.core.models.application_time_settings import ApplicationTimeSettings, ApplicationTimeSettingsCreate, ApplicationTimeSettingsUpdate
 from .base import BaseRepository
 from ..models import ApplicationTimeSettingsModel
 
 
 class ApplicationTimeSettingsRepository(ApplicationTimeSettingsRepositoryProtocol,
-                                        BaseRepository[ApplicationTimeSettingsModel, ApplicationTimeSettings]):
+                                        BaseRepository[ApplicationTimeSettingsModel, ApplicationTimeSettingsCreate, ApplicationTimeSettings, ApplicationTimeSettingsUpdate]):
     model = ApplicationTimeSettingsModel
     dto_model = ApplicationTimeSettings
 

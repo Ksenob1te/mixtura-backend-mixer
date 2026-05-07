@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.team_player import TeamPlayer
+from src.core.models.team_player import TeamPlayer, TeamPlayerCreate, TeamPlayerUpdate
 
 
 class TeamPlayerRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class TeamPlayerRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[TeamPlayer]: ...
 
-    async def create(self, dto: TeamPlayer) -> TeamPlayer: ...
+    async def create(self, dto: TeamPlayerCreate) -> TeamPlayer: ...
 
-    async def update(self, dto: TeamPlayer) -> TeamPlayer: ...
+    async def update(self, dto: TeamPlayerUpdate) -> TeamPlayer: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

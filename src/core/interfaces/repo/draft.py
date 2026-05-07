@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.draft import Draft
+from src.core.models.draft import Draft, DraftCreate, DraftUpdate
 
 
 class DraftRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class DraftRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[Draft]: ...
 
-    async def create(self, dto: Draft) -> Draft: ...
+    async def create(self, dto: DraftCreate) -> Draft: ...
 
-    async def update(self, dto: Draft) -> Draft: ...
+    async def update(self, dto: DraftUpdate) -> Draft: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

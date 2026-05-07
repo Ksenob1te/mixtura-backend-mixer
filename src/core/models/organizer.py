@@ -15,3 +15,9 @@ class Organizer(BaseModel):
     event_id: UUID
     member_id: UUID
     event: Optional[Event] = None
+
+
+class OrganizerCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    event_id: UUID
+    member_id: UUID

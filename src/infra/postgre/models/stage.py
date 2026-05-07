@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from src.core.models.stage import StageFormat
 from ..engine import Base
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ class StageModel(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     stage_index: Mapped[int] = mapped_column()
-    format: Mapped[str] = mapped_column()
+    format: Mapped[StageFormat] = mapped_column()
     name: Mapped[str] = mapped_column()
     bracket_id: Mapped[UUID] = mapped_column(ForeignKey('bracket_table.id', ondelete="CASCADE"))
 

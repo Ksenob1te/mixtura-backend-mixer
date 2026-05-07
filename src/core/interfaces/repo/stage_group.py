@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.stage_group import StageGroup
+from src.core.models.stage_group import StageGroup, StageGroupCreate, StageGroupUpdate
 
 
 class StageGroupRepositoryProtocol(Protocol):
@@ -12,9 +12,9 @@ class StageGroupRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[StageGroup]: ...
 
-    async def create(self, dto: StageGroup) -> StageGroup: ...
+    async def create(self, dto: StageGroupCreate) -> StageGroup: ...
 
-    async def update(self, dto: StageGroup) -> StageGroup: ...
+    async def update(self, dto: StageGroupUpdate) -> StageGroup: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

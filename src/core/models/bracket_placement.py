@@ -18,3 +18,16 @@ class BracketPlacement(BaseModel):
     placement: int
     bracket: Optional[Bracket] = None
     team: Optional[Team] = None
+
+
+class BracketPlacementCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    bracket_id: UUID
+    team_id: UUID
+    placement: int
+
+
+class BracketPlacementUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    team_id: UUID | None = None
+    placement: int | None = None

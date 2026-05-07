@@ -4,13 +4,13 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.required_integration import RequiredIntegrationRepositoryProtocol
-from src.core.models.required_integration import RequiredIntegration
+from src.core.models.required_integration import RequiredIntegration, RequiredIntegrationCreate, RequiredIntegrationUpdate
 from .base import BaseRepository
 from ..models import RequiredIntegrationModel
 
 
 class RequiredIntegrationRepository(RequiredIntegrationRepositoryProtocol,
-                                    BaseRepository[RequiredIntegrationModel, RequiredIntegration]):
+                                    BaseRepository[RequiredIntegrationModel, RequiredIntegrationCreate, RequiredIntegration, RequiredIntegrationUpdate]):
     model = RequiredIntegrationModel
     dto_model = RequiredIntegration
 

@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from src.core.models.event_player import EventPlayerStatus
 from ..engine import Base
 
 if TYPE_CHECKING:
@@ -23,6 +24,7 @@ class EventPlayerModel(Base):
     application_id: Mapped[UUID | None] = mapped_column(ForeignKey('application_table.id'), nullable=True)
     custom_id: Mapped[UUID | None] = mapped_column(nullable=True)
     is_draft_pinned: Mapped[bool] = mapped_column(default=False)
+    status: Mapped[EventPlayerStatus] = mapped_column(default=EventPlayerStatus.REGISTERED)  # type: ignore
 
     event: Mapped["EventModel"] = relationship("EventModel", back_populates="event_players", lazy="raise")
     application: Mapped["ApplicationModel"] = relationship("ApplicationModel", back_populates="event_player",
