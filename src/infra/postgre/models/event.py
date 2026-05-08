@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.models.event import EventMatchType, EventStatus, RegistrationType, TeamFormation
+from src.core.models.event import EventMatchType, EventStatus, TeamFormation
 from src.env_config import env
 from ..engine import Base
 
@@ -28,11 +28,11 @@ class EventModel(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     server_id: Mapped[UUID] = mapped_column()
+    name: Mapped[str] = mapped_column()
     match_type: Mapped[EventMatchType] = mapped_column()
     use_application: Mapped[bool] = mapped_column(default=False)
     is_public: Mapped[bool] = mapped_column(default=False)
     team_size: Mapped[int] = mapped_column()
-    registration_type: Mapped[RegistrationType] = mapped_column()
     team_formation: Mapped[TeamFormation] = mapped_column()
     status: Mapped[EventStatus] = mapped_column(default=EventStatus.CREATED)  # type: ignore
 
@@ -40,35 +40,35 @@ class EventModel(Base):
     rating_set_id: Mapped[UUID | None] = mapped_column(nullable=True)
 
     applications: Mapped[list["ApplicationModel"]] = relationship("ApplicationModel", back_populates="event",
-                                                                  cascade="all, delete-orphan", lazy="raise")
+                                                                  cascade="all, delete-orphan", lazy="noload")
     teams: Mapped[list["TeamModel"]] = relationship("TeamModel", back_populates="event", cascade="all, delete-orphan",
-                                                    lazy="raise")
+                                                    lazy="noload")
     drafts: Mapped[list["DraftModel"]] = relationship("DraftModel", back_populates="event",
                                                       cascade="all, delete-orphan",
-                                                      lazy="raise")
+                                                      lazy="noload")
     organizers: Mapped[list["OrganizerModel"]] = relationship("OrganizerModel", back_populates="event",
-                                                              cascade="all, delete-orphan", lazy="raise")
+                                                              cascade="all, delete-orphan", lazy="noload")
     event_players: Mapped[list["EventPlayerModel"]] = relationship("EventPlayerModel", back_populates="event",
-                                                                   cascade="all, delete-orphan", lazy="raise")
+                                                                   cascade="all, delete-orphan", lazy="noload")
     brackets: Mapped[list["BracketModel"]] = relationship("BracketModel", back_populates="event",
                                                           cascade="all, delete-orphan",
-                                                          lazy="raise")
+                                                          lazy="noload")
     required_integrations: Mapped[list["RequiredIntegrationModel"]] = relationship("RequiredIntegrationModel",
                                                                                    back_populates="event",
                                                                                    cascade="all, delete-orphan",
-                                                                                   lazy="raise")
+                                                                                   lazy="noload")
     selected_game_roles: Mapped[list["SelectedGameRoleModel"]] = relationship("SelectedGameRoleModel",
                                                                               back_populates="event",
                                                                               cascade="all, delete-orphan",
-                                                                              lazy="raise")
+                                                                              lazy="noload")
     custom_fields: Mapped[list["ApplicationCustomFieldModel"]] = relationship("ApplicationCustomFieldModel",
                                                                               back_populates="event",
                                                                               cascade="all, delete-orphan",
-                                                                              lazy="raise")
+                                                                              lazy="noload")
     time_settings: Mapped["ApplicationTimeSettingsModel"] = relationship("ApplicationTimeSettingsModel",
                                                                          back_populates="event",
                                                                          uselist=False, cascade="all, delete-orphan",
-                                                                         lazy="raise")
+                                                                         lazy="noload")
 
     def _validate_transition(self, new_status: EventStatus) -> None:  # type: ignore
         if not EVENT_STATUS_TRANSITIONS:

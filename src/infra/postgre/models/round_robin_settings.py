@@ -21,4 +21,4 @@ class RoundRobinSettingsModel(Base):
     score_per_win: Mapped[int | None] = mapped_column(nullable=True)
     score_per_draw: Mapped[int | None] = mapped_column(nullable=True)
 
-    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="round_robin_settings", lazy="raise")
+    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="round_robin_settings", lazy="noload")

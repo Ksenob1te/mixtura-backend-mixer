@@ -25,6 +25,19 @@
 
 ## Записи
 
+## 2026-05-08. Удаление устаревшего registration_type
+- Статус: changed
+- Затронутые сущности: `Event`
+- Затронутые файлы:
+  - `src/core/models/event.py`, `src/core/commands/event.py`, `src/core/results/event.py` — удалены `RegistrationType` и поле `registration_type` из DTO/контрактов события
+  - `src/infra/postgre/models/event.py` — удалена ORM-колонка `EventModel.registration_type`
+  - `alembic/versions/4b4ab863dbce_.py` — начальная схема больше не создает колонку `registration_type`
+  - `docs/*` — удалены упоминания `RegistrationType` и ошибочная трактовка отдельного типа регистрации
+- Изменение: `registration_type` полностью удален из Event Service; сценарий заявка/auto-join остается выражен существующим `use_application`.
+- Причина: поле изначально предназначалось для разделения командной и одиночной регистрации, но командная регистрация была исключена; поздняя трактовка как `FREE`/`APPLICATION`/`INVITE` дублировала `use_application` и не использовалась бизнес-логикой.
+- Почему минимально: отдельная сущность или новое поле не нужны; текущий обязательный сценарий одиночной регистрации уже покрывает `use_application`.
+- Alembic: изменена начальная миграция схемы
+
 ## 2026-05-08. Этап 7. Результаты одиночных матчей и завершение event
 - Статус: implemented
 - Затронутые сущности: `Match`, `MatchScore`, `Event`
@@ -185,15 +198,14 @@
   - `src/core/service/` — удалён устаревший слой
 - Изменение:
   1. Удалён `src/core/service/*.py` (stale-слой с `src.domain.*` импортами и unsuffixed ORM импортами).
-  2. Добавлены enum-ы: `EventMatchType`, `RegistrationType`, `StageFormat`, `EventPlayerStatus`.
+  2. Добавлены enum-ы: `EventMatchType`, `StageFormat`, `EventPlayerStatus`.
   3. Добавлено поле `server_id: UUID` в `Event`/`EventModel`.
   4. Добавлено поле `status: EventPlayerStatus` в `EventPlayer`/`EventPlayerModel`.
   5. `match_type: str` → `match_type: EventMatchType` (DTO и ORM).
-  6. `registration_type: str` → `registration_type: RegistrationType` (DTO и ORM).
-  7. `format: str` → `format: StageFormat` в `Stage`/`StageModel` (DTO и ORM).
-  8. Все 24 DTO разделены на `*Create`/`*Read` (существующий unsuffixed класс как Read) / опциональный `*Update`.
-  9. `BaseRepository` расширен с `Generic[ModelType, DTOType]` до `Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]`.
-  10. Все 24 репозитория и протокола обновлены: `create(dto: *Create) -> *Read`, `update(dto: *Update) -> *Read`.
+  6. `format: str` → `format: StageFormat` в `Stage`/`StageModel` (DTO и ORM).
+  7. Все 24 DTO разделены на `*Create`/`*Read` (существующий unsuffixed класс как Read) / опциональный `*Update`.
+  8. `BaseRepository` расширен с `Generic[ModelType, DTOType]` до `Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]`.
+  9. Все 24 репозитория и протокола обновлены: `create(dto: *Create) -> *Read`, `update(dto: *Update) -> *Read`.
 - Причина: Stage 1 требует стабилизации базы: устранение stale-зависимостей, приведение DTO к `*Create`/`*Read`/`*Update` контракту, синхронизация ORM и DTO.
 - Почему минимально: все изменения выполнены на существующих моделях без создания параллельных схем. Enum-ы добавлены только для полей, уже существующих как `str`.
 - Alembic: не изменялся

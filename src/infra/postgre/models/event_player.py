@@ -26,15 +26,15 @@ class EventPlayerModel(Base):
     is_draft_pinned: Mapped[bool] = mapped_column(default=False)
     status: Mapped[EventPlayerStatus] = mapped_column(default=EventPlayerStatus.REGISTERED)  # type: ignore
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="event_players", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="event_players", lazy="noload")
     application: Mapped["ApplicationModel"] = relationship("ApplicationModel", back_populates="event_player",
-                                                           lazy="raise")
+                                                           lazy="noload")
 
     drafted_players: Mapped[list["DraftedPlayerModel"]] = relationship("DraftedPlayerModel",
                                                                        back_populates="event_player",
-                                                                       cascade="all, delete-orphan", lazy="raise")
+                                                                       cascade="all, delete-orphan", lazy="noload")
     player_roles: Mapped[list["PlayerRoleModel"]] = relationship("PlayerRoleModel", back_populates="event_player",
-                                                                 cascade="all, delete-orphan", lazy="raise")
+                                                                 cascade="all, delete-orphan", lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('event_id', 'member_id', name='uq_event_player_member'),

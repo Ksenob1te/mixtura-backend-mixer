@@ -20,4 +20,4 @@ class ApplicationTimeSettingsModel(Base):
     start_time: Mapped[datetime | None] = mapped_column(nullable=True)
     end_time: Mapped[datetime | None] = mapped_column(nullable=True)
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="time_settings", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="time_settings", lazy="noload")

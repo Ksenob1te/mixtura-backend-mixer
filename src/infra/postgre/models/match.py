@@ -27,12 +27,12 @@ class MatchModel(Base):
     bracket_position: Mapped[BracketPosition | None] = mapped_column(nullable=True)
     result_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-    group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="matches", lazy="raise")
+    group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="matches", lazy="noload")
     slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="match",
                                                           foreign_keys="MatchSlotModel.match_id",
-                                                          cascade="all, delete-orphan", lazy="raise")
+                                                          cascade="all, delete-orphan", lazy="noload")
     source_slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="source_match",
-                                                                 foreign_keys="MatchSlotModel.source_match_id", lazy="raise")
+                                                                 foreign_keys="MatchSlotModel.source_match_id", lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('group_id', 'match_index', name='uq_match_group_index'),

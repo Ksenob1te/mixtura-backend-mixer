@@ -30,13 +30,13 @@
 - `src/core/models/__init__.py` пустой. Импортировать DTO/enums из конкретных модулей.
 - `src/infra/postgre/models/__init__.py` и `src/infra/postgre/repo/__init__.py` остаются export barrels для `*Model` и `*Repository`.
 - Таблицы имеют явные имена вида `'<entity>_table'`.
-- SQLAlchemy relationships используют `lazy="raise"`, репозиторные `get(...)` методы должны давать `load_*` flags и `selectinload(...)` options.
+- SQLAlchemy relationships используют `lazy="noload"`, репозиторные `get(...)` методы должны давать `load_*` flags и `selectinload(...)` options.
 - Не мутировать frozen DTO. Для изменений использовать соответствующий `*Update` DTO или patch/update-методы репозитория.
 - Использовать современную нотацию типов: `X | None` вместо `Optional[X]`, `A | B` вместо `Union[A, B]`, встроенные generic-типы `list[T]`, `dict[K, V]`, `set[T]`, `tuple[...]`, `type[T]` вместо `typing.List`/`Dict`/`Set`/`Tuple`/`Type`.
 
 ## Обязательные Изменения Модели
 - Добавить или подготовить поле `Event.server_id`, чтобы мероприятия были изолированы по пользовательскому пространству.
-- Явно оформить enum-ы: `EventMatchType`, `RegistrationType`, `TeamFormation`, `EventStatus`, `ApplicationStatus`, `DraftStatus`, `StageFormat`, `MatchSlotSourceType`, `BracketPosition`.
+- Явно оформить enum-ы: `EventMatchType`, `TeamFormation`, `EventStatus`, `ApplicationStatus`, `DraftStatus`, `StageFormat`, `MatchSlotSourceType`, `BracketPosition`.
 - Для сохраняемых сущностей использовать раздельные DTO: `*Create` для создания, `*Read` для сохраненного состояния, `*Update` для частичных изменений.
 - `*Create` не должен требовать БД/ORM-сгенерированные поля: `id`, timestamps, computed/server-only поля и default status, если они задаются сервисом или ORM.
 - `*Read` должен описывать сохраненное состояние и содержать `id` и серверные поля, которые гарантированы после сохранения.

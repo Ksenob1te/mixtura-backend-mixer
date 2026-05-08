@@ -25,18 +25,18 @@ class ApplicationModel(Base):
     status: Mapped[ApplicationStatus] = mapped_column(default=ApplicationStatus.PENDING)
     role_priorities: Mapped[dict] = mapped_column(JSON, default=dict)
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="applications", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="applications", lazy="noload")
 
     integrations: Mapped[list["ApplicationIntegrationModel"]] = relationship("ApplicationIntegrationModel",
                                                                              back_populates="application",
-                                                                             cascade="all, delete-orphan", lazy="raise")
+                                                                             cascade="all, delete-orphan", lazy="noload")
     filled_fields: Mapped[list["FilledApplicationFieldModel"]] = relationship("FilledApplicationFieldModel",
                                                                               back_populates="application",
                                                                               cascade="all, delete-orphan",
-                                                                              lazy="raise")
+                                                                              lazy="noload")
     event_player: Mapped["EventPlayerModel"] = relationship("EventPlayerModel", back_populates="application",
                                                             uselist=False,
-                                                            lazy="raise")
+                                                            lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('event_id', 'member_id', name='uq_application_event_member'),

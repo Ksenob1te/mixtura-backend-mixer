@@ -73,7 +73,7 @@
 
 ## Исправление Модели Данных
 - Добавить к `Event` поле `server_id`, иначе модуль не выполняет требование изоляции мероприятий по пользовательским пространствам.
-- Явно оформить enum-ы: `EventMatchType`, `RegistrationType`, `TeamFormation`, `EventStatus`, `ApplicationStatus`, `DraftStatus`, `StageFormat`, `MatchSlotSourceType`, `BracketPosition`.
+- Явно оформить enum-ы: `EventMatchType`, `TeamFormation`, `EventStatus`, `ApplicationStatus`, `DraftStatus`, `StageFormat`, `MatchSlotSourceType`, `BracketPosition`.
 - Для сохраняемых сущностей разделять DTO по сценарию: `*Create` для создания без БД-сгенерированных полей, `*Read` для сохраненного состояния с `id` и серверными полями, `*Update` для частичных изменений.
 - `*Update` DTO не обязателен для каждой сущности. Если сущность создается, читается и удаляется, но не имеет осмысленных изменяемых полей, `*Update` не создавать. Пример: organizer может иметь `OrganizerCreate` и `OrganizerRead`, но не иметь `OrganizerUpdate`.
 - Отдельные command DTO нужны на RPC-границе, когда входной запрос отличается от DTO сущности или включает внешние данные: например `CreateEventCommand`, `SubmitApplicationCommand`, `RecordMatchResultCommand`.

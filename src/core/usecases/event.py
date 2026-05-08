@@ -48,11 +48,11 @@ class CreateEventUseCase:
             raise ForbiddenException("Missing event_create permission")
 
         event_create = EventCreate(
+            name=command.name,
             match_type=command.match_type,
             use_application=command.use_application,
             is_public=command.is_public,
             team_size=command.team_size,
-            registration_type=command.registration_type,
             team_formation=command.team_formation,
             allow_multiple_drafts=command.allow_multiple_drafts,
             rating_set_id=command.rating_set_id,
@@ -69,10 +69,10 @@ class CreateEventUseCase:
 
         return EventCard(
             id=event.id,
+            name=event.name,
             match_type=event.match_type,
             is_public=event.is_public,
             team_size=event.team_size,
-            registration_type=event.registration_type,
             team_formation=event.team_formation,
             status=event.status,
             server_id=event.server_id,
@@ -96,10 +96,10 @@ class GetEventUseCase:
                 raise NotFoundException("Event not found")
             return EventCard(
                 id=event.id,
+                name=event.name,
                 match_type=event.match_type,
                 is_public=event.is_public,
                 team_size=event.team_size,
-                registration_type=event.registration_type,
                 team_formation=event.team_formation,
                 status=event.status,
                 server_id=event.server_id,
@@ -113,10 +113,10 @@ class GetEventUseCase:
             if event.is_public:
                 return EventCard(
                     id=event.id,
+                    name=event.name,
                     match_type=event.match_type,
                     is_public=event.is_public,
                     team_size=event.team_size,
-                    registration_type=event.registration_type,
                     team_formation=event.team_formation,
                     status=event.status,
                     server_id=event.server_id,
@@ -125,11 +125,11 @@ class GetEventUseCase:
 
         return EventDetail(
             id=event.id,
+            name=event.name,
             match_type=event.match_type,
             use_application=event.use_application,
             is_public=event.is_public,
             team_size=event.team_size,
-            registration_type=event.registration_type,
             team_formation=event.team_formation,
             status=event.status,
             allow_multiple_drafts=event.allow_multiple_drafts,
@@ -151,10 +151,10 @@ class ListPublicEventsUseCase:
         return [
             EventCard(
                 id=e.id,
+                name=e.name,
                 match_type=e.match_type,
                 is_public=e.is_public,
                 team_size=e.team_size,
-                registration_type=e.registration_type,
                 team_formation=e.team_formation,
                 status=e.status,
                 server_id=e.server_id,
@@ -176,11 +176,11 @@ class ListPrivateEventsUseCase:
         return [
             EventDetail(
                 id=e.id,
+                name=e.name,
                 match_type=e.match_type,
                 use_application=e.use_application,
                 is_public=e.is_public,
                 team_size=e.team_size,
-                registration_type=e.registration_type,
                 team_formation=e.team_formation,
                 status=e.status,
                 allow_multiple_drafts=e.allow_multiple_drafts,
@@ -216,25 +216,18 @@ class UpdateEventUseCase:
             raise BadRequestException("Event can only be updated before registration opens")
 
         update = EventUpdate(
-            match_type=command.match_type,
-            use_application=command.use_application,
-            is_public=command.is_public,
-            team_size=command.team_size,
-            registration_type=command.registration_type,
-            team_formation=command.team_formation,
-            allow_multiple_drafts=command.allow_multiple_drafts,
-            rating_set_id=command.rating_set_id,
+            **command.model_dump(exclude={"access_data", "event_id"}, exclude_unset=True)
         )
 
         updated = await self._event_repo.update(command.event_id, update)
 
         return EventDetail(
             id=updated.id,
+            name=updated.name,
             match_type=updated.match_type,
             use_application=updated.use_application,
             is_public=updated.is_public,
             team_size=updated.team_size,
-            registration_type=updated.registration_type,
             team_formation=updated.team_formation,
             status=updated.status,
             allow_multiple_drafts=updated.allow_multiple_drafts,
@@ -271,11 +264,11 @@ class ActivateEventUseCase:
 
         return EventDetail(
             id=updated.id,
+            name=updated.name,
             match_type=updated.match_type,
             use_application=updated.use_application,
             is_public=updated.is_public,
             team_size=updated.team_size,
-            registration_type=updated.registration_type,
             team_formation=updated.team_formation,
             status=updated.status,
             allow_multiple_drafts=updated.allow_multiple_drafts,
@@ -309,11 +302,11 @@ class OpenRegistrationUseCase:
 
         return EventDetail(
             id=updated.id,
+            name=updated.name,
             match_type=updated.match_type,
             use_application=updated.use_application,
             is_public=updated.is_public,
             team_size=updated.team_size,
-            registration_type=updated.registration_type,
             team_formation=updated.team_formation,
             status=updated.status,
             allow_multiple_drafts=updated.allow_multiple_drafts,
@@ -347,11 +340,11 @@ class CloseRegistrationUseCase:
 
         return EventDetail(
             id=updated.id,
+            name=updated.name,
             match_type=updated.match_type,
             use_application=updated.use_application,
             is_public=updated.is_public,
             team_size=updated.team_size,
-            registration_type=updated.registration_type,
             team_formation=updated.team_formation,
             status=updated.status,
             allow_multiple_drafts=updated.allow_multiple_drafts,
@@ -385,11 +378,11 @@ class CancelEventUseCase:
 
         return EventDetail(
             id=updated.id,
+            name=updated.name,
             match_type=updated.match_type,
             use_application=updated.use_application,
             is_public=updated.is_public,
             team_size=updated.team_size,
-            registration_type=updated.registration_type,
             team_formation=updated.team_formation,
             status=updated.status,
             allow_multiple_drafts=updated.allow_multiple_drafts,
@@ -431,11 +424,11 @@ class CompleteSingleGameEventUseCase:
 
         return EventDetail(
             id=updated.id,
+            name=updated.name,
             match_type=updated.match_type,
             use_application=updated.use_application,
             is_public=updated.is_public,
             team_size=updated.team_size,
-            registration_type=updated.registration_type,
             team_formation=updated.team_formation,
             status=updated.status,
             allow_multiple_drafts=updated.allow_multiple_drafts,

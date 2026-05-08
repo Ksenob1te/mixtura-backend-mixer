@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 4b4ab863dbce
+Revision ID: 748aa3a6e82d
 Revises: 
-Create Date: 2026-05-08 18:11:49.821048
+Create Date: 2026-05-08 21:35:10.115637
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '4b4ab863dbce'
+revision: str = '748aa3a6e82d'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,11 +24,11 @@ def upgrade() -> None:
     op.create_table('event_table',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('server_id', sa.Uuid(), nullable=False),
+    sa.Column('name', sa.String(), nullable=False),
     sa.Column('match_type', sa.Enum('SINGLE', 'TOURNAMENT', name='eventmatchtype'), nullable=False),
     sa.Column('use_application', sa.Boolean(), nullable=False),
     sa.Column('is_public', sa.Boolean(), nullable=False),
     sa.Column('team_size', sa.Integer(), nullable=False),
-    sa.Column('registration_type', sa.Enum('FREE', 'APPLICATION', 'INVITE', name='registrationtype'), nullable=False),
     sa.Column('team_formation', sa.Enum('DRAFT', 'BALANCE', 'MANUAL', name='teamformation'), nullable=False),
     sa.Column('status', sa.Enum('CREATED', 'REGISTRATION', 'IDLE', 'FORMATION', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', name='eventstatus'), nullable=False),
     sa.Column('allow_multiple_drafts', sa.Boolean(), nullable=False),

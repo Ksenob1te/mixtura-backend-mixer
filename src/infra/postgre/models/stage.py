@@ -24,17 +24,17 @@ class StageModel(Base):
     name: Mapped[str] = mapped_column()
     bracket_id: Mapped[UUID] = mapped_column(ForeignKey('bracket_table.id', ondelete="CASCADE"))
 
-    bracket: Mapped["BracketModel"] = relationship("BracketModel", back_populates="stages", lazy="raise")
+    bracket: Mapped["BracketModel"] = relationship("BracketModel", back_populates="stages", lazy="noload")
 
     groups: Mapped[list["StageGroupModel"]] = relationship("StageGroupModel", back_populates="stage",
-                                                           cascade="all, delete-orphan", lazy="raise")
+                                                           cascade="all, delete-orphan", lazy="noload")
     round_robin_settings: Mapped["RoundRobinSettingsModel"] = relationship("RoundRobinSettingsModel",
                                                                            back_populates="stage",
                                                                            uselist=False, cascade="all, delete-orphan",
-                                                                           lazy="raise")
+                                                                           lazy="noload")
     swiss_settings: Mapped["SwissSettingsModel"] = relationship("SwissSettingsModel", back_populates="stage",
                                                                 uselist=False,
-                                                                cascade="all, delete-orphan", lazy="raise")
+                                                                cascade="all, delete-orphan", lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('bracket_id', 'stage_index', name='uq_stage_bracket_index'),

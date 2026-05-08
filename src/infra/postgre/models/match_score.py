@@ -20,5 +20,5 @@ class MatchScoreModel(Base):
     team_id: Mapped[UUID] = mapped_column(ForeignKey('team_table.id', ondelete="CASCADE"))
     score: Mapped[int] = mapped_column(default=0)
 
-    slot: Mapped["MatchSlotModel"] = relationship("MatchSlotModel", back_populates="score", lazy="raise")
-    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="match_scores", lazy="raise")
+    slot: Mapped["MatchSlotModel"] = relationship("MatchSlotModel", back_populates="score", lazy="noload")
+    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="match_scores", lazy="noload")

@@ -68,7 +68,7 @@
 - `*Update` создавать только если есть осмысленные изменяемые поля.
 - Не добавлять unsuffixed ORM aliases в `src.infra.postgre.models` ради stale imports.
 - `src/core/models/__init__.py` должен оставаться пустым; импортировать DTO/enums из конкретных модулей.
-- Relationships используют `lazy="raise"`; repository `get(...)` должен иметь `load_*` flags и `selectinload(...)` options.
+- Relationships используют `lazy="noload"`; repository `get(...)` должен иметь `load_*` flags и `selectinload(...)` options.
 - Не мутировать frozen DTO. Для изменений использовать `*Update` или repo patch/update methods.
 - Использовать современную типизацию: `X | None`, `A | B`, `list[T]`, `dict[K, V]`, `set[T]`, `tuple[...]`, `type[T]`.
 

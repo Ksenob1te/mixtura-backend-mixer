@@ -20,9 +20,9 @@ class DraftedPlayerModel(Base):
     event_player_id: Mapped[UUID] = mapped_column(ForeignKey('event_player_table.id', ondelete="CASCADE"))
     is_captain: Mapped[bool | None] = mapped_column(default=None, nullable=True)
 
-    draft: Mapped["DraftModel"] = relationship("DraftModel", back_populates="drafted_players", lazy="raise")
+    draft: Mapped["DraftModel"] = relationship("DraftModel", back_populates="drafted_players", lazy="noload")
     event_player: Mapped["EventPlayerModel"] = relationship("EventPlayerModel", back_populates="drafted_players",
-                                                            lazy="raise")
+                                                            lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('draft_id', 'event_player_id', name='uq_drafted_player_draft_player'),

@@ -21,7 +21,7 @@ class ApplicationCustomFieldModel(Base):
     is_private: Mapped[bool] = mapped_column(default=False)
     is_required: Mapped[bool] = mapped_column(default=False)
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="custom_fields", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="custom_fields", lazy="noload")
     filled_fields: Mapped[list["FilledApplicationFieldModel"]] = relationship(
-        "FilledApplicationFieldModel", back_populates="custom_field", cascade="all, delete-orphan", lazy="raise"
+        "FilledApplicationFieldModel", back_populates="custom_field", cascade="all, delete-orphan", lazy="noload"
     )

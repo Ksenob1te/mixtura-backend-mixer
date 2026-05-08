@@ -22,12 +22,12 @@ class SelectedGameRoleModel(Base):
     override_max_count: Mapped[int | None] = mapped_column(nullable=True)
     override_min_count: Mapped[int | None] = mapped_column(nullable=True)
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="selected_game_roles", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="selected_game_roles", lazy="noload")
 
     player_roles: Mapped[list["PlayerRoleModel"]] = relationship("PlayerRoleModel", back_populates="game_role",
-                                                                 cascade="all, delete-orphan", lazy="raise")
+                                                                 cascade="all, delete-orphan", lazy="noload")
     team_players: Mapped[list["TeamPlayerModel"]] = relationship("TeamPlayerModel", back_populates="game_role",
-                                                                 cascade="all, delete-orphan", lazy="raise")
+                                                                 cascade="all, delete-orphan", lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('game_role_id', 'event_id', name='uq_selected_game_role_event'),

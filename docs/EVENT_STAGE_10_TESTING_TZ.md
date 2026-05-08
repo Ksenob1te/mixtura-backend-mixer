@@ -40,7 +40,7 @@
 - Создание/чтение single-match bracket/stage/group/match/slots/scores.
 - Создание/чтение tournament bracket/stages/groups/matches/placements.
 - Создание/чтение captain draft state на `Draft`/`DraftedPlayer`, включая `DraftedPlayer.is_captain` и связь выбранных игроков с `Team`.
-- Проверка `load_*` flags и `lazy="raise"` relationships.
+- Проверка `load_*` flags и `lazy="noload"` relationships.
 
 ## Use Case Tests
 - Create event flow.
