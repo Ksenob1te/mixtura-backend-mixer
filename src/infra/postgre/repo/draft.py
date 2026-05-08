@@ -9,7 +9,7 @@ from .base import BaseRepository
 from ..models import DraftModel
 
 
-class DraftRepository(DraftRepositoryProtocol, BaseRepository[DraftModel, DraftCreate, Draft, DraftUpdate]):
+class DraftRepository(BaseRepository[DraftModel, DraftCreate, Draft, DraftUpdate], DraftRepositoryProtocol):
     model = DraftModel
     dto_model = Draft
 

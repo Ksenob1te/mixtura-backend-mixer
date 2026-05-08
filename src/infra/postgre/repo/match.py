@@ -12,7 +12,7 @@ from .base import BaseRepository
 from ..models import BracketModel, EventModel, MatchModel, MatchScoreModel, MatchSlotModel, StageGroupModel, StageModel, TeamModel
 
 
-class MatchRepository(MatchRepositoryProtocol, BaseRepository[MatchModel, MatchCreate, Match, MatchUpdate]):
+class MatchRepository(BaseRepository[MatchModel, MatchCreate, Match, MatchUpdate], MatchRepositoryProtocol):
     model = MatchModel
     dto_model = Match
 

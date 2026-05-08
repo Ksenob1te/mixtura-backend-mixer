@@ -9,7 +9,7 @@ from .base import BaseRepository
 from ..models import PlayerRoleModel
 
 
-class PlayerRoleRepository(PlayerRoleRepositoryProtocol, BaseRepository[PlayerRoleModel, PlayerRoleCreate, PlayerRole, PlayerRoleUpdate]):
+class PlayerRoleRepository(BaseRepository[PlayerRoleModel, PlayerRoleCreate, PlayerRole, PlayerRoleUpdate], PlayerRoleRepositoryProtocol):
     model = PlayerRoleModel
     dto_model = PlayerRole
 

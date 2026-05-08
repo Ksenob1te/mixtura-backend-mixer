@@ -1,9 +1,36 @@
-﻿from typing import Annotated, Any
+﻿from typing import Annotated
 
 from faststream import Context, ContextRepo, Depends
 from faststream.rabbit import RabbitBroker
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .core.interfaces.repo import (
+    ApplicationCustomFieldRepositoryProtocol,
+    ApplicationIntegrationRepositoryProtocol,
+    ApplicationRepositoryProtocol,
+    ApplicationTimeSettingsRepositoryProtocol,
+    BracketPlacementRepositoryProtocol,
+    BracketRepositoryProtocol,
+    DraftedPlayerRepositoryProtocol,
+    DraftRepositoryProtocol,
+    EventRepositoryProtocol,
+    FilledApplicationFieldRepositoryProtocol,
+    MatchRepositoryProtocol,
+    MatchScoreRepositoryProtocol,
+    MatchSlotRepositoryProtocol,
+    OrganizerRepositoryProtocol,
+    PlayerRepositoryProtocol,
+    PlayerRoleRepositoryProtocol,
+    RequiredIntegrationRepositoryProtocol,
+    RoundRobinSettingsRepositoryProtocol,
+    SelectedGameRoleRepositoryProtocol,
+    StageGroupRepositoryProtocol,
+    StageRepositoryProtocol,
+    SwissSettingsRepositoryProtocol,
+    TeamPlayerRepositoryProtocol,
+    TeamRepositoryProtocol,
+)
 from src.infra.postgre import DatabaseSessionManager
 from src.infra.postgre.repo import (
     ApplicationCustomFieldRepository,
@@ -81,7 +108,7 @@ from src.env_config import env
 
 async def get_db_session(
     session_manager: Annotated[DatabaseSessionManager, Context()],
-    context: Annotated[ContextRepo, Context()],
+    context: ContextRepo,
 ):
     async with session_manager.session() as session:
         token = context.set_local("db_session", session)
@@ -101,104 +128,104 @@ async def get_redis_session(
         yield redis
 
 
-RedisSession = Annotated[Any, Depends(get_redis_session)]
+RedisSession = Annotated[Redis, Depends(get_redis_session)]
 
 # --- Repository providers ---
 
-async def get_event_repository(session: DatabaseSession) -> Any:
-    return EventRepository(session)  # type: ignore[abstract]
+async def get_event_repository(session: DatabaseSession) -> EventRepositoryProtocol:
+    return EventRepository(session)
 
 
-async def get_organizer_repository(session: DatabaseSession) -> Any:
-    return OrganizerRepository(session)  # type: ignore[abstract]
+async def get_organizer_repository(session: DatabaseSession) -> OrganizerRepositoryProtocol:
+    return OrganizerRepository(session) 
 
 
-async def get_application_repository(session: DatabaseSession) -> Any:
-    return ApplicationRepository(session)  # type: ignore[abstract]
+async def get_application_repository(session: DatabaseSession) -> ApplicationRepositoryProtocol:
+    return ApplicationRepository(session)
 
 
-async def get_application_custom_field_repository(session: DatabaseSession) -> Any:
-    return ApplicationCustomFieldRepository(session)  # type: ignore[abstract]
+async def get_application_custom_field_repository(session: DatabaseSession) -> ApplicationCustomFieldRepositoryProtocol:
+    return ApplicationCustomFieldRepository(session)
 
 
-async def get_application_integration_repository(session: DatabaseSession) -> Any:
-    return ApplicationIntegrationRepository(session)  # type: ignore[abstract]
+async def get_application_integration_repository(session: DatabaseSession) -> ApplicationIntegrationRepositoryProtocol:
+    return ApplicationIntegrationRepository(session)
 
 
-async def get_application_time_settings_repository(session: DatabaseSession) -> Any:
-    return ApplicationTimeSettingsRepository(session)  # type: ignore[abstract]
+async def get_application_time_settings_repository(session: DatabaseSession) -> ApplicationTimeSettingsRepositoryProtocol:
+    return ApplicationTimeSettingsRepository(session)
 
 
-async def get_bracket_repository(session: DatabaseSession) -> Any:
-    return BracketRepository(session)  # type: ignore[abstract]
+async def get_bracket_repository(session: DatabaseSession) -> BracketRepositoryProtocol:
+    return BracketRepository(session)
 
 
-async def get_bracket_placement_repository(session: DatabaseSession) -> Any:
-    return BracketPlacementRepository(session)  # type: ignore[abstract]
+async def get_bracket_placement_repository(session: DatabaseSession) -> BracketPlacementRepositoryProtocol:
+    return BracketPlacementRepository(session)
 
 
-async def get_draft_repository(session: DatabaseSession) -> Any:
-    return DraftRepository(session)  # type: ignore[abstract]
+async def get_draft_repository(session: DatabaseSession) -> DraftRepositoryProtocol:
+    return DraftRepository(session)
 
 
-async def get_drafted_player_repository(session: DatabaseSession) -> Any:
-    return DraftedPlayerRepository(session)  # type: ignore[abstract]
+async def get_drafted_player_repository(session: DatabaseSession) -> DraftedPlayerRepositoryProtocol:
+    return DraftedPlayerRepository(session)
 
 
-async def get_filled_application_field_repository(session: DatabaseSession) -> Any:
-    return FilledApplicationFieldRepository(session)  # type: ignore[abstract]
+async def get_filled_application_field_repository(session: DatabaseSession) -> FilledApplicationFieldRepositoryProtocol:
+    return FilledApplicationFieldRepository(session)
 
 
-async def get_match_repository(session: DatabaseSession) -> Any:
-    return MatchRepository(session)  # type: ignore[abstract]
+async def get_match_repository(session: DatabaseSession) -> MatchRepositoryProtocol:
+    return MatchRepository(session)
 
 
-async def get_match_score_repository(session: DatabaseSession) -> Any:
-    return MatchScoreRepository(session)  # type: ignore[abstract]
+async def get_match_score_repository(session: DatabaseSession) -> MatchScoreRepositoryProtocol:
+    return MatchScoreRepository(session)
 
 
-async def get_match_slot_repository(session: DatabaseSession) -> Any:
-    return MatchSlotRepository(session)  # type: ignore[abstract]
+async def get_match_slot_repository(session: DatabaseSession) -> MatchSlotRepositoryProtocol:
+    return MatchSlotRepository(session)
 
 
-async def get_player_repository(session: DatabaseSession) -> Any:
-    return PlayerRepository(session)  # type: ignore[abstract]
+async def get_player_repository(session: DatabaseSession) -> PlayerRepositoryProtocol:
+    return PlayerRepository(session)
 
 
-async def get_player_role_repository(session: DatabaseSession) -> Any:
-    return PlayerRoleRepository(session)  # type: ignore[abstract]
+async def get_player_role_repository(session: DatabaseSession) -> PlayerRoleRepositoryProtocol:
+    return PlayerRoleRepository(session)
 
 
-async def get_required_integration_repository(session: DatabaseSession) -> Any:
-    return RequiredIntegrationRepository(session)  # type: ignore[abstract]
+async def get_required_integration_repository(session: DatabaseSession) -> RequiredIntegrationRepositoryProtocol:
+    return RequiredIntegrationRepository(session)
 
 
-async def get_round_robin_settings_repository(session: DatabaseSession) -> Any:
-    return RoundRobinSettingsRepository(session)  # type: ignore[abstract]
+async def get_round_robin_settings_repository(session: DatabaseSession) -> RoundRobinSettingsRepositoryProtocol:
+    return RoundRobinSettingsRepository(session)
 
 
-async def get_selected_game_role_repository(session: DatabaseSession) -> Any:
-    return SelectedGameRoleRepository(session)  # type: ignore[abstract]
+async def get_selected_game_role_repository(session: DatabaseSession) -> SelectedGameRoleRepositoryProtocol:
+    return SelectedGameRoleRepository(session)
 
 
-async def get_stage_repository(session: DatabaseSession) -> Any:
-    return StageRepository(session)  # type: ignore[abstract]
+async def get_stage_repository(session: DatabaseSession) -> StageRepositoryProtocol:
+    return StageRepository(session)
 
 
-async def get_stage_group_repository(session: DatabaseSession) -> Any:
-    return StageGroupRepository(session)  # type: ignore[abstract]
+async def get_stage_group_repository(session: DatabaseSession) -> StageGroupRepositoryProtocol:
+    return StageGroupRepository(session)
 
 
-async def get_swiss_settings_repository(session: DatabaseSession) -> Any:
-    return SwissSettingsRepository(session)  # type: ignore[abstract]
+async def get_swiss_settings_repository(session: DatabaseSession) -> SwissSettingsRepositoryProtocol:
+    return SwissSettingsRepository(session)
 
 
-async def get_team_repository(session: DatabaseSession) -> Any:
-    return TeamRepository(session)  # type: ignore[abstract]
+async def get_team_repository(session: DatabaseSession) -> TeamRepositoryProtocol:
+    return TeamRepository(session)
 
 
-async def get_team_player_repository(session: DatabaseSession) -> Any:
-    return TeamPlayerRepository(session)  # type: ignore[abstract]
+async def get_team_player_repository(session: DatabaseSession) -> TeamPlayerRepositoryProtocol:
+    return TeamPlayerRepository(session)
 
 
 # -- Client providers --

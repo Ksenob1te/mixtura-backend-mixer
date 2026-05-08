@@ -9,8 +9,8 @@ from .base import BaseRepository
 from ..models import BracketPlacementModel
 
 
-class BracketPlacementRepository(BracketPlacementRepositoryProtocol,
-                                 BaseRepository[BracketPlacementModel, BracketPlacementCreate, BracketPlacement, BracketPlacementUpdate]):
+class BracketPlacementRepository(BaseRepository[BracketPlacementModel, BracketPlacementCreate, BracketPlacement, BracketPlacementUpdate],
+                                 BracketPlacementRepositoryProtocol):
     model = BracketPlacementModel
     dto_model = BracketPlacement
 

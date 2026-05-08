@@ -9,8 +9,8 @@ from .base import BaseRepository
 from ..models import RoundRobinSettingsModel
 
 
-class RoundRobinSettingsRepository(RoundRobinSettingsRepositoryProtocol,
-                                   BaseRepository[RoundRobinSettingsModel, RoundRobinSettingsCreate, RoundRobinSettings, RoundRobinSettingsUpdate]):
+class RoundRobinSettingsRepository(BaseRepository[RoundRobinSettingsModel, RoundRobinSettingsCreate, RoundRobinSettings, RoundRobinSettingsUpdate],
+                                   RoundRobinSettingsRepositoryProtocol):
     model = RoundRobinSettingsModel
     dto_model = RoundRobinSettings
 

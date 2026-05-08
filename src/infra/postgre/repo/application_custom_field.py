@@ -9,8 +9,8 @@ from .base import BaseRepository
 from ..models import ApplicationCustomFieldModel
 
 
-class ApplicationCustomFieldRepository(ApplicationCustomFieldRepositoryProtocol,
-                                       BaseRepository[ApplicationCustomFieldModel, ApplicationCustomFieldCreate, ApplicationCustomField, ApplicationCustomFieldUpdate]):
+class ApplicationCustomFieldRepository(BaseRepository[ApplicationCustomFieldModel, ApplicationCustomFieldCreate, ApplicationCustomField, ApplicationCustomFieldUpdate],
+                                       ApplicationCustomFieldRepositoryProtocol):
     model = ApplicationCustomFieldModel
     dto_model = ApplicationCustomField
 

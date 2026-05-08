@@ -10,7 +10,7 @@ from .base import BaseRepository
 from ..models import EventModel
 
 
-class EventRepository(EventRepositoryProtocol, BaseRepository[EventModel, EventCreate, Event, EventUpdate]):
+class EventRepository(BaseRepository[EventModel, EventCreate, Event, EventUpdate], EventRepositoryProtocol):
     model = EventModel
     dto_model = Event
 

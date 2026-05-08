@@ -9,7 +9,7 @@ from .base import BaseRepository
 from ..models import DraftedPlayerModel
 
 
-class DraftedPlayerRepository(DraftedPlayerRepositoryProtocol, BaseRepository[DraftedPlayerModel, DraftedPlayerCreate, DraftedPlayer, DraftedPlayerCreate]):
+class DraftedPlayerRepository(BaseRepository[DraftedPlayerModel, DraftedPlayerCreate, DraftedPlayer, DraftedPlayerCreate], DraftedPlayerRepositoryProtocol):
     model = DraftedPlayerModel
     dto_model = DraftedPlayer
 

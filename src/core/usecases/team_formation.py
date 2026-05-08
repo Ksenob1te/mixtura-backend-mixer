@@ -7,6 +7,12 @@ from src.core.commands.team_formation import (
     ChooseTeamFormationVariantCommand,
 )
 from src.core.exceptions import NotFoundException, ForbiddenException, ConflictException, BadRequestException
+from src.core.interfaces.repo.draft import DraftRepositoryProtocol
+from src.core.interfaces.repo.event import EventRepositoryProtocol
+from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
+from src.core.interfaces.repo.player import PlayerRepositoryProtocol
+from src.core.interfaces.repo.team import TeamRepositoryProtocol
+from src.core.interfaces.repo.team_player import TeamPlayerRepositoryProtocol
 from src.core.models.draft import DraftStatus, DraftUpdate
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.models.event import EventMatchType, TeamFormation as TeamFormationMethod
@@ -28,8 +34,9 @@ from src.core.usecases._access import (
 
 
 class RunTeamFormationUseCase:
-    def __init__(self, event_repo, organizer_repo, draft_repo, player_repo,
-                 team_repo, variant_store, rating_client, mix_balancer_client,
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol,
+                 draft_repo: DraftRepositoryProtocol, player_repo: PlayerRepositoryProtocol,
+                 team_repo: TeamRepositoryProtocol, variant_store, rating_client, mix_balancer_client,
                  tournament_balancer_client, env):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
@@ -381,7 +388,8 @@ class RunTeamFormationUseCase:
 
 
 class GetTeamFormationUseCase:
-    def __init__(self, event_repo, organizer_repo, draft_repo, variant_store):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol,
+                 draft_repo: DraftRepositoryProtocol, variant_store):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
         self._draft_repo = draft_repo
@@ -425,8 +433,10 @@ class GetTeamFormationUseCase:
 
 
 class ChooseTeamFormationVariantUseCase:
-    def __init__(self, event_repo, organizer_repo, draft_repo, team_repo,
-                 team_player_repo, player_repo, variant_store):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol,
+                 draft_repo: DraftRepositoryProtocol, team_repo: TeamRepositoryProtocol,
+                 team_player_repo: TeamPlayerRepositoryProtocol, player_repo: PlayerRepositoryProtocol,
+                 variant_store):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
         self._draft_repo = draft_repo

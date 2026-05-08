@@ -9,8 +9,8 @@ from .base import BaseRepository
 from ..models import RequiredIntegrationModel
 
 
-class RequiredIntegrationRepository(RequiredIntegrationRepositoryProtocol,
-                                    BaseRepository[RequiredIntegrationModel, RequiredIntegrationCreate, RequiredIntegration, RequiredIntegrationUpdate]):
+class RequiredIntegrationRepository(BaseRepository[RequiredIntegrationModel, RequiredIntegrationCreate, RequiredIntegration, RequiredIntegrationUpdate],
+                                    RequiredIntegrationRepositoryProtocol):
     model = RequiredIntegrationModel
     dto_model = RequiredIntegration
 

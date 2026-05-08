@@ -1,5 +1,7 @@
 from src.core.commands.player import ListPlayersCommand, RemovePlayerCommand, UpdatePlayerStatusCommand
 from src.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
+from src.core.interfaces.repo.event import EventRepositoryProtocol
+from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 from src.core.models.event import EventStatus
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.usecases._access import (
@@ -11,7 +13,7 @@ from src.core.usecases._access import (
 
 
 class ListPlayersUseCase:
-    def __init__(self, event_repo, player_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, player_repo: PlayerRepositoryProtocol):
         self._event_repo = event_repo
         self._player_repo = player_repo
 
@@ -53,7 +55,7 @@ class ListPlayersUseCase:
 
 
 class UpdatePlayerStatusUseCase:
-    def __init__(self, event_repo, player_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, player_repo: PlayerRepositoryProtocol):
         self._event_repo = event_repo
         self._player_repo = player_repo
 
@@ -99,7 +101,7 @@ class UpdatePlayerStatusUseCase:
 
 
 class RemovePlayerUseCase:
-    def __init__(self, event_repo, player_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, player_repo: PlayerRepositoryProtocol):
         self._event_repo = event_repo
         self._player_repo = player_repo
 

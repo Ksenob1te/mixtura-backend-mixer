@@ -5,8 +5,8 @@ from src.core.models.application import Application, ApplicationCreate, Applicat
 
 
 class ApplicationRepositoryProtocol(Protocol):
-    async def get(self, field_id: UUID, load_filled_fields: bool, load_integrations: bool,
-                  load_event_player: bool) -> Application | None: ...
+    async def get(self, field_id: UUID, load_filled_fields: bool = False, load_integrations: bool = False,
+                  load_event_player: bool = False) -> Application | None: ...
 
     async def get_by_event_and_member(self, event_id: UUID, member_id: UUID) -> Application | None: ...
 

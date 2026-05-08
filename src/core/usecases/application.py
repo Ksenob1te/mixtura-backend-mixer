@@ -8,6 +8,12 @@ from src.core.commands.application import (
     SubmitApplicationCommand,
 )
 from src.core.exceptions import BadRequestException, ConflictException, ForbiddenException, NotFoundException
+from src.core.interfaces.repo.application import ApplicationRepositoryProtocol
+from src.core.interfaces.repo.application_integration import ApplicationIntegrationRepositoryProtocol
+from src.core.interfaces.repo.event import EventRepositoryProtocol
+from src.core.interfaces.repo.filled_application_field import FilledApplicationFieldRepositoryProtocol
+from src.core.interfaces.repo.player import PlayerRepositoryProtocol
+from src.core.interfaces.repo.player_role import PlayerRoleRepositoryProtocol
 from src.core.models.application import ApplicationCreate, ApplicationStatus, ApplicationUpdate
 from src.core.models.application_integration import ApplicationIntegrationCreate
 from src.core.models.event import EventMatchType, EventStatus
@@ -27,8 +33,10 @@ from src.core.usecases._access import (
 
 
 class SubmitApplicationUseCase:
-    def __init__(self, event_repo, application_repo, player_repo, player_role_repo,
-                 filled_field_repo, application_integration_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, application_repo: ApplicationRepositoryProtocol,
+                 player_repo: PlayerRepositoryProtocol, player_role_repo: PlayerRoleRepositoryProtocol,
+                 filled_field_repo: FilledApplicationFieldRepositoryProtocol,
+                 application_integration_repo: ApplicationIntegrationRepositoryProtocol):
         self._event_repo = event_repo
         self._application_repo = application_repo
         self._player_repo = player_repo
@@ -169,7 +177,8 @@ class SubmitApplicationUseCase:
 
 
 class ReviewApplicationUseCase:
-    def __init__(self, event_repo, application_repo, player_repo, player_role_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, application_repo: ApplicationRepositoryProtocol,
+                 player_repo: PlayerRepositoryProtocol, player_role_repo: PlayerRoleRepositoryProtocol):
         self._event_repo = event_repo
         self._application_repo = application_repo
         self._player_repo = player_repo
@@ -283,7 +292,7 @@ class ReviewApplicationUseCase:
 
 
 class GetApplicationUseCase:
-    def __init__(self, event_repo, application_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, application_repo: ApplicationRepositoryProtocol):
         self._event_repo = event_repo
         self._application_repo = application_repo
 
@@ -331,7 +340,7 @@ class GetApplicationUseCase:
 
 
 class ListApplicationsUseCase:
-    def __init__(self, event_repo, application_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, application_repo: ApplicationRepositoryProtocol):
         self._event_repo = event_repo
         self._application_repo = application_repo
 

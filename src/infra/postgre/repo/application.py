@@ -11,7 +11,7 @@ from .base import BaseRepository
 from ..models import ApplicationModel
 
 
-class ApplicationRepository(ApplicationRepositoryProtocol, BaseRepository[ApplicationModel, ApplicationCreate, Application, ApplicationUpdate]):
+class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, Application, ApplicationUpdate], ApplicationRepositoryProtocol):
     model = ApplicationModel
     dto_model = Application
 

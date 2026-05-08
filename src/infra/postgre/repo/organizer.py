@@ -9,7 +9,7 @@ from .base import BaseRepository
 from ..models import OrganizerModel
 
 
-class OrganizerRepository(OrganizerRepositoryProtocol, BaseRepository[OrganizerModel, OrganizerCreate, Organizer, OrganizerCreate]):
+class OrganizerRepository(BaseRepository[OrganizerModel, OrganizerCreate, Organizer, OrganizerCreate], OrganizerRepositoryProtocol):
     model = OrganizerModel
     dto_model = Organizer
 

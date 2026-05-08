@@ -9,8 +9,8 @@ from .base import BaseRepository
 from ..models import SelectedGameRoleModel
 
 
-class SelectedGameRoleRepository(SelectedGameRoleRepositoryProtocol,
-                                 BaseRepository[SelectedGameRoleModel, SelectedGameRoleCreate, SelectedGameRole, SelectedGameRoleUpdate]):
+class SelectedGameRoleRepository(BaseRepository[SelectedGameRoleModel, SelectedGameRoleCreate, SelectedGameRole, SelectedGameRoleUpdate],
+                                 SelectedGameRoleRepositoryProtocol):
     model = SelectedGameRoleModel
     dto_model = SelectedGameRole
 

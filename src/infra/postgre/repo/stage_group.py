@@ -9,7 +9,7 @@ from .base import BaseRepository
 from ..models import StageGroupModel
 
 
-class StageGroupRepository(StageGroupRepositoryProtocol, BaseRepository[StageGroupModel, StageGroupCreate, StageGroup, StageGroupUpdate]):
+class StageGroupRepository(BaseRepository[StageGroupModel, StageGroupCreate, StageGroup, StageGroupUpdate], StageGroupRepositoryProtocol):
     model = StageGroupModel
     dto_model = StageGroup
 

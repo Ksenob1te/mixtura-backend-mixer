@@ -9,8 +9,8 @@ from .base import BaseRepository
 from ..models import FilledApplicationFieldModel
 
 
-class FilledApplicationFieldRepository(FilledApplicationFieldRepositoryProtocol,
-                                       BaseRepository[FilledApplicationFieldModel, FilledApplicationFieldCreate, FilledApplicationField, FilledApplicationFieldCreate]):
+class FilledApplicationFieldRepository(BaseRepository[FilledApplicationFieldModel, FilledApplicationFieldCreate, FilledApplicationField, FilledApplicationFieldCreate],
+                                       FilledApplicationFieldRepositoryProtocol):
     model = FilledApplicationFieldModel
     dto_model = FilledApplicationField
 

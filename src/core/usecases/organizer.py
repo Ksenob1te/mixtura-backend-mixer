@@ -4,6 +4,8 @@ from src.core.commands.organizer import (
     RemoveOrganizerCommand,
 )
 from src.core.exceptions import BadRequestException, ForbiddenException, NotFoundException, ConflictException
+from src.core.interfaces.repo.event import EventRepositoryProtocol
+from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.models.event import EventStatus
 from src.core.models.organizer import OrganizerCreate
 from src.core.usecases._access import (
@@ -16,7 +18,7 @@ from src.core.usecases._access import (
 
 
 class ListOrganizersUseCase:
-    def __init__(self, organizer_repo, event_repo):
+    def __init__(self, organizer_repo: OrganizerRepositoryProtocol, event_repo: EventRepositoryProtocol):
         self._organizer_repo = organizer_repo
         self._event_repo = event_repo
 
@@ -47,7 +49,7 @@ class ListOrganizersUseCase:
 
 
 class AddOrganizerUseCase:
-    def __init__(self, organizer_repo, event_repo):
+    def __init__(self, organizer_repo: OrganizerRepositoryProtocol, event_repo: EventRepositoryProtocol):
         self._organizer_repo = organizer_repo
         self._event_repo = event_repo
 
@@ -85,7 +87,7 @@ class AddOrganizerUseCase:
 
 
 class RemoveOrganizerUseCase:
-    def __init__(self, organizer_repo, event_repo):
+    def __init__(self, organizer_repo: OrganizerRepositoryProtocol, event_repo: EventRepositoryProtocol):
         self._organizer_repo = organizer_repo
         self._event_repo = event_repo
 

@@ -10,7 +10,7 @@ from .base import BaseRepository
 from ..models import MatchSlotModel
 
 
-class MatchSlotRepository(MatchSlotRepositoryProtocol, BaseRepository[MatchSlotModel, MatchSlotCreate, MatchSlot, MatchSlotCreate]):
+class MatchSlotRepository(BaseRepository[MatchSlotModel, MatchSlotCreate, MatchSlot, MatchSlotCreate], MatchSlotRepositoryProtocol):
     model = MatchSlotModel
     dto_model = MatchSlot
 

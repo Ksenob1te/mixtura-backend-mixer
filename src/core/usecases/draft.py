@@ -2,6 +2,12 @@ from uuid import UUID
 
 from src.core.commands.draft import CreateDraftCommand, GetDraftCommand, ListDraftsCommand
 from src.core.exceptions import ForbiddenException, NotFoundException, ConflictException, BadRequestException
+from src.core.interfaces.repo.draft import DraftRepositoryProtocol
+from src.core.interfaces.repo.drafted_player import DraftedPlayerRepositoryProtocol
+from src.core.interfaces.repo.event import EventRepositoryProtocol
+from src.core.interfaces.repo.match import MatchRepositoryProtocol
+from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
+from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 from src.core.models.draft import Draft, DraftCreate
 from src.core.models.drafted_player import DraftedPlayerCreate
 from src.core.models.event import EventStatus, EventMatchType
@@ -16,7 +22,9 @@ from src.core.usecases._access import (
 
 
 class CreateDraftUseCase:
-    def __init__(self, event_repo, organizer_repo, player_repo, draft_repo, drafted_player_repo, match_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol,
+                 player_repo: PlayerRepositoryProtocol, draft_repo: DraftRepositoryProtocol,
+                 drafted_player_repo: DraftedPlayerRepositoryProtocol, match_repo: MatchRepositoryProtocol):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
         self._player_repo = player_repo
@@ -111,7 +119,8 @@ class CreateDraftUseCase:
 
 
 class GetDraftUseCase:
-    def __init__(self, draft_repo, event_repo, organizer_repo):
+    def __init__(self, draft_repo: DraftRepositoryProtocol, event_repo: EventRepositoryProtocol,
+                 organizer_repo: OrganizerRepositoryProtocol):
         self._draft_repo = draft_repo
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
@@ -148,7 +157,8 @@ class GetDraftUseCase:
 
 
 class ListDraftsUseCase:
-    def __init__(self, draft_repo, event_repo, organizer_repo):
+    def __init__(self, draft_repo: DraftRepositoryProtocol, event_repo: EventRepositoryProtocol,
+                 organizer_repo: OrganizerRepositoryProtocol):
         self._draft_repo = draft_repo
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo

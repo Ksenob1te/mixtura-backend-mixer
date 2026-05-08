@@ -9,8 +9,8 @@ from .base import BaseRepository
 from ..models import ApplicationIntegrationModel
 
 
-class ApplicationIntegrationRepository(ApplicationIntegrationRepositoryProtocol,
-                                       BaseRepository[ApplicationIntegrationModel, ApplicationIntegrationCreate, ApplicationIntegration, ApplicationIntegrationCreate]):
+class ApplicationIntegrationRepository(BaseRepository[ApplicationIntegrationModel, ApplicationIntegrationCreate, ApplicationIntegration, ApplicationIntegrationCreate],
+                                        ApplicationIntegrationRepositoryProtocol):
     model = ApplicationIntegrationModel
     dto_model = ApplicationIntegration
 

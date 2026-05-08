@@ -3,6 +3,16 @@ from uuid import UUID
 
 from src.core.commands.match import GetMatchCommand, ListMatchesCommand, RecordMatchResultCommand, SetupMatchCommand
 from src.core.exceptions import BadRequestException, ConflictException, ForbiddenException, NotFoundException
+from src.core.interfaces.repo.bracket import BracketRepositoryProtocol
+from src.core.interfaces.repo.draft import DraftRepositoryProtocol
+from src.core.interfaces.repo.event import EventRepositoryProtocol
+from src.core.interfaces.repo.match import MatchRepositoryProtocol
+from src.core.interfaces.repo.match_score import MatchScoreRepositoryProtocol
+from src.core.interfaces.repo.match_slot import MatchSlotRepositoryProtocol
+from src.core.interfaces.repo.player import PlayerRepositoryProtocol
+from src.core.interfaces.repo.stage import StageRepositoryProtocol
+from src.core.interfaces.repo.stage_group import StageGroupRepositoryProtocol
+from src.core.interfaces.repo.team import TeamRepositoryProtocol
 from src.core.models.bracket import Bracket, BracketCreate
 from src.core.models.event import EventMatchType, EventStatus
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
@@ -26,15 +36,15 @@ from src.core.usecases._access import (
 class SingleMatchSetupUseCase:
     def __init__(
         self,
-        event_repo,
-        bracket_repo,
-        stage_repo,
-        stage_group_repo,
-        match_repo,
-        match_slot_repo,
-        match_score_repo,
-        team_repo,
-        draft_repo,
+        event_repo: EventRepositoryProtocol,
+        bracket_repo: BracketRepositoryProtocol,
+        stage_repo: StageRepositoryProtocol,
+        stage_group_repo: StageGroupRepositoryProtocol,
+        match_repo: MatchRepositoryProtocol,
+        match_slot_repo: MatchSlotRepositoryProtocol,
+        match_score_repo: MatchScoreRepositoryProtocol,
+        team_repo: TeamRepositoryProtocol,
+        draft_repo: DraftRepositoryProtocol,
     ):
         self._event_repo = event_repo
         self._bracket_repo = bracket_repo
@@ -211,7 +221,9 @@ class SingleMatchSetupUseCase:
 
 
 class RecordSingleMatchResultUseCase:
-    def __init__(self, event_repo, match_repo, match_score_repo, team_repo, player_repo, rating_client, env):
+    def __init__(self, event_repo: EventRepositoryProtocol, match_repo: MatchRepositoryProtocol,
+                 match_score_repo: MatchScoreRepositoryProtocol, team_repo: TeamRepositoryProtocol,
+                 player_repo: PlayerRepositoryProtocol, rating_client, env):
         self._event_repo = event_repo
         self._match_repo = match_repo
         self._match_score_repo = match_score_repo
@@ -435,7 +447,8 @@ class RecordSingleMatchResultUseCase:
 
 
 class GetMatchUseCase:
-    def __init__(self, event_repo, match_repo, team_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, match_repo: MatchRepositoryProtocol,
+                 team_repo: TeamRepositoryProtocol):
         self._event_repo = event_repo
         self._match_repo = match_repo
         self._team_repo = team_repo
@@ -470,7 +483,8 @@ class GetMatchUseCase:
 
 
 class ListMatchesUseCase:
-    def __init__(self, event_repo, match_repo, team_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, match_repo: MatchRepositoryProtocol,
+                 team_repo: TeamRepositoryProtocol):
         self._event_repo = event_repo
         self._match_repo = match_repo
         self._team_repo = team_repo
@@ -510,7 +524,7 @@ async def _build_single_match_view(
     bracket_id: UUID,
     stage_id: UUID,
     group_id: UUID,
-    team_repo,
+    team_repo: TeamRepositoryProtocol,
 ) -> SingleMatchView:
     slots: list[SingleMatchSlotView] = []
     draft_ids: set[UUID] = set()

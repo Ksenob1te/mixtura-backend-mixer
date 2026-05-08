@@ -9,7 +9,7 @@ from .base import BaseRepository
 from ..models import BracketModel
 
 
-class BracketRepository(BracketRepositoryProtocol, BaseRepository[BracketModel, BracketCreate, Bracket, BracketCreate]):
+class BracketRepository(BaseRepository[BracketModel, BracketCreate, Bracket, BracketCreate], BracketRepositoryProtocol):
     model = BracketModel
     dto_model = Bracket
 

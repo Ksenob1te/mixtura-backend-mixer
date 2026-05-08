@@ -9,8 +9,8 @@ from .base import BaseRepository
 from ..models import ApplicationTimeSettingsModel
 
 
-class ApplicationTimeSettingsRepository(ApplicationTimeSettingsRepositoryProtocol,
-                                        BaseRepository[ApplicationTimeSettingsModel, ApplicationTimeSettingsCreate, ApplicationTimeSettings, ApplicationTimeSettingsUpdate]):
+class ApplicationTimeSettingsRepository(BaseRepository[ApplicationTimeSettingsModel, ApplicationTimeSettingsCreate, ApplicationTimeSettings, ApplicationTimeSettingsUpdate],
+                                        ApplicationTimeSettingsRepositoryProtocol):
     model = ApplicationTimeSettingsModel
     dto_model = ApplicationTimeSettings
 

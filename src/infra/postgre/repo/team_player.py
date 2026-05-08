@@ -9,7 +9,7 @@ from .base import BaseRepository
 from ..models import TeamPlayerModel
 
 
-class TeamPlayerRepository(TeamPlayerRepositoryProtocol, BaseRepository[TeamPlayerModel, TeamPlayerCreate, TeamPlayer, TeamPlayerUpdate]):
+class TeamPlayerRepository(BaseRepository[TeamPlayerModel, TeamPlayerCreate, TeamPlayer, TeamPlayerUpdate], TeamPlayerRepositoryProtocol):
     model = TeamPlayerModel
     dto_model = TeamPlayer
 

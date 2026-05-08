@@ -5,8 +5,8 @@ from src.core.models.filled_application_field import FilledApplicationField, Fil
 
 
 class FilledApplicationFieldRepositoryProtocol(Protocol):
-    async def get(self, field_id: UUID, load_application: bool,
-                  load_custom_field: bool) -> FilledApplicationField | None: ...
+    async def get(self, field_id: UUID, load_application: bool = False,
+                  load_custom_field: bool = False) -> FilledApplicationField | None: ...
 
     async def list_by_application(self, application_id: UUID) -> Sequence[FilledApplicationField]: ...
 

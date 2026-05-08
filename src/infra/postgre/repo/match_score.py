@@ -10,7 +10,7 @@ from .base import BaseRepository
 from ..models import MatchScoreModel
 
 
-class MatchScoreRepository(MatchScoreRepositoryProtocol, BaseRepository[MatchScoreModel, MatchScoreCreate, MatchScore, MatchScoreUpdate]):
+class MatchScoreRepository(BaseRepository[MatchScoreModel, MatchScoreCreate, MatchScore, MatchScoreUpdate], MatchScoreRepositoryProtocol):
     model = MatchScoreModel
     dto_model = MatchScore
 

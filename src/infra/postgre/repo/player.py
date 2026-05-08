@@ -11,7 +11,7 @@ from .base import BaseRepository
 from ..models import EventPlayerModel
 
 
-class PlayerRepository(PlayerRepositoryProtocol, BaseRepository[EventPlayerModel, EventPlayerCreate, EventPlayer, EventPlayerUpdate]):
+class PlayerRepository(BaseRepository[EventPlayerModel, EventPlayerCreate, EventPlayer, EventPlayerUpdate], PlayerRepositoryProtocol):
     model = EventPlayerModel
     dto_model = EventPlayer
 

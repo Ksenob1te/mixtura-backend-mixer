@@ -9,7 +9,7 @@ from .base import BaseRepository
 from ..models import SwissSettingsModel
 
 
-class SwissSettingsRepository(SwissSettingsRepositoryProtocol, BaseRepository[SwissSettingsModel, SwissSettingsCreate, SwissSettings, SwissSettingsUpdate]):
+class SwissSettingsRepository(BaseRepository[SwissSettingsModel, SwissSettingsCreate, SwissSettings, SwissSettingsUpdate], SwissSettingsRepositoryProtocol):
     model = SwissSettingsModel
     dto_model = SwissSettings
 

@@ -11,6 +11,9 @@ from src.core.commands.event import (
     CompleteEventCommand,
 )
 from src.core.exceptions import BadRequestException, ConflictException, ForbiddenException, NotFoundException
+from src.core.interfaces.repo.event import EventRepositoryProtocol
+from src.core.interfaces.repo.match import MatchRepositoryProtocol
+from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.models.event import EventCreate, EventUpdate, EventStatus, EventMatchType
 from src.core.models.organizer import OrganizerCreate
 from src.core.results.event import EventCard, EventDetail
@@ -28,7 +31,7 @@ from src.core.usecases._access import (
 
 
 class CreateEventUseCase:
-    def __init__(self, event_repo, organizer_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
 
@@ -40,7 +43,7 @@ class CreateEventUseCase:
 
         if access.member_id is None:
             raise ForbiddenException("Member identification required to create event")
-
+        print(access.permission_mask)
         if not has_permission(access.permission_mask, P_EVENT_CREATE):
             raise ForbiddenException("Missing event_create permission")
 
@@ -77,7 +80,7 @@ class CreateEventUseCase:
 
 
 class GetEventUseCase:
-    def __init__(self, event_repo, organizer_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
 
@@ -136,7 +139,7 @@ class GetEventUseCase:
 
 
 class ListPublicEventsUseCase:
-    def __init__(self, event_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol):
         self._event_repo = event_repo
 
     async def __call__(self, command: ListPublicEventsCommand) -> list[EventCard]:
@@ -161,7 +164,7 @@ class ListPublicEventsUseCase:
 
 
 class ListPrivateEventsUseCase:
-    def __init__(self, event_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol):
         self._event_repo = event_repo
 
     async def __call__(self, command: ListPrivateEventsCommand) -> list[EventDetail]:
@@ -189,7 +192,7 @@ class ListPrivateEventsUseCase:
 
 
 class UpdateEventUseCase:
-    def __init__(self, event_repo, organizer_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
 
@@ -241,7 +244,7 @@ class UpdateEventUseCase:
 
 
 class ActivateEventUseCase:
-    def __init__(self, event_repo, organizer_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
 
@@ -282,7 +285,7 @@ class ActivateEventUseCase:
 
 
 class OpenRegistrationUseCase:
-    def __init__(self, event_repo, organizer_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
 
@@ -320,7 +323,7 @@ class OpenRegistrationUseCase:
 
 
 class CloseRegistrationUseCase:
-    def __init__(self, event_repo, organizer_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
 
@@ -358,7 +361,7 @@ class CloseRegistrationUseCase:
 
 
 class CancelEventUseCase:
-    def __init__(self, event_repo, organizer_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
 
@@ -396,7 +399,7 @@ class CancelEventUseCase:
 
 
 class CompleteSingleGameEventUseCase:
-    def __init__(self, event_repo, match_repo):
+    def __init__(self, event_repo: EventRepositoryProtocol, match_repo: MatchRepositoryProtocol):
         self._event_repo = event_repo
         self._match_repo = match_repo
 
