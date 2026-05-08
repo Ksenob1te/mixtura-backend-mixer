@@ -1,6 +1,6 @@
 FROM python:3.13-slim
 
-WORKDIR /mixtura-mixer
+WORKDIR /app
 
 COPY pyproject.toml ./
 
