@@ -4,7 +4,9 @@ from src.core.models.event import EventStatus
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.usecases._access import (
     P_EVENT_ADMIN_MANAGE_PLAYERS,
-    has_permission,
+    has_event_admin_permission,
+    has_server_ban,
+    is_same_server,
 )
 
 
@@ -20,8 +22,10 @@ class ListPlayersUseCase:
 
         access = command.access_data
         if access is not None:
+            if not is_same_server(access, event.server_id):
+                raise ForbiddenException("Event belongs to a different server")
             is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-            has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_PLAYERS)
+            has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
             if not is_organizer and not has_admin:
                 if not event.is_public:
                     raise NotFoundException("Event not found")
@@ -59,8 +63,12 @@ class UpdatePlayerStatusUseCase:
             raise NotFoundException("Event not found")
 
         access = command.access_data
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        if has_server_ban(access):
+            raise ForbiddenException("Server ban prevents player management")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-        has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_PLAYERS)
+        has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
 
         if not is_organizer and not has_admin:
             raise ForbiddenException("Only organizer or event admin can update player status")
@@ -101,8 +109,12 @@ class RemovePlayerUseCase:
             raise NotFoundException("Event not found")
 
         access = command.access_data
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        if has_server_ban(access):
+            raise ForbiddenException("Server ban prevents player management")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-        has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_PLAYERS)
+        has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
 
         if not is_organizer and not has_admin:
             raise ForbiddenException("Only organizer or event admin can remove players")

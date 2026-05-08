@@ -10,6 +10,7 @@
 
 ## Какой Этап Реализуется
 - Текущий этап всегда задается пользователем отдельно.
+- На момент последней правки документации этапы 1-4 уже реализованы. Перед этапом 5 нужно выполнить stage 4.5: `docs/EVENT_STAGE_04_5_ACCESS_PERMISSIONS_RESTRICTIONS_TZ.md`, если он еще не применен.
 - Если этап не указан, остановись и спроси, какой `EVENT_STAGE_*_TZ.md` нужно реализовать.
 - Не реализуй будущие этапы заранее, кроме минимального кода, без которого текущий этап не импортируется или не проходит typecheck.
 - Tests не писать и не чинить до этапа 10, кроме случая, когда пользователь явно просит тесты.
@@ -41,6 +42,7 @@
 - Локальный `organizer` имеет полную власть над своим event независимо от server permissions.
 - Server permissions нужны только для создания event и внешних admin override-сценариев.
 - Restrictions применяются из `access_data.restriction_mask`.
+- Permission/restriction masks должны интерпретироваться по canonical enum order из Server Service `src/infra/postgre/static/permissions.py` и `restrictions.py`; event permissions начинаются с `event_create` на bit 24.
 - Подроли не поддерживаются в текущем ТЗ: не принимать, не хранить, не валидировать, не отправлять `subrole_ids`/`subroles`.
 - `rating.effective.calculate` опционален.
 - `rating.match.process` опционален.
@@ -84,6 +86,12 @@
 ## Team Formation И Rating Snapshot
 - `Draft` в этом проекте означает выборку игроков `selection`/`draft`, а не только captain draft.
 - Автоматическое формирование команд использует rating snapshot и внешний balancer.
+- Варианты балансировки/распределения команд в этапе 5 хранить временно в Redis, а не в PostgreSQL.
+- Не создавать ORM-модели, PostgreSQL таблицы или repository contracts для `team_formation_variant`/`team_formation_variant_player`.
+- В PostgreSQL можно сохранять только долговечные сущности: `Draft`, итоговые `Team`/`TeamPlayer` после выбора варианта и, если уже есть подходящая модель, минимальный статус job. Payload вариантов и metrics остаются Redis cache data.
+- Redis key должен быть привязан к `event_id`, `draft_id` и `job_id`; variants должны иметь TTL. Если variants истекли, use case должен вернуть понятную ошибку и предложить запустить formation заново.
+- Redis integration для этапа 5 повторяет паттерн `mixtura-backend-server`: `RedisSessionManager` на `redis.asyncio.Redis` + `ConnectionPool.from_url(env.redis.url)`, регистрация `redis_engine` в FastStream lifespan через `context.set_global("redis_engine", redis_engine)`, DI через `get_redis_session(redis_engine: Annotated[RedisSessionManager, Context()])`.
+- Не копировать server-specific `RedisRepository` cookie helpers; в Event Service нужен purpose-specific `TeamFormationVariantStore`.
 - Если `rating.effective.calculate` включен, использовать `effective_rating`.
 - Если `rating.effective.calculate` выключен, использовать open-rating snapshot как calculated rating с явным source.
 - `PlayerRole.rating` в balancer request заполняется calculated rating from snapshot, не обязательно effective rating из ranker.

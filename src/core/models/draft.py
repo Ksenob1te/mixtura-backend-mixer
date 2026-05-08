@@ -37,4 +37,5 @@ class DraftCreate(BaseModel):
 
 class DraftUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
+    id: UUID
     status: DraftStatus | None = None

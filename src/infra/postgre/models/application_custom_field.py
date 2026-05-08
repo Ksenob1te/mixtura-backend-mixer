@@ -9,6 +9,7 @@ from ..engine import Base
 
 if TYPE_CHECKING:
     from .event import EventModel
+    from .filled_application_field import FilledApplicationFieldModel
 
 
 class ApplicationCustomFieldModel(Base):
@@ -21,3 +22,6 @@ class ApplicationCustomFieldModel(Base):
     is_required: Mapped[bool] = mapped_column(default=False)
 
     event: Mapped["EventModel"] = relationship("EventModel", back_populates="custom_fields", lazy="raise")
+    filled_fields: Mapped[list["FilledApplicationFieldModel"]] = relationship(
+        "FilledApplicationFieldModel", back_populates="custom_field", cascade="all, delete-orphan", lazy="raise"
+    )

@@ -35,7 +35,7 @@
 - Создание/чтение `Organizer`.
 - Создание/чтение application aggregate: application, filled fields, integrations, selected roles.
 - Создание/чтение event players.
-- Создание/чтение draft/selection и team formation variants.
+- Создание/чтение draft/selection. Team formation variants не проверять как repository entities, потому что они временно хранятся в Redis.
 - Создание/чтение teams/team players.
 - Создание/чтение single-match bracket/stage/group/match/slots/scores.
 - Создание/чтение tournament bracket/stages/groups/matches/placements.
@@ -72,6 +72,7 @@
 
 ## Test Doubles
 - Fake repositories для use case tests.
+- Fake Redis/team formation variant store для use case tests этапа 5.
 - Fake RatingClient с режимами enabled/disabled и deterministic responses.
 - Fake MixBalancerClient и Fake TournamentBalancerClient, возвращающие variants с метриками.
 - Fake Gateway payload builders для `AccessDataRequest`, role set, rating set, members, custom ratings.

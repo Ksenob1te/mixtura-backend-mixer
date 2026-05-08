@@ -28,7 +28,7 @@
 - Подготовка rating snapshot.
 - Работа с `rating.effective.calculate` включенным и выключенным.
 - Вызов внешнего балансировщика.
-- Сохранение нескольких вариантов распределения.
+- Временное сохранение нескольких вариантов распределения в Redis.
 - Выбор варианта organizer-ом.
 - Материализация `Team` и `TeamPlayer`.
 
@@ -89,7 +89,7 @@
 - Organizer создает выборку approved players.
 - Event Service готовит rating snapshot.
 - Event Service вызывает rating effective calculation, если включено, или использует open-rating snapshot, если выключено.
-- Event Service вызывает balancer и сохраняет variants.
+- Event Service вызывает balancer и временно сохраняет variants в Redis.
 - Organizer выбирает variant.
 - Event Service создает teams.
 - Event Service создает одиночный match setup.

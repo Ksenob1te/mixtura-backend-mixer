@@ -58,6 +58,19 @@ class EventRepository(EventRepositoryProtocol, BaseRepository[EventModel, EventC
             EventModel.is_public.is_(True)
         )
 
+    async def list_public_by_server(self, server_id: UUID, offset: int, limit: int) -> Sequence[Event]:
+        return await self.list(
+            offset, limit, None,
+            EventModel.server_id == server_id,
+            EventModel.is_public.is_(True),
+        )
+
+    async def list_by_server(self, server_id: UUID, offset: int, limit: int) -> Sequence[Event]:
+        return await self.list(
+            offset, limit, None,
+            EventModel.server_id == server_id,
+        )
+
     async def update(self, event_id: UUID, dto: EventUpdate) -> Event:  # type: ignore[override]
         obj = await self._get_model(event_id)
         if not obj:

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import UUID
 
 from src.core.commands.application import (
     GetApplicationCommand,
@@ -10,7 +11,7 @@ from src.core.exceptions import BadRequestException, ConflictException, Forbidde
 from src.core.models.application import ApplicationCreate, ApplicationStatus, ApplicationUpdate
 from src.core.models.application_integration import ApplicationIntegrationCreate
 from src.core.models.event import EventMatchType, EventStatus
-from src.core.models.event_player import EventPlayerCreate, EventPlayerStatus
+from src.core.models.event_player import EventPlayerCreate, EventPlayerStatus, EventPlayerUpdate
 from src.core.models.filled_application_field import FilledApplicationFieldCreate
 from src.core.models.player_role import PlayerRoleCreate
 from src.core.usecases._access import (
@@ -19,7 +20,9 @@ from src.core.usecases._access import (
     R_TOURNAMENT_BAN,
     P_EVENT_ADMIN_MANAGE_PLAYERS,
     has_restriction,
-    has_permission,
+    has_event_admin_permission,
+    has_server_ban,
+    is_same_server,
 )
 
 
@@ -88,13 +91,23 @@ class SubmitApplicationUseCase:
         if missing_required:
             raise BadRequestException(f"Missing required custom fields: {missing_required}")
 
-        if command.role_priorities:
-            valid_role_ids = {str(r.game_role_id) for r in event.selected_game_roles}
-            for rid in command.role_priorities:
-                if str(rid) not in valid_role_ids:
-                    raise BadRequestException(f"Unknown game role: {rid}")
+        required_integration_ids = {i.id for i in event.required_integrations}
+        provided_integration_ids = set(command.integration_ids)
+        missing_integrations = required_integration_ids - provided_integration_ids
+        if missing_integrations:
+            raise BadRequestException(f"Missing required integrations: {missing_integrations}")
 
-        role_priorities = {str(k): v for k, v in command.role_priorities.items()}
+        role_id_map = {}
+        for role in event.selected_game_roles:
+            role_id_map[role.id] = role.id
+            role_id_map[role.game_role_id] = role.id
+
+        role_priorities = {}
+        for role_id, priority in command.role_priorities.items():
+            selected_role_id = role_id_map.get(role_id)
+            if selected_role_id is None:
+                raise BadRequestException(f"Unknown game role: {role_id}")
+            role_priorities[str(selected_role_id)] = priority
 
         application = await self._application_repo.create(
             ApplicationCreate(
@@ -141,7 +154,7 @@ class SubmitApplicationUseCase:
         for role_id_str, priority in application.role_priorities.items():
             await self._player_role_repo.create(
                 PlayerRoleCreate(
-                    game_role_id=role_id_str,
+                    game_role_id=UUID(role_id_str),
                     priority=priority,
                     event_player_id=player.id,
                 )
@@ -177,8 +190,12 @@ class ReviewApplicationUseCase:
             raise NotFoundException("Event not found")
 
         access = command.access_data
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        if has_server_ban(access):
+            raise ForbiddenException("Server ban prevents application review")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-        has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_PLAYERS)
+        has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
 
         if not is_organizer and not has_admin:
             raise ForbiddenException("Only organizer or event admin can review applications")
@@ -195,9 +212,6 @@ class ReviewApplicationUseCase:
             existing_player = await self._player_repo.get_by_event_and_member(
                 application.event_id, application.member_id
             )
-            if existing_player:
-                raise ConflictException("EventPlayer already exists for this member")
-
             await self._application_repo.update(
                 application.id,
                 ApplicationUpdate(
@@ -207,18 +221,31 @@ class ReviewApplicationUseCase:
                 ),
             )
 
-            player = await self._player_repo.create(
-                EventPlayerCreate(
-                    event_id=application.event_id,
-                    member_id=application.member_id,
-                    application_id=application.id,
+            if existing_player:
+                if existing_player.status == EventPlayerStatus.PLAYING:
+                    raise ConflictException("EventPlayer is already participating in an active match")
+                player = await self._player_repo.update(
+                    existing_player.id,
+                    EventPlayerUpdate(status=EventPlayerStatus.REGISTERED),
                 )
-            )
+            else:
+                player = await self._player_repo.create(
+                    EventPlayerCreate(
+                        event_id=application.event_id,
+                        member_id=application.member_id,
+                        application_id=application.id,
+                    )
+                )
 
+            player_with_roles = await self._player_repo.get(player.id, load_roles=True, load_drafted=False)
+            existing_role_ids = {r.game_role_id for r in (player_with_roles.player_roles if player_with_roles else [])}
             for role_id_str, priority in application.role_priorities.items():
+                role_id = UUID(role_id_str)
+                if role_id in existing_role_ids:
+                    continue
                 await self._player_role_repo.create(
                     PlayerRoleCreate(
-                        game_role_id=role_id_str,
+                        game_role_id=role_id,
                         priority=priority,
                         event_player_id=player.id,
                     )
@@ -275,9 +302,12 @@ class GetApplicationUseCase:
             event = await self._event_repo.get(application.event_id, load_organizers=True)
             if not event:
                 raise NotFoundException("Event not found")
+            if not is_same_server(access, event.server_id):
+                raise ForbiddenException("Event belongs to a different server")
             is_organizer = any(o.member_id == access.member_id for o in event.organizers)
             is_own = application.member_id == access.member_id
-            if not is_organizer and not is_own:
+            has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
+            if not is_organizer and not is_own and not has_admin:
                 raise ForbiddenException("Access denied")
         else:
             raise ForbiddenException("Access denied")
@@ -312,8 +342,10 @@ class ListApplicationsUseCase:
 
         access = command.access_data
         if access is not None:
+            if not is_same_server(access, event.server_id):
+                raise ForbiddenException("Event belongs to a different server")
             is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-            has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_PLAYERS)
+            has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
             if not is_organizer and not has_admin:
                 if not event.is_public:
                     raise NotFoundException("Event not found")

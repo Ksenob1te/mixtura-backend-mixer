@@ -1,6 +1,7 @@
 ﻿from typing import Annotated, Any
 
-from faststream import Context, Depends
+from faststream import Context, ContextRepo, Depends
+from faststream.rabbit import RabbitBroker
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infra.postgre import DatabaseSessionManager
@@ -30,6 +31,11 @@ from src.infra.postgre.repo import (
     TeamPlayerRepository,
     TeamRepository,
 )
+from src.infra.redis.engine import RedisSessionManager
+from src.infra.redis.team_formation import TeamFormationVariantStore
+from src.infra.clients.rating import RatingClient
+from src.infra.clients.mix_balancer import MixBalancerClient
+from src.infra.clients.tournament_balancer import TournamentBalancerClient
 from src.core.usecases.application import (
     GetApplicationUseCase,
     ListApplicationsUseCase,
@@ -39,6 +45,7 @@ from src.core.usecases.application import (
 from src.core.usecases.event import (
     ActivateEventUseCase,
     CancelEventUseCase,
+    CompleteSingleGameEventUseCase,
     CloseRegistrationUseCase,
     CreateEventUseCase,
     GetEventUseCase,
@@ -57,17 +64,46 @@ from src.core.usecases.player import (
     RemovePlayerUseCase,
     UpdatePlayerStatusUseCase,
 )
+from src.core.usecases.draft import (
+    CreateDraftUseCase,
+    GetDraftUseCase,
+    ListDraftsUseCase,
+)
+from src.core.usecases.team_formation import (
+    RunTeamFormationUseCase,
+    GetTeamFormationUseCase,
+    ChooseTeamFormationVariantUseCase,
+)
+from src.core.usecases.team import ListTeamsUseCase
+from src.core.usecases.match import GetMatchUseCase, ListMatchesUseCase, RecordSingleMatchResultUseCase, SingleMatchSetupUseCase
+from src.env_config import env
 
 
 async def get_db_session(
     session_manager: Annotated[DatabaseSessionManager, Context()],
+    context: Annotated[ContextRepo, Context()],
 ):
     async with session_manager.session() as session:
-        yield session
+        token = context.set_local("db_session", session)
+        try:
+            yield session
+        finally:
+            context.reset_local("db_session", token)
 
 
 DatabaseSession = Annotated[AsyncSession, Depends(get_db_session)]
 
+
+async def get_redis_session(
+    redis_engine: Annotated[RedisSessionManager, Context()],
+):
+    async with redis_engine.client() as redis:
+        yield redis
+
+
+RedisSession = Annotated[Any, Depends(get_redis_session)]
+
+# --- Repository providers ---
 
 async def get_event_repository(session: DatabaseSession) -> Any:
     return EventRepository(session)  # type: ignore[abstract]
@@ -165,6 +201,34 @@ async def get_team_player_repository(session: DatabaseSession) -> Any:
     return TeamPlayerRepository(session)  # type: ignore[abstract]
 
 
+# -- Client providers --
+
+async def get_rating_client(
+    broker: Annotated[RabbitBroker, Context()],
+) -> RatingClient:
+    return RatingClient(broker)
+
+
+async def get_mix_balancer_client(
+    broker: Annotated[RabbitBroker, Context()],
+) -> MixBalancerClient:
+    return MixBalancerClient(broker)
+
+
+async def get_tournament_balancer_client(
+    broker: Annotated[RabbitBroker, Context()],
+) -> TournamentBalancerClient:
+    return TournamentBalancerClient(broker)
+
+
+# -- Store providers --
+
+async def get_team_formation_variant_store(
+    redis: RedisSession,
+) -> TeamFormationVariantStore:
+    return TeamFormationVariantStore(redis)
+
+
 # -- Repository type aliases --
 
 EventRepositoryDependency = Annotated[EventRepository, Depends(get_event_repository)]
@@ -239,6 +303,16 @@ TeamPlayerRepositoryDependency = Annotated[
     TeamPlayerRepository, Depends(get_team_player_repository)
 ]
 
+# -- Client type aliases --
+
+RatingClientDependency = Annotated[RatingClient, Depends(get_rating_client)]
+MixBalancerClientDependency = Annotated[MixBalancerClient, Depends(get_mix_balancer_client)]
+TournamentBalancerClientDependency = Annotated[TournamentBalancerClient, Depends(get_tournament_balancer_client)]
+
+# -- Store type aliases --
+
+TeamFormationVariantStoreDependency = Annotated[TeamFormationVariantStore, Depends(get_team_formation_variant_store)]
+
 # -- Use case providers --
 
 async def get_create_event_use_case(
@@ -300,6 +374,13 @@ async def get_cancel_event_use_case(
     organizer_repo: OrganizerRepositoryDependency,
 ) -> CancelEventUseCase:
     return CancelEventUseCase(event_repo, organizer_repo)
+
+
+async def get_complete_single_game_event_use_case(
+    event_repo: EventRepositoryDependency,
+    match_repo: MatchRepositoryDependency,
+) -> CompleteSingleGameEventUseCase:
+    return CompleteSingleGameEventUseCase(event_repo, match_repo)
 
 
 async def get_list_organizers_use_case(
@@ -381,6 +462,146 @@ async def get_remove_player_use_case(
     return RemovePlayerUseCase(event_repo, player_repo)
 
 
+# -- Stage 5 use case providers --
+
+async def get_create_draft_use_case(
+    event_repo: EventRepositoryDependency,
+    organizer_repo: OrganizerRepositoryDependency,
+    player_repo: PlayerRepositoryDependency,
+    draft_repo: DraftRepositoryDependency,
+    drafted_player_repo: DraftedPlayerRepositoryDependency,
+    match_repo: MatchRepositoryDependency,
+) -> CreateDraftUseCase:
+    return CreateDraftUseCase(event_repo, organizer_repo, player_repo, draft_repo, drafted_player_repo, match_repo)
+
+
+async def get_get_draft_use_case(
+    draft_repo: DraftRepositoryDependency,
+    event_repo: EventRepositoryDependency,
+    organizer_repo: OrganizerRepositoryDependency,
+) -> GetDraftUseCase:
+    return GetDraftUseCase(draft_repo, event_repo, organizer_repo)
+
+
+async def get_list_drafts_use_case(
+    draft_repo: DraftRepositoryDependency,
+    event_repo: EventRepositoryDependency,
+    organizer_repo: OrganizerRepositoryDependency,
+) -> ListDraftsUseCase:
+    return ListDraftsUseCase(draft_repo, event_repo, organizer_repo)
+
+
+async def get_run_team_formation_use_case(
+    event_repo: EventRepositoryDependency,
+    organizer_repo: OrganizerRepositoryDependency,
+    draft_repo: DraftRepositoryDependency,
+    player_repo: PlayerRepositoryDependency,
+    team_repo: TeamRepositoryDependency,
+    variant_store: TeamFormationVariantStoreDependency,
+    rating_client: RatingClientDependency,
+    mix_balancer_client: MixBalancerClientDependency,
+    tournament_balancer_client: TournamentBalancerClientDependency,
+) -> RunTeamFormationUseCase:
+    return RunTeamFormationUseCase(
+        event_repo, organizer_repo, draft_repo, player_repo,
+        team_repo, variant_store, rating_client, mix_balancer_client,
+        tournament_balancer_client, env,
+    )
+
+
+async def get_get_team_formation_use_case(
+    event_repo: EventRepositoryDependency,
+    organizer_repo: OrganizerRepositoryDependency,
+    draft_repo: DraftRepositoryDependency,
+    variant_store: TeamFormationVariantStoreDependency,
+) -> GetTeamFormationUseCase:
+    return GetTeamFormationUseCase(event_repo, organizer_repo, draft_repo, variant_store)
+
+
+async def get_choose_team_formation_variant_use_case(
+    event_repo: EventRepositoryDependency,
+    organizer_repo: OrganizerRepositoryDependency,
+    draft_repo: DraftRepositoryDependency,
+    team_repo: TeamRepositoryDependency,
+    team_player_repo: TeamPlayerRepositoryDependency,
+    player_repo: PlayerRepositoryDependency,
+    variant_store: TeamFormationVariantStoreDependency,
+) -> ChooseTeamFormationVariantUseCase:
+    return ChooseTeamFormationVariantUseCase(
+        event_repo, organizer_repo, draft_repo, team_repo,
+        team_player_repo, player_repo, variant_store,
+    )
+
+
+async def get_list_teams_use_case(
+    team_repo: TeamRepositoryDependency,
+    event_repo: EventRepositoryDependency,
+    organizer_repo: OrganizerRepositoryDependency,
+) -> ListTeamsUseCase:
+    return ListTeamsUseCase(team_repo, event_repo, organizer_repo)
+
+
+async def get_single_match_setup_use_case(
+    event_repo: EventRepositoryDependency,
+    bracket_repo: BracketRepositoryDependency,
+    stage_repo: StageRepositoryDependency,
+    stage_group_repo: StageGroupRepositoryDependency,
+    match_repo: MatchRepositoryDependency,
+    match_slot_repo: MatchSlotRepositoryDependency,
+    match_score_repo: MatchScoreRepositoryDependency,
+    team_repo: TeamRepositoryDependency,
+    draft_repo: DraftRepositoryDependency,
+) -> SingleMatchSetupUseCase:
+    return SingleMatchSetupUseCase(
+        event_repo,
+        bracket_repo,
+        stage_repo,
+        stage_group_repo,
+        match_repo,
+        match_slot_repo,
+        match_score_repo,
+        team_repo,
+        draft_repo,
+    )
+
+
+async def get_record_single_match_result_use_case(
+    event_repo: EventRepositoryDependency,
+    match_repo: MatchRepositoryDependency,
+    match_score_repo: MatchScoreRepositoryDependency,
+    team_repo: TeamRepositoryDependency,
+    player_repo: PlayerRepositoryDependency,
+    rating_client: RatingClientDependency,
+) -> RecordSingleMatchResultUseCase:
+    return RecordSingleMatchResultUseCase(
+        event_repo,
+        match_repo,
+        match_score_repo,
+        team_repo,
+        player_repo,
+        rating_client,
+        env,
+    )
+
+
+async def get_get_match_use_case(
+    event_repo: EventRepositoryDependency,
+    match_repo: MatchRepositoryDependency,
+    team_repo: TeamRepositoryDependency,
+) -> GetMatchUseCase:
+    return GetMatchUseCase(event_repo, match_repo, team_repo)
+
+
+async def get_list_matches_use_case(
+    event_repo: EventRepositoryDependency,
+    match_repo: MatchRepositoryDependency,
+    team_repo: TeamRepositoryDependency,
+) -> ListMatchesUseCase:
+    return ListMatchesUseCase(event_repo, match_repo, team_repo)
+
+
+# -- Use case type aliases --
+
 CreateEventUseCaseDependency = Annotated[CreateEventUseCase, Depends(get_create_event_use_case)]
 GetEventUseCaseDependency = Annotated[GetEventUseCase, Depends(get_get_event_use_case)]
 ListPublicEventsUseCaseDependency = Annotated[ListPublicEventsUseCase, Depends(get_list_public_events_use_case)]
@@ -390,6 +611,9 @@ ActivateEventUseCaseDependency = Annotated[ActivateEventUseCase, Depends(get_act
 OpenRegistrationUseCaseDependency = Annotated[OpenRegistrationUseCase, Depends(get_open_registration_use_case)]
 CloseRegistrationUseCaseDependency = Annotated[CloseRegistrationUseCase, Depends(get_close_registration_use_case)]
 CancelEventUseCaseDependency = Annotated[CancelEventUseCase, Depends(get_cancel_event_use_case)]
+CompleteSingleGameEventUseCaseDependency = Annotated[
+    CompleteSingleGameEventUseCase, Depends(get_complete_single_game_event_use_case)
+]
 ListOrganizersUseCaseDependency = Annotated[ListOrganizersUseCase, Depends(get_list_organizers_use_case)]
 AddOrganizerUseCaseDependency = Annotated[AddOrganizerUseCase, Depends(get_add_organizer_use_case)]
 RemoveOrganizerUseCaseDependency = Annotated[RemoveOrganizerUseCase, Depends(get_remove_organizer_use_case)]
@@ -400,3 +624,21 @@ ListApplicationsUseCaseDependency = Annotated[ListApplicationsUseCase, Depends(g
 ListPlayersUseCaseDependency = Annotated[ListPlayersUseCase, Depends(get_list_players_use_case)]
 UpdatePlayerStatusUseCaseDependency = Annotated[UpdatePlayerStatusUseCase, Depends(get_update_player_status_use_case)]
 RemovePlayerUseCaseDependency = Annotated[RemovePlayerUseCase, Depends(get_remove_player_use_case)]
+
+# -- Stage 5 use case type aliases --
+
+CreateDraftUseCaseDependency = Annotated[CreateDraftUseCase, Depends(get_create_draft_use_case)]
+GetDraftUseCaseDependency = Annotated[GetDraftUseCase, Depends(get_get_draft_use_case)]
+ListDraftsUseCaseDependency = Annotated[ListDraftsUseCase, Depends(get_list_drafts_use_case)]
+RunTeamFormationUseCaseDependency = Annotated[RunTeamFormationUseCase, Depends(get_run_team_formation_use_case)]
+GetTeamFormationUseCaseDependency = Annotated[GetTeamFormationUseCase, Depends(get_get_team_formation_use_case)]
+ChooseTeamFormationVariantUseCaseDependency = Annotated[
+    ChooseTeamFormationVariantUseCase, Depends(get_choose_team_formation_variant_use_case)
+]
+ListTeamsUseCaseDependency = Annotated[ListTeamsUseCase, Depends(get_list_teams_use_case)]
+SingleMatchSetupUseCaseDependency = Annotated[SingleMatchSetupUseCase, Depends(get_single_match_setup_use_case)]
+RecordSingleMatchResultUseCaseDependency = Annotated[
+    RecordSingleMatchResultUseCase, Depends(get_record_single_match_result_use_case)
+]
+GetMatchUseCaseDependency = Annotated[GetMatchUseCase, Depends(get_get_match_use_case)]
+ListMatchesUseCaseDependency = Annotated[ListMatchesUseCase, Depends(get_list_matches_use_case)]

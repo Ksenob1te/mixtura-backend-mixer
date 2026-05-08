@@ -7,11 +7,11 @@ from src.core.exceptions import BadRequestException, ForbiddenException, NotFoun
 from src.core.models.event import EventStatus
 from src.core.models.organizer import OrganizerCreate
 from src.core.usecases._access import (
-    R_SERVER_BAN,
     P_EVENT_ADMIN_VIEW,
     P_EVENT_ADMIN_MANAGE_ORGANIZERS,
-    has_restriction,
-    has_permission,
+    has_event_admin_permission,
+    has_server_ban,
+    is_same_server,
 )
 
 
@@ -28,8 +28,9 @@ class ListOrganizersUseCase:
         access = command.access_data
 
         if access is not None:
-            is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-            has_admin_view = has_permission(access.permission_mask, P_EVENT_ADMIN_VIEW)
+            same_server = is_same_server(access, event.server_id)
+            is_organizer = same_server and any(o.member_id == access.member_id for o in event.organizers)
+            has_admin_view = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_VIEW)
             if not is_organizer and not has_admin_view:
                 if not event.is_public:
                     raise NotFoundException("Event not found")
@@ -57,11 +58,14 @@ class AddOrganizerUseCase:
 
         access = command.access_data
 
-        if has_restriction(access.restriction_mask, R_SERVER_BAN):
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+
+        if has_server_ban(access):
             raise ForbiddenException("Server ban prevents organizer management")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-        has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_ORGANIZERS)
+        has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_ORGANIZERS)
 
         if not is_organizer and not has_admin:
             raise ForbiddenException("Only organizer or event admin can manage organizers")
@@ -92,11 +96,14 @@ class RemoveOrganizerUseCase:
 
         access = command.access_data
 
-        if has_restriction(access.restriction_mask, R_SERVER_BAN):
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+
+        if has_server_ban(access):
             raise ForbiddenException("Server ban prevents organizer management")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-        has_admin = has_permission(access.permission_mask, P_EVENT_ADMIN_MANAGE_ORGANIZERS)
+        has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_ORGANIZERS)
 
         if not is_organizer and not has_admin:
             raise ForbiddenException("Only organizer or event admin can manage organizers")

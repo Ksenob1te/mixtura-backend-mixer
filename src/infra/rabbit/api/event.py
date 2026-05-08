@@ -10,6 +10,7 @@ from src.core.commands.event import (
     OpenRegistrationCommand,
     CloseRegistrationCommand,
     CancelEventCommand,
+    CompleteEventCommand,
 )
 from src.core.response import ResponseMessage
 from src.core.results.event import EventCard, EventDetail
@@ -23,6 +24,7 @@ from src.core.usecases.event import (
     OpenRegistrationUseCase,
     CloseRegistrationUseCase,
     CancelEventUseCase,
+    CompleteSingleGameEventUseCase,
 )
 from src.dependency import (
     CreateEventUseCaseDependency,
@@ -34,6 +36,7 @@ from src.dependency import (
     OpenRegistrationUseCaseDependency,
     CloseRegistrationUseCaseDependency,
     CancelEventUseCaseDependency,
+    CompleteSingleGameEventUseCaseDependency,
 )
 
 router = RabbitRouter()
@@ -115,6 +118,15 @@ async def close_registration(
 async def cancel_event(
     data: CancelEventCommand,
     use_case: CancelEventUseCaseDependency,
+) -> ResponseMessage[EventDetail]:
+    result = await use_case(data)
+    return ResponseMessage(status=200, message=result)
+
+
+@router.subscriber(queue="event.complete")
+async def complete_event(
+    data: CompleteEventCommand,
+    use_case: CompleteSingleGameEventUseCaseDependency,
 ) -> ResponseMessage[EventDetail]:
     result = await use_case(data)
     return ResponseMessage(status=200, message=result)

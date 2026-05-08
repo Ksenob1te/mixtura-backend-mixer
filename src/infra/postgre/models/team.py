@@ -10,6 +10,8 @@ from ..engine import Base
 if TYPE_CHECKING:
     from .event import EventModel
     from .draft import DraftModel
+    from .bracket_placement import BracketPlacementModel
+    from .match_score import MatchScoreModel
     from .team_player import TeamPlayerModel
 
 
@@ -26,3 +28,8 @@ class TeamModel(Base):
 
     players: Mapped[list["TeamPlayerModel"]] = relationship("TeamPlayerModel", back_populates="team",
                                                             cascade="all, delete-orphan", lazy="raise")
+    bracket_placements: Mapped[list["BracketPlacementModel"]] = relationship(
+        "BracketPlacementModel", back_populates="team", lazy="raise"
+    )
+    match_scores: Mapped[list["MatchScoreModel"]] = relationship("MatchScoreModel", back_populates="team",
+                                                                 lazy="raise")

@@ -65,3 +65,8 @@ class CloseRegistrationCommand(BaseModel):
 class CancelEventCommand(BaseModel):
     access_data: AccessDataRequest
     event_id: UUID
+
+
+class CompleteEventCommand(BaseModel):
+    access_data: AccessDataRequest
+    event_id: UUID
