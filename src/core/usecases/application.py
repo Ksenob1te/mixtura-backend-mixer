@@ -351,7 +351,12 @@ class ListApplicationsUseCase:
         limit = command.pagination.page_size
 
         applications = await self._application_repo.list_by_event(
-            command.event_id, offset=offset, limit=limit, status=command.status
+            command.event_id,
+            offset=offset,
+            limit=limit,
+            status=command.status,
+            sort_by=command.sort_by,
+            sort_order=command.sort_order,
         )
 
         return [
@@ -360,6 +365,7 @@ class ListApplicationsUseCase:
                 "member_id": str(a.member_id),
                 "status": a.status.value,
                 "is_approved": a.is_approved,
+                "created_at": a.created_at.isoformat(),
             }
             for a in applications
         ]

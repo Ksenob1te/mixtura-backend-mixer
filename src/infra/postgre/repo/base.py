@@ -59,6 +59,7 @@ class BaseRepository(Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]):
             offset: int = 0,
             limit: int | None = 100,
             options: list[Any] | None = None,
+            order_by: Any = None,
             *where_clauses: Any,
     ) -> Sequence[ModelType]:
         stmt = select(self.model).offset(offset)
@@ -70,6 +71,8 @@ class BaseRepository(Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]):
                 stmt = stmt.where(clause)
         if options:
             stmt = stmt.options(*options)
+        if order_by is not None:
+            stmt = stmt.order_by(order_by)
 
         result = await self._session.scalars(stmt)
         return result.all()
@@ -79,9 +82,10 @@ class BaseRepository(Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]):
             offset: int = 0,
             limit: int | None = 100,
             options: list[Any] | None = None,
+            order_by: Any = None,
             *where_clauses: Any,
     ) -> Sequence[ReadDTO]:
-        items = await self._list_model(offset, limit, options, *where_clauses)
+        items = await self._list_model(offset, limit, options, order_by, *where_clauses)
         return [self._to_dto(item) for item in items]
 
     def _dto_to_data(self, dto: Any, *, exclude_unset: bool = False) -> dict[str, Any]:

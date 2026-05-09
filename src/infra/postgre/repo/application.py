@@ -41,12 +41,23 @@ class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, 
 
         return self._to_dto(obj) if obj else None
 
-    async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100,
-                            status: ApplicationStatus | None = None) -> Sequence[Application]:
+    async def list_by_event(
+        self,
+        event_id: UUID,
+        offset: int = 0,
+        limit: int = 100,
+        status: ApplicationStatus | None = None,
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+    ) -> Sequence[Application]:
         where_clauses = [ApplicationModel.event_id == event_id]
         if status is not None:
             where_clauses.append(ApplicationModel.status == status)
-        return await self.list(offset, limit, None, *where_clauses)
+
+        sort_column = getattr(ApplicationModel, sort_by, ApplicationModel.created_at)
+        order_clause = sort_column.asc() if sort_order.lower() == "asc" else sort_column.desc()
+
+        return await self.list(offset, limit, None, order_clause, *where_clauses)
 
     async def count_by_event_and_status(self, event_id: UUID, status: ApplicationStatus) -> int:
         stmt = (

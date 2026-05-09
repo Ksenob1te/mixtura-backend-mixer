@@ -86,7 +86,10 @@ class EventRepository(BaseRepository[EventModel, EventCreate, Event, EventUpdate
         obj = await self._get_model(event_id)
         if not obj:
             raise NotFoundException("Event not found")
-        obj.transition_to(new_status)
+        try:
+            obj.transition_to(new_status)
+        except ValueError as exc:
+            raise ConflictException(str(exc)) from exc
         await self._flush()
         await self._session.refresh(obj)
         return self._to_dto(obj)

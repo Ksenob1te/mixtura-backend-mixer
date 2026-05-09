@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
@@ -28,6 +29,7 @@ class Application(BaseModel):
     is_approved: bool
     status: ApplicationStatus
     role_priorities: dict[str, int] = Field(default_factory=dict)
+    created_at: datetime
     event: Optional[Event] = None
     integrations: list[ApplicationIntegration] = Field(default_factory=list)
     filled_fields: list[FilledApplicationField] = Field(default_factory=list)

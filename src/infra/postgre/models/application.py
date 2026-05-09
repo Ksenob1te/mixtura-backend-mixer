@@ -1,8 +1,9 @@
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, JSON, UniqueConstraint
+from sqlalchemy import ForeignKey, JSON, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.models.application import ApplicationStatus
@@ -24,6 +25,7 @@ class ApplicationModel(Base):
     is_approved: Mapped[bool] = mapped_column(default=False)
     status: Mapped[ApplicationStatus] = mapped_column(default=ApplicationStatus.PENDING)
     role_priorities: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     event: Mapped["EventModel"] = relationship("EventModel", back_populates="applications", lazy="noload")
 
