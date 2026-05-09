@@ -103,6 +103,19 @@ from src.core.usecases.team_formation import (
 )
 from src.core.usecases.team import ListTeamsUseCase
 from src.core.usecases.match import GetMatchUseCase, ListMatchesUseCase, RecordSingleMatchResultUseCase, SingleMatchSetupUseCase
+from src.core.usecases.settings import (
+    AddIntegrationUseCase,
+    RemoveIntegrationUseCase,
+    AddGameRoleUseCase,
+    UpdateGameRoleUseCase,
+    RemoveGameRoleUseCase,
+    AddCustomFieldUseCase,
+    UpdateCustomFieldUseCase,
+    RemoveCustomFieldUseCase,
+    UpdateTimeSettingsUseCase,
+    ListEventsUseCase,
+    GetApplicationFormSettingsUseCase,
+)
 from src.env_config import env
 
 
@@ -345,8 +358,9 @@ TeamFormationVariantStoreDependency = Annotated[TeamFormationVariantStore, Depen
 async def get_create_event_use_case(
     event_repo: EventRepositoryDependency,
     organizer_repo: OrganizerRepositoryDependency,
+    time_settings_repo: ApplicationTimeSettingsRepositoryDependency,
 ) -> CreateEventUseCase:
-    return CreateEventUseCase(event_repo, organizer_repo)
+    return CreateEventUseCase(event_repo, organizer_repo, time_settings_repo)
 
 
 async def get_get_event_use_case(
@@ -627,6 +641,90 @@ async def get_list_matches_use_case(
     return ListMatchesUseCase(event_repo, match_repo, team_repo)
 
 
+# -- Settings use case providers --
+
+async def get_add_integration_use_case(
+    event_repo: EventRepositoryDependency,
+    integration_repo: RequiredIntegrationRepositoryDependency,
+) -> AddIntegrationUseCase:
+    return AddIntegrationUseCase(event_repo, integration_repo)
+
+
+async def get_remove_integration_use_case(
+    event_repo: EventRepositoryDependency,
+    integration_repo: RequiredIntegrationRepositoryDependency,
+) -> RemoveIntegrationUseCase:
+    return RemoveIntegrationUseCase(event_repo, integration_repo)
+
+
+async def get_add_game_role_use_case(
+    event_repo: EventRepositoryDependency,
+    role_repo: SelectedGameRoleRepositoryDependency,
+) -> AddGameRoleUseCase:
+    return AddGameRoleUseCase(event_repo, role_repo)
+
+
+async def get_update_game_role_use_case(
+    event_repo: EventRepositoryDependency,
+    role_repo: SelectedGameRoleRepositoryDependency,
+) -> UpdateGameRoleUseCase:
+    return UpdateGameRoleUseCase(event_repo, role_repo)
+
+
+async def get_remove_game_role_use_case(
+    event_repo: EventRepositoryDependency,
+    role_repo: SelectedGameRoleRepositoryDependency,
+) -> RemoveGameRoleUseCase:
+    return RemoveGameRoleUseCase(event_repo, role_repo)
+
+
+async def get_add_custom_field_use_case(
+    event_repo: EventRepositoryDependency,
+    field_repo: ApplicationCustomFieldRepositoryDependency,
+) -> AddCustomFieldUseCase:
+    return AddCustomFieldUseCase(event_repo, field_repo)
+
+
+async def get_update_custom_field_use_case(
+    event_repo: EventRepositoryDependency,
+    field_repo: ApplicationCustomFieldRepositoryDependency,
+) -> UpdateCustomFieldUseCase:
+    return UpdateCustomFieldUseCase(event_repo, field_repo)
+
+
+async def get_remove_custom_field_use_case(
+    event_repo: EventRepositoryDependency,
+    field_repo: ApplicationCustomFieldRepositoryDependency,
+) -> RemoveCustomFieldUseCase:
+    return RemoveCustomFieldUseCase(event_repo, field_repo)
+
+
+async def get_update_time_settings_use_case(
+    event_repo: EventRepositoryDependency,
+    time_repo: ApplicationTimeSettingsRepositoryDependency,
+) -> UpdateTimeSettingsUseCase:
+    return UpdateTimeSettingsUseCase(event_repo, time_repo)
+
+
+async def get_list_events_use_case(
+    event_repo: EventRepositoryDependency,
+    organizer_repo: OrganizerRepositoryDependency,
+) -> ListEventsUseCase:
+    return ListEventsUseCase(event_repo, organizer_repo)
+
+
+async def get_get_application_form_settings_use_case(
+    event_repo: EventRepositoryDependency,
+    integration_repo: RequiredIntegrationRepositoryDependency,
+    role_repo: SelectedGameRoleRepositoryDependency,
+    field_repo: ApplicationCustomFieldRepositoryDependency,
+    time_repo: ApplicationTimeSettingsRepositoryDependency,
+) -> GetApplicationFormSettingsUseCase:
+    return GetApplicationFormSettingsUseCase(
+        event_repo, integration_repo, role_repo, field_repo, time_repo
+    )
+
+
 # -- Use case type aliases --
 
 CreateEventUseCaseDependency = Annotated[CreateEventUseCase, Depends(get_create_event_use_case)]
@@ -651,6 +749,20 @@ ListApplicationsUseCaseDependency = Annotated[ListApplicationsUseCase, Depends(g
 ListPlayersUseCaseDependency = Annotated[ListPlayersUseCase, Depends(get_list_players_use_case)]
 UpdatePlayerStatusUseCaseDependency = Annotated[UpdatePlayerStatusUseCase, Depends(get_update_player_status_use_case)]
 RemovePlayerUseCaseDependency = Annotated[RemovePlayerUseCase, Depends(get_remove_player_use_case)]
+
+# -- Settings use case type aliases --
+
+AddIntegrationUseCaseDependency = Annotated[AddIntegrationUseCase, Depends(get_add_integration_use_case)]
+RemoveIntegrationUseCaseDependency = Annotated[RemoveIntegrationUseCase, Depends(get_remove_integration_use_case)]
+AddGameRoleUseCaseDependency = Annotated[AddGameRoleUseCase, Depends(get_add_game_role_use_case)]
+UpdateGameRoleUseCaseDependency = Annotated[UpdateGameRoleUseCase, Depends(get_update_game_role_use_case)]
+RemoveGameRoleUseCaseDependency = Annotated[RemoveGameRoleUseCase, Depends(get_remove_game_role_use_case)]
+AddCustomFieldUseCaseDependency = Annotated[AddCustomFieldUseCase, Depends(get_add_custom_field_use_case)]
+UpdateCustomFieldUseCaseDependency = Annotated[UpdateCustomFieldUseCase, Depends(get_update_custom_field_use_case)]
+RemoveCustomFieldUseCaseDependency = Annotated[RemoveCustomFieldUseCase, Depends(get_remove_custom_field_use_case)]
+UpdateTimeSettingsUseCaseDependency = Annotated[UpdateTimeSettingsUseCase, Depends(get_update_time_settings_use_case)]
+ListEventsUseCaseDependency = Annotated[ListEventsUseCase, Depends(get_list_events_use_case)]
+GetApplicationFormSettingsUseCaseDependency = Annotated[GetApplicationFormSettingsUseCase, Depends(get_get_application_form_settings_use_case)]
 
 # -- Stage 5 use case type aliases --
 

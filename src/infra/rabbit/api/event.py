@@ -46,7 +46,7 @@ router = RabbitRouter()
 async def create_event(
     data: CreateEventCommand,
     use_case: CreateEventUseCaseDependency,
-) -> ResponseMessage[EventCard]:
+) -> ResponseMessage[EventDetail]:
     result = await use_case(data)
     return ResponseMessage(status=200, message=result)
 
@@ -55,7 +55,7 @@ async def create_event(
 async def get_event(
     data: GetEventCommand,
     use_case: GetEventUseCaseDependency,
-) -> ResponseMessage[EventCard | EventDetail]:
+) -> ResponseMessage[EventDetail]:
     result = await use_case(data)
     return ResponseMessage(status=200, message=result)
 
@@ -73,7 +73,7 @@ async def list_public_events(
 async def list_private_events(
     data: ListPrivateEventsCommand,
     use_case: ListPrivateEventsUseCaseDependency,
-) -> ResponseMessage[list[EventDetail]]:
+) -> ResponseMessage[list[EventCard]]:
     result = await use_case(data)
     return ResponseMessage(status=200, message=result)
 
