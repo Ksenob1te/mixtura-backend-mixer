@@ -1,6 +1,6 @@
 FROM python:3.13-slim
 
-WORKDIR /mixtura-mixer
+WORKDIR /app
 
 COPY pyproject.toml ./
 
@@ -12,4 +12,4 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["sh", "-c", "entrypoint.sh"]
+CMD ["sh", "entrypoint.sh"]

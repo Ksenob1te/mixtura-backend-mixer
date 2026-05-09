@@ -18,3 +18,16 @@ class PlayerRole(BaseModel):
     event_player_id: UUID
     game_role: Optional[SelectedGameRole] = None
     event_player: Optional[EventPlayer] = None
+
+
+class PlayerRoleCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    game_role_id: UUID
+    priority: int
+    event_player_id: UUID
+
+
+class PlayerRoleUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    game_role_id: UUID | None = None
+    priority: int | None = None

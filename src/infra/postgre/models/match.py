@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.models.match import BracketPosition
@@ -25,13 +25,14 @@ class MatchModel(Base):
     time_end: Mapped[datetime | None] = mapped_column(nullable=True)
     round_number: Mapped[int | None] = mapped_column(nullable=True)
     bracket_position: Mapped[BracketPosition | None] = mapped_column(nullable=True)
+    result_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-    group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="matches", lazy="raise")
+    group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="matches", lazy="noload")
     slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="match",
-                                                         foreign_keys="MatchSlot.match_id",
-                                                         cascade="all, delete-orphan", lazy="raise")
+                                                          foreign_keys="MatchSlotModel.match_id",
+                                                          cascade="all, delete-orphan", lazy="noload")
     source_slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="source_match",
-                                                                foreign_keys="MatchSlot.source_match_id", lazy="raise")
+                                                                 foreign_keys="MatchSlotModel.source_match_id", lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('group_id', 'match_index', name='uq_match_group_index'),

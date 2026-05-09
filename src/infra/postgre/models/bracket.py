@@ -19,10 +19,10 @@ class BracketModel(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     event_id: Mapped[UUID] = mapped_column(ForeignKey('event_table.id', ondelete="CASCADE"))
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="brackets", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="brackets", lazy="noload")
 
     stages: Mapped[list["StageModel"]] = relationship("StageModel", back_populates="bracket",
                                                       cascade="all, delete-orphan",
-                                                      lazy="raise")
+                                                      lazy="noload")
     placements: Mapped[list["BracketPlacementModel"]] = relationship("BracketPlacementModel", back_populates="bracket",
-                                                                     cascade="all, delete-orphan", lazy="raise")
+                                                                     cascade="all, delete-orphan", lazy="noload")

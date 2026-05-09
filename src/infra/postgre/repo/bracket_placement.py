@@ -4,13 +4,13 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.bracket_placement import BracketPlacementRepositoryProtocol
-from src.core.models.bracket_placement import BracketPlacement
+from src.core.models.bracket_placement import BracketPlacement, BracketPlacementCreate, BracketPlacementUpdate
 from .base import BaseRepository
 from ..models import BracketPlacementModel
 
 
-class BracketPlacementRepository(BracketPlacementRepositoryProtocol,
-                                 BaseRepository[BracketPlacementModel, BracketPlacement]):
+class BracketPlacementRepository(BaseRepository[BracketPlacementModel, BracketPlacementCreate, BracketPlacement, BracketPlacementUpdate],
+                                 BracketPlacementRepositoryProtocol):
     model = BracketPlacementModel
     dto_model = BracketPlacement
 

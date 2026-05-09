@@ -4,12 +4,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.swiss_settings import SwissSettingsRepositoryProtocol
-from src.core.models.swiss_settings import SwissSettings
+from src.core.models.swiss_settings import SwissSettings, SwissSettingsCreate, SwissSettingsUpdate
 from .base import BaseRepository
 from ..models import SwissSettingsModel
 
 
-class SwissSettingsRepository(SwissSettingsRepositoryProtocol, BaseRepository[SwissSettingsModel, SwissSettings]):
+class SwissSettingsRepository(BaseRepository[SwissSettingsModel, SwissSettingsCreate, SwissSettings, SwissSettingsUpdate], SwissSettingsRepositoryProtocol):
     model = SwissSettingsModel
     dto_model = SwissSettings
 

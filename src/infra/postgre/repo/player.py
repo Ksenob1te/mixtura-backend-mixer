@@ -4,13 +4,14 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from src.core.exceptions import NotFoundException
 from src.core.interfaces.repo.player import PlayerRepositoryProtocol
-from src.core.models.event_player import EventPlayer
+from src.core.models.event_player import EventPlayer, EventPlayerCreate, EventPlayerUpdate, EventPlayerStatus
 from .base import BaseRepository
 from ..models import EventPlayerModel
 
 
-class PlayerRepository(PlayerRepositoryProtocol, BaseRepository[EventPlayerModel, EventPlayer]):
+class PlayerRepository(BaseRepository[EventPlayerModel, EventPlayerCreate, EventPlayer, EventPlayerUpdate], PlayerRepositoryProtocol):
     model = EventPlayerModel
     dto_model = EventPlayer
 
@@ -37,11 +38,12 @@ class PlayerRepository(PlayerRepositoryProtocol, BaseRepository[EventPlayerModel
 
         return self._to_dto(obj) if obj else None
 
-    async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[EventPlayer]:
-        return await self.list(
-            offset, limit, None,
-            EventPlayerModel.event_id == event_id
-        )
+    async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100,
+                            status: EventPlayerStatus | None = None) -> Sequence[EventPlayer]:
+        where_clauses = [EventPlayerModel.event_id == event_id]
+        if status is not None:
+            where_clauses.append(EventPlayerModel.status == status)
+        return await self.list(offset, limit, None, *where_clauses)
 
     async def list_by_event_with_roles(self, event_id: UUID) -> Sequence[EventPlayer]:
         stmt = (
@@ -51,3 +53,14 @@ class PlayerRepository(PlayerRepositoryProtocol, BaseRepository[EventPlayerModel
         )
         result = await self._session.scalars(stmt)
         return [self._to_dto(item) for item in result.all()]
+
+    async def update(self, player_id: UUID, dto: EventPlayerUpdate) -> EventPlayer:  # type: ignore[override]
+        obj = await self._get_model(player_id)
+        if not obj:
+            raise NotFoundException("EventPlayer not found")
+        update_data = self._dto_to_data(dto, exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(obj, key, value)
+        await self._flush()
+        await self._session.refresh(obj)
+        return self._to_dto(obj)

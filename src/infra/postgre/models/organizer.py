@@ -18,7 +18,7 @@ class OrganizerModel(Base):
     event_id: Mapped[UUID] = mapped_column(ForeignKey('event_table.id', ondelete="CASCADE"))
     member_id: Mapped[UUID]
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="organizers", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="organizers", lazy="noload")
 
     # __table_args__ = (
     #     UniqueConstraint('event_id', 'member_id', name='uq_organizer_event_member'),

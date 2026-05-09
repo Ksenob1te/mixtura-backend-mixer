@@ -4,12 +4,12 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.team import TeamRepositoryProtocol
-from src.core.models.team import Team
+from src.core.models.team import Team, TeamCreate, TeamUpdate
 from .base import BaseRepository
 from ..models import TeamModel
 
 
-class TeamRepository(TeamRepositoryProtocol, BaseRepository[TeamModel, Team]):
+class TeamRepository(BaseRepository[TeamModel, TeamCreate, Team, TeamUpdate], TeamRepositoryProtocol):
     model = TeamModel
     dto_model = Team
 

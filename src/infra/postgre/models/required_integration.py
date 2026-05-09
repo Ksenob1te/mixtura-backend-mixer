@@ -18,4 +18,4 @@ class RequiredIntegrationModel(Base):
     name: Mapped[str] = mapped_column()
     event_id: Mapped[UUID] = mapped_column(ForeignKey('event_table.id', ondelete="CASCADE"))
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="required_integrations", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="required_integrations", lazy="noload")

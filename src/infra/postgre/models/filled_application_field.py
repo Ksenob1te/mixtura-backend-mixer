@@ -24,9 +24,9 @@ class FilledApplicationFieldModel(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     custom_field: Mapped["ApplicationCustomFieldModel"] = relationship("ApplicationCustomFieldModel",
-                                                                       back_populates="filled_fields", lazy="raise")
+                                                                       back_populates="filled_fields", lazy="noload")
     application: Mapped["ApplicationModel"] = relationship("ApplicationModel", back_populates="filled_fields",
-                                                           lazy="raise")
+                                                           lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('custom_field_id', 'application_id', name='uq_filled_app_field_custom_app'),

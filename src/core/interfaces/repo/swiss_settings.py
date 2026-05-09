@@ -1,7 +1,7 @@
 from typing import Protocol, Any, Sequence
 from uuid import UUID
 
-from src.core.models.swiss_settings import SwissSettings
+from src.core.models.swiss_settings import SwissSettings, SwissSettingsCreate, SwissSettingsUpdate
 
 
 class SwissSettingsRepositoryProtocol(Protocol):
@@ -14,9 +14,9 @@ class SwissSettingsRepositoryProtocol(Protocol):
     async def list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[SwissSettings]: ...
 
-    async def create(self, dto: SwissSettings) -> SwissSettings: ...
+    async def create(self, dto: SwissSettingsCreate) -> SwissSettings: ...
 
-    async def update(self, dto: SwissSettings) -> SwissSettings: ...
+    async def update(self, dto: SwissSettingsUpdate) -> SwissSettings: ...
 
     async def delete(self, field_id: UUID) -> bool: ...
 

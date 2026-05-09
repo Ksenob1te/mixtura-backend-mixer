@@ -33,3 +33,13 @@ class MatchSlot(BaseModel):
     source_match: Optional[Match] = None
     source_group: Optional[StageGroup] = None
     score: Optional[MatchScore] = None
+
+
+class MatchSlotCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    match_id: UUID
+    slot_num: int
+    source_type: MatchSlotSourceType
+    source_match_id: UUID | None = None
+    source_group_id: UUID | None = None
+    group_placement: int | None = None

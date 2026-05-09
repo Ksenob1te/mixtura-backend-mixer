@@ -2,7 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.models.application import ApplicationStatus
@@ -23,19 +23,20 @@ class ApplicationModel(Base):
     member_id: Mapped[UUID]
     is_approved: Mapped[bool] = mapped_column(default=False)
     status: Mapped[ApplicationStatus] = mapped_column(default=ApplicationStatus.PENDING)
+    role_priorities: Mapped[dict] = mapped_column(JSON, default=dict)
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="applications", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="applications", lazy="noload")
 
     integrations: Mapped[list["ApplicationIntegrationModel"]] = relationship("ApplicationIntegrationModel",
                                                                              back_populates="application",
-                                                                             cascade="all, delete-orphan", lazy="raise")
+                                                                             cascade="all, delete-orphan", lazy="noload")
     filled_fields: Mapped[list["FilledApplicationFieldModel"]] = relationship("FilledApplicationFieldModel",
                                                                               back_populates="application",
                                                                               cascade="all, delete-orphan",
-                                                                              lazy="raise")
+                                                                              lazy="noload")
     event_player: Mapped["EventPlayerModel"] = relationship("EventPlayerModel", back_populates="application",
                                                             uselist=False,
-                                                            lazy="raise")
+                                                            lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('event_id', 'member_id', name='uq_application_event_member'),

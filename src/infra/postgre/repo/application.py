@@ -4,13 +4,14 @@ from uuid import UUID
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
+from src.core.exceptions import NotFoundException
 from src.core.interfaces.repo.application import ApplicationRepositoryProtocol
-from src.core.models.application import Application, ApplicationStatus
+from src.core.models.application import Application, ApplicationCreate, ApplicationStatus, ApplicationUpdate
 from .base import BaseRepository
 from ..models import ApplicationModel
 
 
-class ApplicationRepository(ApplicationRepositoryProtocol, BaseRepository[ApplicationModel, Application]):
+class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, Application, ApplicationUpdate], ApplicationRepositoryProtocol):
     model = ApplicationModel
     dto_model = Application
 
@@ -40,11 +41,12 @@ class ApplicationRepository(ApplicationRepositoryProtocol, BaseRepository[Applic
 
         return self._to_dto(obj) if obj else None
 
-    async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[Application]:
-        return await self.list(
-            offset, limit, None,
-            ApplicationModel.event_id == event_id
-        )
+    async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100,
+                            status: ApplicationStatus | None = None) -> Sequence[Application]:
+        where_clauses = [ApplicationModel.event_id == event_id]
+        if status is not None:
+            where_clauses.append(ApplicationModel.status == status)
+        return await self.list(offset, limit, None, *where_clauses)
 
     async def count_by_event_and_status(self, event_id: UUID, status: ApplicationStatus) -> int:
         stmt = (
@@ -53,3 +55,14 @@ class ApplicationRepository(ApplicationRepositoryProtocol, BaseRepository[Applic
             .where(ApplicationModel.event_id == event_id, ApplicationModel.status == status)
         )
         return (await self._session.scalar(stmt)) or 0
+
+    async def update(self, application_id: UUID, dto: ApplicationUpdate) -> Application:  # type: ignore[override]
+        obj = await self._get_model(application_id)
+        if not obj:
+            raise NotFoundException("Application not found")
+        update_data = self._dto_to_data(dto, exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(obj, key, value)
+        await self._flush()
+        await self._session.refresh(obj)
+        return self._to_dto(obj)

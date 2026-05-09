@@ -4,12 +4,12 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
-from src.core.models.organizer import Organizer
+from src.core.models.organizer import Organizer, OrganizerCreate
 from .base import BaseRepository
 from ..models import OrganizerModel
 
 
-class OrganizerRepository(OrganizerRepositoryProtocol, BaseRepository[OrganizerModel, Organizer]):
+class OrganizerRepository(BaseRepository[OrganizerModel, OrganizerCreate, Organizer, OrganizerCreate], OrganizerRepositoryProtocol):
     model = OrganizerModel
     dto_model = Organizer
 

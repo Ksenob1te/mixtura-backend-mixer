@@ -21,9 +21,9 @@ class PlayerRoleModel(Base):
     event_player_id: Mapped[UUID] = mapped_column(ForeignKey('event_player_table.id', ondelete="CASCADE"))
 
     game_role: Mapped["SelectedGameRoleModel"] = relationship("SelectedGameRoleModel", back_populates="player_roles",
-                                                              lazy="raise")
+                                                              lazy="noload")
     event_player: Mapped["EventPlayerModel"] = relationship("EventPlayerModel", back_populates="player_roles",
-                                                            lazy="raise")
+                                                            lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('game_role_id', 'event_player_id', name='uq_player_role_game_role_player'),

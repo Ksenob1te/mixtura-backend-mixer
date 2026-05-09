@@ -4,12 +4,12 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.drafted_player import DraftedPlayerRepositoryProtocol
-from src.core.models.drafted_player import DraftedPlayer
+from src.core.models.drafted_player import DraftedPlayer, DraftedPlayerCreate
 from .base import BaseRepository
 from ..models import DraftedPlayerModel
 
 
-class DraftedPlayerRepository(DraftedPlayerRepositoryProtocol, BaseRepository[DraftedPlayerModel, DraftedPlayer]):
+class DraftedPlayerRepository(BaseRepository[DraftedPlayerModel, DraftedPlayerCreate, DraftedPlayer, DraftedPlayerCreate], DraftedPlayerRepositoryProtocol):
     model = DraftedPlayerModel
     dto_model = DraftedPlayer
 

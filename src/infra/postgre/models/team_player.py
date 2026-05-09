@@ -21,9 +21,9 @@ class TeamPlayerModel(Base):
     game_role_id: Mapped[UUID] = mapped_column(ForeignKey('selected_game_role_table.id'))
     rating: Mapped[float] = mapped_column(default=0.0)
 
-    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="players", lazy="raise")
+    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="players", lazy="noload")
     game_role: Mapped["SelectedGameRoleModel"] = relationship("SelectedGameRoleModel", back_populates="team_players",
-                                                              lazy="raise")
+                                                              lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('team_id', 'member_id', name='uq_team_player_team_member'),

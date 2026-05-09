@@ -3,13 +3,14 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from src.core.exceptions import NotFoundException
 from src.core.interfaces.repo.match_score import MatchScoreRepositoryProtocol
-from src.core.models.match_score import MatchScore
+from src.core.models.match_score import MatchScore, MatchScoreCreate, MatchScoreUpdate
 from .base import BaseRepository
 from ..models import MatchScoreModel
 
 
-class MatchScoreRepository(MatchScoreRepositoryProtocol, BaseRepository[MatchScoreModel, MatchScore]):
+class MatchScoreRepository(BaseRepository[MatchScoreModel, MatchScoreCreate, MatchScore, MatchScoreUpdate], MatchScoreRepositoryProtocol):
     model = MatchScoreModel
     dto_model = MatchScore
 
@@ -46,3 +47,14 @@ class MatchScoreRepository(MatchScoreRepositoryProtocol, BaseRepository[MatchSco
         obj = await self._session.scalar(stmt)
 
         return self._to_dto(obj) if obj else None
+
+    async def update(self, score_id: UUID, dto: MatchScoreUpdate) -> MatchScore:  # type: ignore[override]
+        obj = await self._get_model(score_id)
+        if not obj:
+            raise NotFoundException("MatchScore not found")
+        update_data = self._dto_to_data(dto, exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(obj, key, value)
+        await self._flush()
+        await self._session.refresh(obj)
+        return self._to_dto(obj)

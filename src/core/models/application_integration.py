@@ -15,3 +15,9 @@ class ApplicationIntegration(BaseModel):
     application_id: UUID
     user_provider_id: UUID
     application: Optional[Application] = None
+
+
+class ApplicationIntegrationCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    application_id: UUID
+    user_provider_id: UUID

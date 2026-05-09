@@ -10,6 +10,7 @@ from ..engine import Base
 if TYPE_CHECKING:
     from .stage import StageModel
     from .match import MatchModel
+    from .match_slot import MatchSlotModel
 
 
 class StageGroupModel(Base):
@@ -20,7 +21,9 @@ class StageGroupModel(Base):
     name: Mapped[str] = mapped_column()
     advance_count: Mapped[int | None] = mapped_column(nullable=True)  # TODO: что это
 
-    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="groups", lazy="raise")
+    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="groups", lazy="noload")
 
     matches: Mapped[list["MatchModel"]] = relationship("MatchModel", back_populates="group",
-                                                       cascade="all, delete-orphan", lazy="raise")
+                                                        cascade="all, delete-orphan", lazy="noload")
+    source_slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="source_group",
+                                                                lazy="noload")

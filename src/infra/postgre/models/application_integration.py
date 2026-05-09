@@ -19,7 +19,7 @@ class ApplicationIntegrationModel(Base):
     user_provider_id: Mapped[UUID]
 
     application: Mapped["ApplicationModel"] = relationship("ApplicationModel", back_populates="integrations",
-                                                           lazy="raise")
+                                                           lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('application_id', 'user_provider_id', name='uq_app_integration_app_provider'),

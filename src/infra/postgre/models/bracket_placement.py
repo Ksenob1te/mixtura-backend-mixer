@@ -20,8 +20,8 @@ class BracketPlacementModel(Base):
     team_id: Mapped[UUID] = mapped_column(ForeignKey('team_table.id'))
     placement: Mapped[int] = mapped_column()
 
-    bracket: Mapped["BracketModel"] = relationship("BracketModel", back_populates="placements", lazy="raise")
-    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="bracket_placements", lazy="raise")
+    bracket: Mapped["BracketModel"] = relationship("BracketModel", back_populates="placements", lazy="noload")
+    team: Mapped["TeamModel"] = relationship("TeamModel", back_populates="bracket_placements", lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('bracket_id', 'placement', name='uq_bracket_placement_placement'),

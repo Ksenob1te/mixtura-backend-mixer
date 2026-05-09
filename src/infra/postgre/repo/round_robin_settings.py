@@ -4,13 +4,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.round_robin_settings import RoundRobinSettingsRepositoryProtocol
-from src.core.models.round_robin_settings import RoundRobinSettings
+from src.core.models.round_robin_settings import RoundRobinSettings, RoundRobinSettingsCreate, RoundRobinSettingsUpdate
 from .base import BaseRepository
 from ..models import RoundRobinSettingsModel
 
 
-class RoundRobinSettingsRepository(RoundRobinSettingsRepositoryProtocol,
-                                   BaseRepository[RoundRobinSettingsModel, RoundRobinSettings]):
+class RoundRobinSettingsRepository(BaseRepository[RoundRobinSettingsModel, RoundRobinSettingsCreate, RoundRobinSettings, RoundRobinSettingsUpdate],
+                                   RoundRobinSettingsRepositoryProtocol):
     model = RoundRobinSettingsModel
     dto_model = RoundRobinSettings
 

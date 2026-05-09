@@ -20,4 +20,4 @@ class SwissSettingsModel(Base):
     score_per_draw: Mapped[int] = mapped_column()
     score_per_bye: Mapped[int] = mapped_column()
 
-    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="swiss_settings", lazy="raise")
+    stage: Mapped["StageModel"] = relationship("StageModel", back_populates="swiss_settings", lazy="noload")

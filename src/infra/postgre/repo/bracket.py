@@ -4,12 +4,12 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.bracket import BracketRepositoryProtocol
-from src.core.models.bracket import Bracket
+from src.core.models.bracket import Bracket, BracketCreate
 from .base import BaseRepository
 from ..models import BracketModel
 
 
-class BracketRepository(BracketRepositoryProtocol, BaseRepository[BracketModel, Bracket]):
+class BracketRepository(BaseRepository[BracketModel, BracketCreate, Bracket, BracketCreate], BracketRepositoryProtocol):
     model = BracketModel
     dto_model = Bracket
 

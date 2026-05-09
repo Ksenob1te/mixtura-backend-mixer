@@ -4,13 +4,13 @@ from uuid import UUID
 from sqlalchemy.orm import selectinload
 
 from src.core.interfaces.repo.application_custom_field import ApplicationCustomFieldRepositoryProtocol
-from src.core.models.application_custom_field import ApplicationCustomField
+from src.core.models.application_custom_field import ApplicationCustomField, ApplicationCustomFieldCreate, ApplicationCustomFieldUpdate
 from .base import BaseRepository
 from ..models import ApplicationCustomFieldModel
 
 
-class ApplicationCustomFieldRepository(ApplicationCustomFieldRepositoryProtocol,
-                                       BaseRepository[ApplicationCustomFieldModel, ApplicationCustomField]):
+class ApplicationCustomFieldRepository(BaseRepository[ApplicationCustomFieldModel, ApplicationCustomFieldCreate, ApplicationCustomField, ApplicationCustomFieldUpdate],
+                                       ApplicationCustomFieldRepositoryProtocol):
     model = ApplicationCustomFieldModel
     dto_model = ApplicationCustomField
 

@@ -1,8 +1,8 @@
-from typing import Generic, TypeVar, Any, Sequence, Type, Mapping
+from typing import Any, Generic, Mapping, Sequence, Type, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,12 +10,14 @@ from ..engine import Base
 from ..exceptions import IntegrityForeignException, IntegrityUniqueException, IntegrityUnknownException
 
 ModelType = TypeVar("ModelType", bound=Base)
-DTOType = TypeVar("DTOType", bound=BaseModel)
+CreateDTO = TypeVar("CreateDTO", bound=BaseModel)
+ReadDTO = TypeVar("ReadDTO", bound=BaseModel)
+UpdateDTO = TypeVar("UpdateDTO", bound=BaseModel)
 
 
-class BaseRepository(Generic[ModelType, DTOType]):
+class BaseRepository(Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]):
     model: Type[ModelType]
-    dto_model: Type[DTOType]
+    dto_model: Type[ReadDTO]
 
     def __init__(self, session: AsyncSession):
         self._session = session
@@ -42,14 +44,14 @@ class BaseRepository(Generic[ModelType, DTOType]):
         result = await self._session.scalar(stmt)
         return result
 
-    def _to_dto(self, obj: Any) -> DTOType:
+    def _to_dto(self, obj: Any) -> ReadDTO:
         return self.dto_model.model_validate(obj, from_attributes=True)
 
-    async def _get(self, field_id: UUID, options: list[Any] | None = None) -> DTOType | None:
+    async def _get(self, field_id: UUID, options: list[Any] | None = None) -> ReadDTO | None:
         obj = await self._get_model(field_id, options=options)
         return self._to_dto(obj) if obj else None
 
-    async def get(self, field_id: UUID) -> DTOType | None:
+    async def get(self, field_id: UUID) -> ReadDTO | None:
         return await self._get(field_id)
 
     async def _list_model(
@@ -78,11 +80,11 @@ class BaseRepository(Generic[ModelType, DTOType]):
             limit: int | None = 100,
             options: list[Any] | None = None,
             *where_clauses: Any,
-    ) -> Sequence[DTOType]:
+    ) -> Sequence[ReadDTO]:
         items = await self._list_model(offset, limit, options, *where_clauses)
         return [self._to_dto(item) for item in items]
 
-    def _dto_to_data(self, dto: DTOType, *, exclude_unset: bool = False) -> dict[str, Any]:
+    def _dto_to_data(self, dto: Any, *, exclude_unset: bool = False) -> dict[str, Any]:
         if hasattr(dto, "model_dump"):
             raw_data = dto.model_dump(exclude_unset=exclude_unset)
         elif isinstance(dto, Mapping):
@@ -93,7 +95,7 @@ class BaseRepository(Generic[ModelType, DTOType]):
         column_names = set(self.model.__mapper__.columns.keys())
         return {k: v for k, v in raw_data.items() if k in column_names}
 
-    async def create(self, dto: DTOType) -> DTOType:
+    async def create(self, dto: CreateDTO) -> ReadDTO:
         create_data = self._dto_to_data(dto)
         obj = self.model(**create_data)
         self._session.add(obj)
@@ -101,7 +103,7 @@ class BaseRepository(Generic[ModelType, DTOType]):
         await self._session.refresh(obj)
         return self._to_dto(obj)
 
-    async def update(self, dto: DTOType) -> DTOType:
+    async def update(self, dto: UpdateDTO) -> ReadDTO:
         update_data = self._dto_to_data(dto, exclude_unset=True)
         obj = self.model(**update_data)
         obj = await self._session.merge(obj)

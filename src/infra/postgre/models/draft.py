@@ -21,8 +21,8 @@ class DraftModel(Base):
     event_id: Mapped[UUID] = mapped_column(ForeignKey('event_table.id', ondelete="CASCADE"))
     status: Mapped[DraftStatus] = mapped_column(default=DraftStatus.OPEN)
 
-    event: Mapped["EventModel"] = relationship("EventModel", back_populates="drafts", lazy="raise")
+    event: Mapped["EventModel"] = relationship("EventModel", back_populates="drafts", lazy="noload")
 
-    teams: Mapped[list["TeamModel"]] = relationship("TeamModel", back_populates="draft", lazy="raise")
+    teams: Mapped[list["TeamModel"]] = relationship("TeamModel", back_populates="draft", lazy="noload")
     drafted_players: Mapped[list["DraftedPlayerModel"]] = relationship("DraftedPlayerModel", back_populates="draft",
-                                                                       cascade="all, delete-orphan", lazy="raise")
+                                                                       cascade="all, delete-orphan", lazy="noload")

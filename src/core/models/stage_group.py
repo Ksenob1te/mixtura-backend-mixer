@@ -18,3 +18,16 @@ class StageGroup(BaseModel):
     advance_count: Optional[int] = None
     stage: Optional[Stage] = None
     matches: list[Match] = Field(default_factory=list)
+
+
+class StageGroupCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    stage_id: UUID
+    name: str
+    advance_count: int | None = None
+
+
+class StageGroupUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+    name: str | None = None
+    advance_count: int | None = None

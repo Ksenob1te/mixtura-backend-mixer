@@ -28,15 +28,15 @@ class MatchSlotModel(Base):
     group_placement: Mapped[int | None] = mapped_column(nullable=True)
 
     match: Mapped["MatchModel"] = relationship("MatchModel", foreign_keys=[match_id], back_populates="slots",
-                                               lazy="raise")
+                                               lazy="noload")
     source_match: Mapped["MatchModel"] = relationship("MatchModel", foreign_keys=[source_match_id],
                                                       back_populates="source_slots",
-                                                      lazy="raise")
+                                                      lazy="noload")
     source_group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="source_slots",
-                                                           lazy="raise")
+                                                           lazy="noload")
 
     score: Mapped["MatchScoreModel"] = relationship("MatchScoreModel", back_populates="slot", uselist=False,
-                                                    cascade="all, delete-orphan", lazy="raise")
+                                                    cascade="all, delete-orphan", lazy="noload")
 
     __table_args__ = (
         UniqueConstraint('match_id', 'slot_num', name='uq_match_slot_match_num'),
