@@ -28,5 +28,6 @@ class ApplicationTimeSettingsCreate(BaseModel):
 
 class ApplicationTimeSettingsUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
+    id: UUID
     start_time: datetime | None = None
     end_time: datetime | None = None

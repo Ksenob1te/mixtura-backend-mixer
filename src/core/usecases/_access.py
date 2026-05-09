@@ -84,7 +84,3 @@ def is_same_server(access: AccessDataRequest, event_server_id: UUID) -> bool:
 
 def has_event_admin_permission(access: AccessDataRequest, event_server_id: UUID, bit: int) -> bool:
     return is_same_server(access, event_server_id) and has_permission(access.permission_mask, bit)
-
-
-def has_server_ban(access: AccessDataRequest) -> bool:
-    return has_restriction(access.restriction_mask, R_SERVER_BAN)

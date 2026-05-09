@@ -12,7 +12,6 @@ from src.core.usecases._access import (
     P_EVENT_ADMIN_VIEW,
     P_EVENT_ADMIN_MANAGE_ORGANIZERS,
     has_event_admin_permission,
-    has_server_ban,
     is_same_server,
 )
 
@@ -63,9 +62,6 @@ class AddOrganizerUseCase:
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
 
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents organizer management")
-
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_ORGANIZERS)
 
@@ -100,9 +96,6 @@ class RemoveOrganizerUseCase:
 
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents organizer management")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_ORGANIZERS)

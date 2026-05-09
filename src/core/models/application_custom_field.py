@@ -29,6 +29,7 @@ class ApplicationCustomFieldCreate(BaseModel):
 
 class ApplicationCustomFieldUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
+    id: UUID
     name: str | None = None
     is_private: bool | None = None
     is_required: bool | None = None

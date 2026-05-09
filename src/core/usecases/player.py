@@ -7,7 +7,6 @@ from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.usecases._access import (
     P_EVENT_ADMIN_MANAGE_PLAYERS,
     has_event_admin_permission,
-    has_server_ban,
     is_same_server,
 )
 
@@ -62,8 +61,6 @@ class UpdatePlayerStatusUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents player management")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
 
@@ -108,8 +105,6 @@ class RemovePlayerUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents player management")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
 

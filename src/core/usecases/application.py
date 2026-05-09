@@ -22,12 +22,10 @@ from src.core.models.filled_application_field import FilledApplicationFieldCreat
 from src.core.models.player_role import PlayerRoleCreate
 from src.core.usecases._access import (
     R_MIX_BAN,
-    R_SERVER_BAN,
     R_TOURNAMENT_BAN,
     P_EVENT_ADMIN_MANAGE_PLAYERS,
     has_restriction,
     has_event_admin_permission,
-    has_server_ban,
     is_same_server,
 )
 
@@ -65,9 +63,6 @@ class SubmitApplicationUseCase:
 
         if event.server_id != access.server_id:
             raise ForbiddenException("Event belongs to a different server")
-
-        if has_restriction(access.restriction_mask, R_SERVER_BAN):
-            raise ForbiddenException("Server ban prevents participation")
 
         if event.match_type == EventMatchType.SINGLE:
             if has_restriction(access.restriction_mask, R_MIX_BAN):
@@ -201,8 +196,6 @@ class ReviewApplicationUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents application review")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
 

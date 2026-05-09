@@ -16,7 +16,6 @@ from src.core.results.event import EventCard
 from src.core.usecases._access import (
     P_EVENT_ADMIN_MANAGE_PLAYERS,
     has_event_admin_permission,
-    has_server_ban,
     is_same_server,
 )
 
@@ -55,9 +54,6 @@ class CreateDraftUseCase:
         is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
         if not is_organizer and not is_admin:
             raise ForbiddenException("Only organizer or admin can create draft")
-
-        if has_server_ban(cmd.access_data):
-            raise ForbiddenException("Server ban restriction applies")
 
         if event.status not in (EventStatus.REGISTRATION, EventStatus.IDLE, EventStatus.IN_PROGRESS):
             raise BadRequestException("Event is not in a state that allows draft creation")

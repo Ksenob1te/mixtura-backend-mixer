@@ -33,5 +33,6 @@ class SelectedGameRoleCreate(BaseModel):
 
 class SelectedGameRoleUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
+    id: UUID
     override_max_count: int | None = None
     override_min_count: int | None = None

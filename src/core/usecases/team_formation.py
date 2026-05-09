@@ -28,7 +28,6 @@ from src.core.results.team_formation import (
 from src.core.usecases._access import (
     P_EVENT_ADMIN_MANAGE_BRACKET,
     has_event_admin_permission,
-    has_server_ban,
     is_same_server,
 )
 
@@ -76,9 +75,6 @@ class RunTeamFormationUseCase:
         is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET)
         if not is_organizer and not is_admin:
             raise ForbiddenException("Only organizer or admin can run team formation")
-
-        if has_server_ban(cmd.access_data):
-            raise ForbiddenException("Server ban restriction applies")
 
         if draft.status != DraftStatus.OPEN:
             raise ConflictException(f"Draft is not OPEN (status={draft.status.value})")
@@ -467,8 +463,6 @@ class ChooseTeamFormationVariantUseCase:
 
         if not is_same_server(cmd.access_data, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(cmd.access_data):
-            raise ForbiddenException("Server ban restriction applies")
         is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
         is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET)
         if not is_organizer and not is_admin:

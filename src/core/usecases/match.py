@@ -28,7 +28,6 @@ from src.core.usecases._access import (
     P_EVENT_ADMIN_MANAGE_BRACKET,
     P_EVENT_ADMIN_VIEW,
     has_event_admin_permission,
-    has_server_ban,
     is_same_server,
 )
 
@@ -75,8 +74,6 @@ class SingleMatchSetupUseCase:
 
         if not is_same_server(cmd.access_data, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(cmd.access_data):
-            raise ForbiddenException("Server ban restriction applies")
 
         is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
         is_admin = has_event_admin_permission(
@@ -255,8 +252,6 @@ class RecordSingleMatchResultUseCase:
             raise NotFoundException(f"Event {event_id} not found")
         if server_id != event.server_id or not is_same_server(cmd.access_data, event.server_id):
             raise ForbiddenException("Match belongs to a different server")
-        if has_server_ban(cmd.access_data):
-            raise ForbiddenException("Server ban restriction applies")
         is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
         is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET)
         if not is_organizer and not is_admin:

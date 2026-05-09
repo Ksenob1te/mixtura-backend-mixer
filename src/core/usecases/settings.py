@@ -9,6 +9,7 @@ from src.core.commands.settings import (
     RemoveCustomFieldCommand,
     UpdateTimeSettingsCommand,
     ListEventsCommand,
+    GetApplicationFormSettingsCommand,
 )
 from src.core.exceptions import BadRequestException, ForbiddenException, NotFoundException, ConflictException
 from src.core.interfaces.repo.event import EventRepositoryProtocol
@@ -233,10 +234,11 @@ class UpdateGameRoleUseCase:
             raise NotFoundException("Selected game role not found")
 
         update = SelectedGameRoleUpdate(
+            id=role.id,
             override_max_count=command.override_max_count,
             override_min_count=command.override_min_count,
         )
-        await self._role_repo.update(role.id, update)
+        await self._role_repo.update(update)
 
         full = await self._event_repo.get(
             command.event_id,
@@ -382,11 +384,12 @@ class UpdateCustomFieldUseCase:
             raise NotFoundException("Custom field not found")
 
         update = ApplicationCustomFieldUpdate(
+            id=field.id,
             name=command.name,
             is_private=command.is_private,
             is_required=command.is_required,
         )
-        await self._field_repo.update(field.id, update)
+        await self._field_repo.update(update)
 
         full = await self._event_repo.get(
             command.event_id,
@@ -483,10 +486,11 @@ class UpdateTimeSettingsUseCase:
 
         if existing:
             update = ApplicationTimeSettingsUpdate(
+                id=existing.id,
                 start_time=command.start_time,
                 end_time=command.end_time,
             )
-            await self._time_repo.update(existing.id, update)
+            await self._time_repo.update(update)
         else:
             await self._time_repo.create(
                 ApplicationTimeSettingsCreate(

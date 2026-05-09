@@ -35,7 +35,6 @@ from src.core.usecases._access import (
     P_EVENT_ADMIN_COMPLETE,
     has_permission,
     has_event_admin_permission,
-    has_server_ban,
     is_same_server,
 )
 
@@ -53,9 +52,6 @@ class CreateEventUseCase:
 
     async def __call__(self, command: CreateEventCommand) -> EventDetail:
         access = command.access_data
-
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents event creation")
 
         if access.member_id is None:
             raise ForbiddenException("Member identification required to create event")
@@ -188,8 +184,6 @@ class UpdateEventUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents event update")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
 
@@ -229,8 +223,6 @@ class ActivateEventUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents event activation")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
 
@@ -263,8 +255,6 @@ class OpenRegistrationUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents registration management")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
 
@@ -297,8 +287,6 @@ class CloseRegistrationUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents registration management")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
 
@@ -331,8 +319,6 @@ class CancelEventUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents event cancellation")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_CANCEL)
 
@@ -365,8 +351,6 @@ class CompleteSingleGameEventUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents event completion")
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_COMPLETE)
 
