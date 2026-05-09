@@ -140,5 +140,5 @@ async def get_application_form_settings(
     data: GetApplicationFormSettingsCommand,
     use_case: GetApplicationFormSettingsUseCaseDependency,
 ) -> ResponseMessage[dict]:
-    result = await use_case(data.event_id, data.access_data)
+    result = await use_case(data)
     return ResponseMessage(status=200, message=result)

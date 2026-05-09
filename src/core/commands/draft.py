@@ -18,10 +18,10 @@ class CreateDraftCommand(BaseModel):
 
 class GetDraftCommand(BaseModel):
     draft_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
 
 
 class ListDraftsCommand(BaseModel):
     event_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
     pagination: PaginationRequest = PaginationRequest()

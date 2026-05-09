@@ -35,7 +35,6 @@ from src.core.usecases._access import (
     P_EVENT_ADMIN_VIEW,
     P_EVENT_ADMIN_UPDATE,
     has_event_admin_permission,
-    has_server_ban,
     is_same_server,
 )
 
@@ -78,8 +77,6 @@ class AddIntegrationUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -126,8 +123,6 @@ class RemoveIntegrationUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -172,8 +167,6 @@ class AddGameRoleUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -225,8 +218,6 @@ class UpdateGameRoleUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -275,8 +266,6 @@ class RemoveGameRoleUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -321,8 +310,6 @@ class AddCustomFieldUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -377,8 +364,6 @@ class UpdateCustomFieldUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -431,8 +416,6 @@ class RemoveCustomFieldUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -480,8 +463,6 @@ class UpdateTimeSettingsUseCase:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents settings update")
 
         is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
@@ -554,6 +535,7 @@ class ListEventsUseCase:
                 id=e.id,
                 name=e.name,
                 match_type=e.match_type,
+                use_application=e.use_application,
                 is_public=e.is_public,
                 team_size=e.team_size,
                 team_formation=e.team_formation,
@@ -579,44 +561,37 @@ class GetApplicationFormSettingsUseCase:
         self._field_repo = field_repo
         self._time_repo = time_repo
 
-    async def __call__(self, event_id: UUID, access_data) -> dict:
-        event = await self._event_repo.get(event_id, load_organizers=False)
+    async def __call__(self, command: GetApplicationFormSettingsCommand) -> dict:
+        event = await self._event_repo.get(command.event_id, load_organizers=False)
         if not event:
             raise NotFoundException("Event not found")
 
         if not event.use_application:
             raise BadRequestException("Event does not use applications")
 
-        access = access_data
-        if access is not None:
-            same_server = is_same_server(access, event.server_id)
-            has_admin_view = same_server and has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_VIEW)
-
-            if not same_server and not has_admin_view:
-                if not event.is_public:
-                    raise NotFoundException("Event not found")
-        elif not event.is_public:
-            raise NotFoundException("Event not found")
+        access = command.access_data
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
 
         if event.status != EventStatus.REGISTRATION:
             if event.status in (EventStatus.CREATED, EventStatus.IDLE):
                 raise BadRequestException("Registration not open yet")
             raise BadRequestException("Registration is closed")
 
-        integrations = await self._integration_repo.list_by_event(event_id)
-        roles = await self._role_repo.list_by_event(event_id)
-        all_fields = await self._field_repo.list_by_event(event_id)
-        time_settings = await self._time_repo.get_by_event_id(event_id, load_event=False)
+        integrations = await self._integration_repo.list_by_event(command.event_id)
+        roles = await self._role_repo.list_by_event(command.event_id)
+        all_fields = await self._field_repo.list_by_event(command.event_id)
+        time_settings = await self._time_repo.get_by_event_id(command.event_id, load_event=False)
 
         visible_fields = []
         for f in all_fields:
-            if access is not None and access.member_id:
+            if access.member_id:
                 visible_fields.append(f)
             elif not f.is_private:
                 visible_fields.append(f)
 
         return {
-            "event_id": str(event_id),
+            "event_id": str(command.event_id),
             "event_name": event.name,
             "required_integrations": [
                 {"id": str(i.id), "name": i.name}

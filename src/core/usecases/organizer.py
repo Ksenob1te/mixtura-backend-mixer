@@ -29,16 +29,16 @@ class ListOrganizersUseCase:
 
         access = command.access_data
 
-        if access is not None:
-            same_server = is_same_server(access, event.server_id)
-            is_organizer = same_server and any(o.member_id == access.member_id for o in event.organizers)
-            has_admin_view = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_VIEW)
-            if not is_organizer and not has_admin_view:
-                if not event.is_public:
-                    raise NotFoundException("Event not found")
-                raise ForbiddenException("Only organizer or event admin can view organizers")
-        elif not event.is_public:
-            raise NotFoundException("Event not found")
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+
+        is_organizer = any(o.member_id == access.member_id for o in event.organizers)
+        has_admin_view = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_VIEW)
+
+        if not is_organizer and not has_admin_view:
+            if not event.is_public:
+                raise NotFoundException("Event not found")
+            raise ForbiddenException("Only organizer or event admin can view organizers")
 
         organizers = await self._organizer_repo.list_by_event(command.event_id)
 

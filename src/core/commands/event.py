@@ -21,7 +21,7 @@ class CreateEventCommand(BaseModel):
 
 class GetEventCommand(BaseModel):
     event_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
 
 
 class ListPublicEventsCommand(BaseModel):

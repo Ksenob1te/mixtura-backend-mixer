@@ -23,17 +23,12 @@ class ListPlayersUseCase:
             raise NotFoundException("Event not found")
 
         access = command.access_data
-        if access is not None:
-            if not is_same_server(access, event.server_id):
-                raise ForbiddenException("Event belongs to a different server")
-            is_organizer = any(o.member_id == access.member_id for o in event.organizers)
-            has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
-            if not is_organizer and not has_admin:
-                if not event.is_public:
-                    raise NotFoundException("Event not found")
-                raise ForbiddenException("Only organizer or event admin can list players")
-        elif not event.is_public:
-            raise NotFoundException("Event not found")
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        is_organizer = any(o.member_id == access.member_id for o in event.organizers)
+        has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
+        if not is_organizer and not has_admin:
+            raise ForbiddenException("Only organizer or event admin can list players")
 
         offset = (command.pagination.page - 1) * command.pagination.page_size if command.pagination.page else 0
         limit = command.pagination.page_size

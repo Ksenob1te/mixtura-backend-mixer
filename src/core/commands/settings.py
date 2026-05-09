@@ -77,4 +77,4 @@ class ListEventsCommand(BaseModel):
 
 class GetApplicationFormSettingsCommand(BaseModel):
     event_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest

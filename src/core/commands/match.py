@@ -27,11 +27,11 @@ class RecordMatchResultCommand(BaseModel):
 
 class GetMatchCommand(BaseModel):
     match_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
 
 
 class ListMatchesCommand(BaseModel):
     event_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
     active: bool | None = None
     pagination: PaginationRequest = PaginationRequest()

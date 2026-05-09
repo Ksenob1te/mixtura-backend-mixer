@@ -110,27 +110,15 @@ class GetEventUseCase:
             load_integrations=True,
             load_time_settings=True,
             load_game_roles=True,
+            load_custom_fields=True,
         )
         if not event:
             raise NotFoundException("Event not found")
 
         access = command.access_data
 
-        if access is None:
-            if not event.is_public:
-                raise NotFoundException("Event not found")
-            return _to_detail(event)
-
-        if has_server_ban(access):
-            raise ForbiddenException("Server ban prevents access")
-
-        same_server = is_same_server(access, event.server_id)
-        has_admin_view = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_VIEW)
-
-        if not same_server and not has_admin_view:
-            if event.is_public:
-                return _to_detail(event)
-            raise NotFoundException("Event not found")
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
 
         return _to_detail(event)
 
@@ -150,6 +138,7 @@ class ListPublicEventsUseCase:
                 id=e.id,
                 name=e.name,
                 match_type=e.match_type,
+                use_application=e.use_application,
                 is_public=e.is_public,
                 team_size=e.team_size,
                 team_formation=e.team_formation,
@@ -175,6 +164,7 @@ class ListPrivateEventsUseCase:
                 id=e.id,
                 name=e.name,
                 match_type=e.match_type,
+                use_application=e.use_application,
                 is_public=e.is_public,
                 team_size=e.team_size,
                 team_formation=e.team_formation,

@@ -130,28 +130,27 @@ class GetDraftUseCase:
         if draft is None:
             raise NotFoundException(f"Draft {cmd.draft_id} not found")
 
-        if cmd.access_data is not None:
-            event = await self._event_repo.get(
-                draft.event_id,
-                load_organizers=True,
-                load_integrations=False,
-                load_time_settings=False,
-                load_game_roles=False,
-                load_custom_fields=False,
-                load_applications=False,
-                load_teams=False,
-                load_drafts=False,
-                load_players=False,
-                load_brackets=False,
-            )
-            if event is None:
-                raise NotFoundException(f"Event {draft.event_id} not found")
-            if not is_same_server(cmd.access_data, event.server_id):
-                raise ForbiddenException("Event belongs to a different server")
-            is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
-            is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
-            if not is_organizer and not is_admin:
-                raise ForbiddenException("Access denied")
+        event = await self._event_repo.get(
+            draft.event_id,
+            load_organizers=True,
+            load_integrations=False,
+            load_time_settings=False,
+            load_game_roles=False,
+            load_custom_fields=False,
+            load_applications=False,
+            load_teams=False,
+            load_drafts=False,
+            load_players=False,
+            load_brackets=False,
+        )
+        if event is None:
+            raise NotFoundException(f"Event {draft.event_id} not found")
+        if not is_same_server(cmd.access_data, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
+        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
+        if not is_organizer and not is_admin:
+            raise ForbiddenException("Access denied")
 
         return draft
 
@@ -164,28 +163,27 @@ class ListDraftsUseCase:
         self._organizer_repo = organizer_repo
 
     async def __call__(self, cmd: ListDraftsCommand) -> list[Draft]:
-        if cmd.access_data is not None:
-            event = await self._event_repo.get(
-                cmd.event_id,
-                load_organizers=True,
-                load_integrations=False,
-                load_time_settings=False,
-                load_game_roles=False,
-                load_custom_fields=False,
-                load_applications=False,
-                load_teams=False,
-                load_drafts=False,
-                load_players=False,
-                load_brackets=False,
-            )
-            if event is None:
-                raise NotFoundException(f"Event {cmd.event_id} not found")
-            if not is_same_server(cmd.access_data, event.server_id):
-                raise ForbiddenException("Event belongs to a different server")
-            is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
-            is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
-            if not is_organizer and not is_admin:
-                raise ForbiddenException("Access denied")
+        event = await self._event_repo.get(
+            cmd.event_id,
+            load_organizers=True,
+            load_integrations=False,
+            load_time_settings=False,
+            load_game_roles=False,
+            load_custom_fields=False,
+            load_applications=False,
+            load_teams=False,
+            load_drafts=False,
+            load_players=False,
+            load_brackets=False,
+        )
+        if event is None:
+            raise NotFoundException(f"Event {cmd.event_id} not found")
+        if not is_same_server(cmd.access_data, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
+        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
+        if not is_organizer and not is_admin:
+            raise ForbiddenException("Access denied")
 
         result = await self._draft_repo.list_by_event(
             cmd.event_id,

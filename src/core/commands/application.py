@@ -17,7 +17,7 @@ class SubmitApplicationCommand(BaseModel):
 
 class GetApplicationCommand(BaseModel):
     application_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
 
 
 class ReviewApplicationCommand(BaseModel):
@@ -28,6 +28,6 @@ class ReviewApplicationCommand(BaseModel):
 
 class ListApplicationsCommand(BaseModel):
     event_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
     status: ApplicationStatus | None = None
     pagination: PaginationRequest = PaginationRequest()

@@ -9,7 +9,7 @@ from src.core.models.event_player import EventPlayerStatus
 
 class ListPlayersCommand(BaseModel):
     event_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
     status: EventPlayerStatus | None = None
     pagination: PaginationRequest = PaginationRequest()
 

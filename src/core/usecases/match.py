@@ -463,18 +463,14 @@ class GetMatchUseCase:
             raise NotFoundException(f"Event {event_id} not found")
         if server_id != event.server_id:
             raise NotFoundException(f"Match {cmd.match_id} not found")
-        if cmd.access_data is None:
-            if not event.is_public:
-                raise NotFoundException(f"Match {cmd.match_id} not found")
-        else:
-            if not is_same_server(cmd.access_data, event.server_id):
-                raise ForbiddenException("Match belongs to a different server")
-            is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
-            is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_VIEW) or has_event_admin_permission(
-                cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET
-            )
-            if not event.is_public and not is_organizer and not is_admin:
-                raise ForbiddenException("Access denied")
+        if not is_same_server(cmd.access_data, event.server_id):
+            raise ForbiddenException("Match belongs to a different server")
+        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
+        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_VIEW) or has_event_admin_permission(
+            cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET
+        )
+        if not event.is_public and not is_organizer and not is_admin:
+            raise ForbiddenException("Access denied")
 
         match = await self._match_repo.get(cmd.match_id, load_slots=True, load_group=False)
         if match is None:
@@ -493,18 +489,14 @@ class ListMatchesUseCase:
         event = await self._event_repo.get(cmd.event_id, load_organizers=True)
         if event is None:
             raise NotFoundException(f"Event {cmd.event_id} not found")
-        if cmd.access_data is None:
-            if not event.is_public:
-                raise NotFoundException(f"Event {cmd.event_id} not found")
-        else:
-            if not is_same_server(cmd.access_data, event.server_id):
-                raise ForbiddenException("Event belongs to a different server")
-            is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
-            is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_VIEW) or has_event_admin_permission(
-                cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET
-            )
-            if not event.is_public and not is_organizer and not is_admin:
-                raise ForbiddenException("Access denied")
+        if not is_same_server(cmd.access_data, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
+        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_VIEW) or has_event_admin_permission(
+            cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET
+        )
+        if not event.is_public and not is_organizer and not is_admin:
+            raise ForbiddenException("Access denied")
 
         offset = (cmd.pagination.page - 1) * cmd.pagination.page_size if cmd.pagination.page else 0
         matches = await self._match_repo.list_by_event(cmd.event_id, offset, cmd.pagination.page_size, active=cmd.active)

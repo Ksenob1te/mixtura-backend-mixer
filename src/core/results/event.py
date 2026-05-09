@@ -46,6 +46,7 @@ class EventCard(BaseModel):
     id: UUID
     name: str
     match_type: EventMatchType
+    use_application: bool
     is_public: bool
     team_size: int
     team_formation: TeamFormation

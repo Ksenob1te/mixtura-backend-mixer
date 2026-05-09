@@ -8,5 +8,5 @@ from src.core.commands.pagination import PaginationRequest
 
 class ListTeamsCommand(BaseModel):
     event_id: UUID
-    access_data: AccessDataRequest | None = None
+    access_data: AccessDataRequest
     pagination: PaginationRequest = PaginationRequest()
