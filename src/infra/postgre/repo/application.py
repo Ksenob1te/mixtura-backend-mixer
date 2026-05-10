@@ -8,7 +8,7 @@ from src.core.exceptions import NotFoundException
 from src.core.interfaces.repo.application import ApplicationRepositoryProtocol
 from src.core.models.application import Application, ApplicationCreate, ApplicationStatus, ApplicationUpdate
 from .base import BaseRepository
-from ..models import ApplicationModel
+from ..models import ApplicationModel, EventPlayerModel, PlayerRoleModel
 
 
 class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, Application, ApplicationUpdate], ApplicationRepositoryProtocol):
@@ -49,6 +49,8 @@ class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, 
         status: ApplicationStatus | None = None,
         sort_by: str = "created_at",
         sort_order: str = "desc",
+        load_event_player_with_roles: bool = False,
+        load_integrations: bool = False,
     ) -> Sequence[Application]:
         where_clauses = [ApplicationModel.event_id == event_id]
         if status is not None:
@@ -57,7 +59,17 @@ class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, 
         sort_column = getattr(ApplicationModel, sort_by, ApplicationModel.created_at)
         order_clause = sort_column.asc() if sort_order.lower() == "asc" else sort_column.desc()
 
-        return await self.get_list(offset, limit, None, *where_clauses, order_by=order_clause)
+        options = []
+        if load_event_player_with_roles:
+            options.append(
+                selectinload(ApplicationModel.event_player)
+                .selectinload(EventPlayerModel.player_roles)
+                .selectinload(PlayerRoleModel.game_role)
+            )
+        if load_integrations:
+            options.append(selectinload(ApplicationModel.integrations))
+
+        return await self.get_list(offset, limit, options, *where_clauses, order_by=order_clause)
 
     async def count_by_event_and_status(self, event_id: UUID, status: ApplicationStatus) -> int:
         stmt = (

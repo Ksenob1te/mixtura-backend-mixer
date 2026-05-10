@@ -7,6 +7,7 @@ from src.core.commands.application import (
     SubmitApplicationCommand,
 )
 from src.core.response import ResponseMessage, StatusResponse
+from src.core.results.application import ApplicationListItem
 from src.dependency import ApplicationServiceDependency
 
 router = RabbitRouter()
@@ -34,7 +35,7 @@ async def get_application(
 async def list_applications(
     data: ListApplicationsCommand,
     service: ApplicationServiceDependency,
-) -> ResponseMessage[list[dict]]:
+) -> ResponseMessage[list[ApplicationListItem]]:
     result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)
 

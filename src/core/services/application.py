@@ -20,6 +20,7 @@ from src.core.models.event import EventMatchType, EventStatus
 from src.core.models.event_player import EventPlayerCreate, EventPlayerStatus, EventPlayerUpdate
 from src.core.models.filled_application_field import FilledApplicationFieldCreate
 from src.core.models.player_role import PlayerRoleCreate
+from src.core.results.application import ApplicationListItem, ApplicationIntegrationItem, ApplicationRoleItem
 from src.core.interfaces.repo.access import (
     R_MIX_BAN,
     R_TOURNAMENT_BAN,
@@ -343,7 +344,7 @@ class ApplicationService:
             "event_player_id": str(application.event_player.id) if application.event_player else None,
         }
 
-    async def get_list(self, command: ListApplicationsCommand) -> list[dict]:
+    async def get_list(self, command: ListApplicationsCommand) -> list[ApplicationListItem]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -366,15 +367,33 @@ class ApplicationService:
             status=command.status,
             sort_by=command.sort_by,
             sort_order=command.sort_order,
+            load_event_player_with_roles=True,
+            load_integrations=True,
         )
 
         return [
-            {
-                "id": str(a.id),
-                "member_id": str(a.member_id),
-                "status": a.status.value,
-                "is_approved": a.is_approved,
-                "created_at": a.created_at.isoformat(),
-            }
+            ApplicationListItem(
+                id=a.id,
+                member_id=a.member_id,
+                status=a.status.value,
+                is_approved=a.is_approved,
+                created_at=a.created_at,
+                roles=[
+                    ApplicationRoleItem(
+                        role_id=pr.game_role_id,
+                        game_role_id=pr.game_role.game_role_id if pr.game_role else None,
+                        priority=pr.priority,
+                    )
+                    for pr in (a.event_player.player_roles if a.event_player else [])
+                ],
+                integrations=[
+                    ApplicationIntegrationItem(
+                        integration_id=i.user_provider_id,
+                        provider_id=i.provider_id,
+                        provider_name=i.provider_name,
+                    )
+                    for i in a.integrations
+                ],
+            )
             for a in applications
         ]

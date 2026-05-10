@@ -12,7 +12,9 @@ class ApplicationRepositoryProtocol(Protocol):
 
     async def list_by_event(self, event_id: UUID, offset: int, limit: int,
                             status: ApplicationStatus | None = None,
-                            sort_by: str = "created_at", sort_order: str = "desc") -> Sequence[Application]: ...
+                            sort_by: str = "created_at", sort_order: str = "desc",
+                            load_event_player_with_roles: bool = False,
+                            load_integrations: bool = False) -> Sequence[Application]: ...
 
     async def count_by_event_and_status(self, event_id: UUID, status: ApplicationStatus) -> int: ...
 
