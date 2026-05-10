@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from src.core.commands.settings import (
     AddIntegrationCommand,
     RemoveIntegrationCommand,
@@ -405,8 +406,8 @@ class SettingsService:
         if command.start_time and command.end_time and command.start_time >= command.end_time:
             raise BadRequestException("Start time must be before end time")
 
-        start_time = command.start_time.replace(tzinfo=None) if command.start_time else None
-        end_time = command.end_time.replace(tzinfo=None) if command.end_time else None
+        start_time = command.start_time.astimezone(timezone.utc).replace(tzinfo=None) if command.start_time else None
+        end_time = command.end_time.astimezone(timezone.utc).replace(tzinfo=None) if command.end_time else None
 
         existing = await self._time_repo.get_by_event_id(command.event_id, load_event=False)
 
