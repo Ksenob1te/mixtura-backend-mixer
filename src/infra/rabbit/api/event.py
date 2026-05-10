@@ -3,8 +3,7 @@ from faststream.rabbit import RabbitRouter
 from src.core.commands.event import (
     CreateEventCommand,
     GetEventCommand,
-    ListPublicEventsCommand,
-    ListPrivateEventsCommand,
+    ListEventsCommand,
     UpdateEventCommand,
     ActivateEventCommand,
     OpenRegistrationCommand,
@@ -17,8 +16,7 @@ from src.core.results.event import EventCard, EventDetail
 from src.core.usecases.event import (
     CreateEventUseCase,
     GetEventUseCase,
-    ListPublicEventsUseCase,
-    ListPrivateEventsUseCase,
+    ListEventsUseCase,
     UpdateEventUseCase,
     ActivateEventUseCase,
     OpenRegistrationUseCase,
@@ -29,8 +27,7 @@ from src.core.usecases.event import (
 from src.dependency import (
     CreateEventUseCaseDependency,
     GetEventUseCaseDependency,
-    ListPublicEventsUseCaseDependency,
-    ListPrivateEventsUseCaseDependency,
+    ListEventsUseCaseDependency,
     UpdateEventUseCaseDependency,
     ActivateEventUseCaseDependency,
     OpenRegistrationUseCaseDependency,
@@ -60,19 +57,10 @@ async def get_event(
     return ResponseMessage(status=200, message=result)
 
 
-@router.subscriber(queue="event.list_public")
-async def list_public_events(
-    data: ListPublicEventsCommand,
-    use_case: ListPublicEventsUseCaseDependency,
-) -> ResponseMessage[list[EventCard]]:
-    result = await use_case(data)
-    return ResponseMessage(status=200, message=result)
-
-
-@router.subscriber(queue="event.list_private")
-async def list_private_events(
-    data: ListPrivateEventsCommand,
-    use_case: ListPrivateEventsUseCaseDependency,
+@router.subscriber(queue="event.list")
+async def list_events(
+    data: ListEventsCommand,
+    use_case: ListEventsUseCaseDependency,
 ) -> ResponseMessage[list[EventCard]]:
     result = await use_case(data)
     return ResponseMessage(status=200, message=result)

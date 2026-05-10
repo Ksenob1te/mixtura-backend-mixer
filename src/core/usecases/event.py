@@ -1,8 +1,7 @@
 from src.core.commands.event import (
     CreateEventCommand,
     GetEventCommand,
-    ListPublicEventsCommand,
-    ListPrivateEventsCommand,
+    ListEventsCommand,
     UpdateEventCommand,
     ActivateEventCommand,
     OpenRegistrationCommand,
@@ -119,15 +118,31 @@ class GetEventUseCase:
         return _to_detail(event)
 
 
-class ListPublicEventsUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol):
+class ListEventsUseCase:
+    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
         self._event_repo = event_repo
+        self._organizer_repo = organizer_repo
 
-    async def __call__(self, command: ListPublicEventsCommand) -> list[EventCard]:
-        offset = (command.pagination.page - 1) * command.pagination.page_size if command.pagination.page else 0
-        limit = command.pagination.page_size
+    async def __call__(self, command: ListEventsCommand) -> list[EventCard]:
+        access = command.access_data
+        same_server = is_same_server(access, command.server_id)
+        if not same_server:
+            raise ForbiddenException("Access denied to server events")
 
-        events = await self._event_repo.list_public_by_server(command.server_id, offset, limit)
+        has_admin_view = has_event_admin_permission(access, command.server_id, P_EVENT_ADMIN_VIEW)
+
+        events = await self._event_repo.list_by_server(command.server_id, 0, 100)
+
+        visible = []
+        for e in events:
+            if e.is_public:
+                visible.append(e)
+            elif has_admin_view:
+                visible.append(e)
+            else:
+                organizers = await self._organizer_repo.list_by_event(e.id)
+                if any(o.member_id == access.member_id for o in organizers):
+                    visible.append(e)
 
         return [
             EventCard(
@@ -141,33 +156,7 @@ class ListPublicEventsUseCase:
                 status=e.status,
                 server_id=e.server_id,
             )
-            for e in events
-        ]
-
-
-class ListPrivateEventsUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol):
-        self._event_repo = event_repo
-
-    async def __call__(self, command: ListPrivateEventsCommand) -> list[EventCard]:
-        offset = (command.pagination.page - 1) * command.pagination.page_size if command.pagination.page else 0
-        limit = command.pagination.page_size
-
-        events = await self._event_repo.list_by_server(command.access_data.server_id, offset, limit)
-
-        return [
-            EventCard(
-                id=e.id,
-                name=e.name,
-                match_type=e.match_type,
-                use_application=e.use_application,
-                is_public=e.is_public,
-                team_size=e.team_size,
-                team_formation=e.team_formation,
-                status=e.status,
-                server_id=e.server_id,
-            )
-            for e in events
+            for e in visible
         ]
 
 

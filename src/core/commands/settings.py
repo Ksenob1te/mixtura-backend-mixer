@@ -70,11 +70,6 @@ class UpdateTimeSettingsCommand(BaseModel):
     end_time: datetime | None = None
 
 
-class ListEventsCommand(BaseModel):
-    server_id: UUID
-    access_data: AccessDataRequest
-
-
 class GetApplicationFormSettingsCommand(BaseModel):
     event_id: UUID
     access_data: AccessDataRequest

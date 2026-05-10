@@ -8,7 +8,6 @@ from src.core.commands.settings import (
     UpdateCustomFieldCommand,
     RemoveCustomFieldCommand,
     UpdateTimeSettingsCommand,
-    ListEventsCommand,
     GetApplicationFormSettingsCommand,
 )
 from src.core.exceptions import BadRequestException, ForbiddenException, NotFoundException, ConflictException
@@ -24,7 +23,6 @@ from src.core.models.selected_game_role import SelectedGameRoleCreate, SelectedG
 from src.core.models.application_custom_field import ApplicationCustomFieldCreate, ApplicationCustomFieldUpdate
 from src.core.models.application_time_settings import ApplicationTimeSettingsCreate, ApplicationTimeSettingsUpdate
 from src.core.results.event import (
-    EventCard,
     EventDetail,
     RequiredIntegrationResponse,
     SelectedGameRoleResponse,
@@ -33,7 +31,6 @@ from src.core.results.event import (
     OrganizerResponse,
 )
 from src.core.usecases._access import (
-    P_EVENT_ADMIN_VIEW,
     P_EVENT_ADMIN_UPDATE,
     has_event_admin_permission,
     is_same_server,
@@ -509,45 +506,6 @@ class UpdateTimeSettingsUseCase:
             load_custom_fields=True,
         )
         return _to_detail(full)
-
-
-class ListEventsUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, command: ListEventsCommand) -> list[EventCard]:
-        access = command.access_data
-        same_server = is_same_server(access, command.server_id)
-        has_admin_view = same_server and has_event_admin_permission(access, command.server_id, P_EVENT_ADMIN_VIEW)
-
-        events = await self._event_repo.list_by_server(command.server_id, 0, 100)
-
-        visible = []
-        for e in events:
-            if e.is_public:
-                visible.append(e)
-            elif has_admin_view:
-                visible.append(e)
-            else:
-                organizers = await self._organizer_repo.list_by_event(e.id)
-                if any(o.member_id == access.member_id for o in organizers):
-                    visible.append(e)
-
-        return [
-            EventCard(
-                id=e.id,
-                name=e.name,
-                match_type=e.match_type,
-                use_application=e.use_application,
-                is_public=e.is_public,
-                team_size=e.team_size,
-                team_formation=e.team_formation,
-                status=e.status,
-                server_id=e.server_id,
-            )
-            for e in visible
-        ]
 
 
 class GetApplicationFormSettingsUseCase:

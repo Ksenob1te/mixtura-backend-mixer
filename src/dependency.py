@@ -76,8 +76,7 @@ from src.core.usecases.event import (
     CloseRegistrationUseCase,
     CreateEventUseCase,
     GetEventUseCase,
-    ListPrivateEventsUseCase,
-    ListPublicEventsUseCase,
+    ListEventsUseCase,
     OpenRegistrationUseCase,
     UpdateEventUseCase,
 )
@@ -370,16 +369,11 @@ async def get_get_event_use_case(
     return GetEventUseCase(event_repo, organizer_repo)
 
 
-async def get_list_public_events_use_case(
+async def get_list_events_use_case(
     event_repo: EventRepositoryDependency,
-) -> ListPublicEventsUseCase:
-    return ListPublicEventsUseCase(event_repo)
-
-
-async def get_list_private_events_use_case(
-    event_repo: EventRepositoryDependency,
-) -> ListPrivateEventsUseCase:
-    return ListPrivateEventsUseCase(event_repo)
+    organizer_repo: OrganizerRepositoryDependency,
+) -> ListEventsUseCase:
+    return ListEventsUseCase(event_repo, organizer_repo)
 
 
 async def get_update_event_use_case(
@@ -706,13 +700,6 @@ async def get_update_time_settings_use_case(
     return UpdateTimeSettingsUseCase(event_repo, time_repo)
 
 
-async def get_list_events_use_case(
-    event_repo: EventRepositoryDependency,
-    organizer_repo: OrganizerRepositoryDependency,
-) -> ListEventsUseCase:
-    return ListEventsUseCase(event_repo, organizer_repo)
-
-
 async def get_get_application_form_settings_use_case(
     event_repo: EventRepositoryDependency,
     integration_repo: RequiredIntegrationRepositoryDependency,
@@ -729,8 +716,7 @@ async def get_get_application_form_settings_use_case(
 
 CreateEventUseCaseDependency = Annotated[CreateEventUseCase, Depends(get_create_event_use_case)]
 GetEventUseCaseDependency = Annotated[GetEventUseCase, Depends(get_get_event_use_case)]
-ListPublicEventsUseCaseDependency = Annotated[ListPublicEventsUseCase, Depends(get_list_public_events_use_case)]
-ListPrivateEventsUseCaseDependency = Annotated[ListPrivateEventsUseCase, Depends(get_list_private_events_use_case)]
+ListEventsUseCaseDependency = Annotated[ListEventsUseCase, Depends(get_list_events_use_case)]
 UpdateEventUseCaseDependency = Annotated[UpdateEventUseCase, Depends(get_update_event_use_case)]
 ActivateEventUseCaseDependency = Annotated[ActivateEventUseCase, Depends(get_activate_event_use_case)]
 OpenRegistrationUseCaseDependency = Annotated[OpenRegistrationUseCase, Depends(get_open_registration_use_case)]
@@ -761,7 +747,6 @@ AddCustomFieldUseCaseDependency = Annotated[AddCustomFieldUseCase, Depends(get_a
 UpdateCustomFieldUseCaseDependency = Annotated[UpdateCustomFieldUseCase, Depends(get_update_custom_field_use_case)]
 RemoveCustomFieldUseCaseDependency = Annotated[RemoveCustomFieldUseCase, Depends(get_remove_custom_field_use_case)]
 UpdateTimeSettingsUseCaseDependency = Annotated[UpdateTimeSettingsUseCase, Depends(get_update_time_settings_use_case)]
-ListEventsUseCaseDependency = Annotated[ListEventsUseCase, Depends(get_list_events_use_case)]
 GetApplicationFormSettingsUseCaseDependency = Annotated[GetApplicationFormSettingsUseCase, Depends(get_get_application_form_settings_use_case)]
 
 # -- Stage 5 use case type aliases --

@@ -10,11 +10,10 @@ from src.core.commands.settings import (
     UpdateCustomFieldCommand,
     RemoveCustomFieldCommand,
     UpdateTimeSettingsCommand,
-    ListEventsCommand,
     GetApplicationFormSettingsCommand,
 )
 from src.core.response import ResponseMessage, StatusResponse
-from src.core.results.event import EventCard, EventDetail
+from src.core.results.event import EventDetail
 from src.core.usecases.settings import (
     AddIntegrationUseCase,
     RemoveIntegrationUseCase,
@@ -25,7 +24,6 @@ from src.core.usecases.settings import (
     UpdateCustomFieldUseCase,
     RemoveCustomFieldUseCase,
     UpdateTimeSettingsUseCase,
-    ListEventsUseCase,
     GetApplicationFormSettingsUseCase,
 )
 from src.dependency import (
@@ -38,7 +36,6 @@ from src.dependency import (
     UpdateCustomFieldUseCaseDependency,
     RemoveCustomFieldUseCaseDependency,
     UpdateTimeSettingsUseCaseDependency,
-    ListEventsUseCaseDependency,
     GetApplicationFormSettingsUseCaseDependency,
 )
 
@@ -122,15 +119,6 @@ async def update_time_settings(
     data: UpdateTimeSettingsCommand,
     use_case: UpdateTimeSettingsUseCaseDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
-    return ResponseMessage(status=200, message=result)
-
-
-@router.subscriber(queue="event.list")
-async def list_events(
-    data: ListEventsCommand,
-    use_case: ListEventsUseCaseDependency,
-) -> ResponseMessage[list[EventCard]]:
     result = await use_case(data)
     return ResponseMessage(status=200, message=result)
 

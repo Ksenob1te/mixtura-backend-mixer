@@ -3,7 +3,6 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from src.core.commands.access_data import AccessDataRequest
-from src.core.commands.pagination import PaginationRequest
 from src.core.models.event import EventMatchType, TeamFormation
 
 
@@ -24,14 +23,9 @@ class GetEventCommand(BaseModel):
     access_data: AccessDataRequest
 
 
-class ListPublicEventsCommand(BaseModel):
+class ListEventsCommand(BaseModel):
     server_id: UUID
-    pagination: PaginationRequest = PaginationRequest()
-
-
-class ListPrivateEventsCommand(BaseModel):
     access_data: AccessDataRequest
-    pagination: PaginationRequest = PaginationRequest()
 
 
 class UpdateEventCommand(BaseModel):
