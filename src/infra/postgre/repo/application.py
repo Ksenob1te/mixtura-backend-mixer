@@ -57,7 +57,7 @@ class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, 
         sort_column = getattr(ApplicationModel, sort_by, ApplicationModel.created_at)
         order_clause = sort_column.asc() if sort_order.lower() == "asc" else sort_column.desc()
 
-        return await self.get_list(offset, limit, None, order_clause, *where_clauses)
+        return await self.get_list(offset, limit, None, *where_clauses, order_by=order_clause)
 
     async def count_by_event_and_status(self, event_id: UUID, status: ApplicationStatus) -> int:
         stmt = (
