@@ -112,7 +112,6 @@ from src.core.usecases.settings import (
     UpdateCustomFieldUseCase,
     RemoveCustomFieldUseCase,
     UpdateTimeSettingsUseCase,
-    ListEventsUseCase,
     GetApplicationFormSettingsUseCase,
 )
 from src.env_config import env
