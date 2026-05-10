@@ -59,8 +59,8 @@ class BaseRepository(Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]):
             offset: int = 0,
             limit: int | None = 100,
             options: list[Any] | None = None,
-            order_by: Any = None,
             *where_clauses: Any,
+            order_by: Any = None,
     ) -> Sequence[ModelType]:
         stmt = select(self.model).offset(offset)
         if limit is not None:
@@ -82,10 +82,10 @@ class BaseRepository(Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]):
             offset: int = 0,
             limit: int | None = 100,
             options: list[Any] | None = None,
-            order_by: Any = None,
             *where_clauses: Any,
+            order_by: Any = None,
     ) -> Sequence[ReadDTO]:
-        items = await self._list_model(offset, limit, options, order_by, *where_clauses)
+        items = await self._list_model(offset, limit, options, *where_clauses, order_by=order_by)
         return [self._to_dto(item) for item in items]
 
     def _dto_to_data(self, dto: Any, *, exclude_unset: bool = False) -> dict[str, Any]:
