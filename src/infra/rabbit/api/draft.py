@@ -30,5 +30,5 @@ async def list_drafts(
     data: ListDraftsCommand,
     service: DraftServiceDependency,
 ) -> ResponseMessage:
-    result = await service.list(data)
+    result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)

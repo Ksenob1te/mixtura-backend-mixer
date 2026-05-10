@@ -28,7 +28,7 @@ class DraftedPlayerRepository(BaseRepository[DraftedPlayerModel, DraftedPlayerCr
         return await self._get(field_id, options=options)
 
     async def list_by_draft(self, draft_id: UUID) -> Sequence[DraftedPlayer]:
-        return await self.list(
+        return await self.get_list(
             0, None, None,
             DraftedPlayerModel.draft_id == draft_id
         )

@@ -16,7 +16,7 @@ async def list_players(
     data: ListPlayersCommand,
     service: PlayerServiceDependency,
 ) -> ResponseMessage[list[dict]]:
-    result = await service.list(data)
+    result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)
 
 

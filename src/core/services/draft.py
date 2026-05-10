@@ -134,7 +134,7 @@ class DraftService:
 
         return draft
 
-    async def list(self, cmd: ListDraftsCommand) -> list[Draft]:
+    async def get_list(self, cmd: ListDraftsCommand) -> list[Draft]:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,

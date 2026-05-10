@@ -29,7 +29,7 @@ class SelectedGameRoleRepository(BaseRepository[SelectedGameRoleModel, SelectedG
         return await self._get(field_id, options=options)
 
     async def list_by_event(self, event_id: UUID) -> Sequence[SelectedGameRole]:
-        return await self.list(
+        return await self.get_list(
             0, None, None,
             SelectedGameRoleModel.event_id == event_id
         )

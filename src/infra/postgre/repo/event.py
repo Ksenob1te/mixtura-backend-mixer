@@ -53,20 +53,20 @@ class EventRepository(BaseRepository[EventModel, EventCreate, Event, EventUpdate
         return await self._get(field_id, options=options)
 
     async def list_public(self, offset: int, limit: int) -> Sequence[Event]:
-        return await self.list(
+        return await self.get_list(
             offset, limit, None,
             EventModel.is_public.is_(True)
         )
 
     async def list_public_by_server(self, server_id: UUID, offset: int, limit: int) -> Sequence[Event]:
-        return await self.list(
+        return await self.get_list(
             offset, limit, None,
             EventModel.server_id == server_id,
             EventModel.is_public.is_(True),
         )
 
     async def list_by_server(self, server_id: UUID, offset: int, limit: int) -> Sequence[Event]:
-        return await self.list(
+        return await self.get_list(
             offset, limit, None,
             EventModel.server_id == server_id,
         )

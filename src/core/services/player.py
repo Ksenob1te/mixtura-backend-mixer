@@ -20,7 +20,7 @@ class PlayerService:
         self._event_repo = event_repo
         self._player_repo = player_repo
 
-    async def list(self, command: ListPlayersCommand) -> list[dict]:
+    async def get_list(self, command: ListPlayersCommand) -> list[dict]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")

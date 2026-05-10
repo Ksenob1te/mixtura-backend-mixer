@@ -39,5 +39,5 @@ async def list_matches(
     data: ListMatchesCommand,
     service: MatchServiceDependency,
 ) -> ResponseMessage:
-    result = await service.list(data)
+    result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)

@@ -26,7 +26,7 @@ class RequiredIntegrationRepository(BaseRepository[RequiredIntegrationModel, Req
         return await self._get(field_id, options=options)
 
     async def list_by_event(self, event_id: UUID) -> Sequence[RequiredIntegration]:
-        return await self.list(
+        return await self.get_list(
             0, None, None,
             RequiredIntegrationModel.event_id == event_id
         )

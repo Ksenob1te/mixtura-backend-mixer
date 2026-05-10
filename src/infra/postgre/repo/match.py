@@ -31,7 +31,7 @@ class MatchRepository(BaseRepository[MatchModel, MatchCreate, Match, MatchUpdate
         return await self._get(field_id, options=options)
 
     async def list_by_stage_group(self, group_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[Match]:
-        return await self.list(
+        return await self.get_list(
             offset, limit, None,
             MatchModel.group_id == group_id
         )

@@ -29,7 +29,7 @@ class FilledApplicationFieldRepository(BaseRepository[FilledApplicationFieldMode
         return await self._get(field_id, options=options)
 
     async def list_by_application(self, application_id: UUID) -> Sequence[FilledApplicationField]:
-        return await self.list(
+        return await self.get_list(
             0, None, None,
             FilledApplicationFieldModel.application_id == application_id
         )

@@ -35,7 +35,7 @@ async def list_applications(
     data: ListApplicationsCommand,
     service: ApplicationServiceDependency,
 ) -> ResponseMessage[list[dict]]:
-    result = await service.list(data)
+    result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)
 
 

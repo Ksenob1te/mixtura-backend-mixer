@@ -43,7 +43,7 @@ class PlayerRepository(BaseRepository[EventPlayerModel, EventPlayerCreate, Event
         where_clauses = [EventPlayerModel.event_id == event_id]
         if status is not None:
             where_clauses.append(EventPlayerModel.status == status)
-        return await self.list(offset, limit, None, *where_clauses)
+        return await self.get_list(offset, limit, None, *where_clauses)
 
     async def list_by_event_with_roles(self, event_id: UUID) -> Sequence[EventPlayer]:
         stmt = (

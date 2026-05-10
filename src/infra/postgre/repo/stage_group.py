@@ -25,7 +25,7 @@ class StageGroupRepository(BaseRepository[StageGroupModel, StageGroupCreate, Sta
         return await self._get(field_id, options=options)
 
     async def list_by_stage(self, stage_id: UUID) -> Sequence[StageGroup]:
-        return await self.list(
+        return await self.get_list(
             0, None, None,
             StageGroupModel.stage_id == stage_id
         )

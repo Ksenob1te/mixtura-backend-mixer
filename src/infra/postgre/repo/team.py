@@ -28,7 +28,7 @@ class TeamRepository(BaseRepository[TeamModel, TeamCreate, Team, TeamUpdate], Te
         return await self._get(field_id, options=options)
 
     async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[Team]:
-        return await self.list(
+        return await self.get_list(
             offset, limit, None,
             TeamModel.event_id == event_id
         )

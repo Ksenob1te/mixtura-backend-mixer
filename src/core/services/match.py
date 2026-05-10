@@ -283,7 +283,7 @@ class MatchService:
             raise NotFoundException(f"Match {cmd.match_id} not found")
         return await _build_single_match_view(match, event_id, bracket_id, stage_id, group_id, self._team_repo)
 
-    async def list(self, cmd: ListMatchesCommand) -> list[SingleMatchView]:
+    async def get_list(self, cmd: ListMatchesCommand) -> list[SingleMatchView]:
         event = await self._event_repo.get(cmd.event_id, load_organizers=True)
         if event is None:
             raise NotFoundException(f"Event {cmd.event_id} not found")

@@ -134,7 +134,7 @@ class EventService:
 
         return _to_detail(event)
 
-    async def list(self, command: ListEventsCommand) -> list[EventCard]:
+    async def get_list(self, command: ListEventsCommand) -> list[EventCard]:
         access = command.access_data
         same_server = is_same_server(access, command.server_id)
         if not same_server:

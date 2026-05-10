@@ -12,5 +12,5 @@ async def list_teams(
     data: ListTeamsCommand,
     service: TeamServiceDependency,
 ) -> ResponseMessage:
-    result = await service.list(data)
+    result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)

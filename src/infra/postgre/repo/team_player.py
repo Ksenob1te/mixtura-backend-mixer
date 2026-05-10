@@ -28,7 +28,7 @@ class TeamPlayerRepository(BaseRepository[TeamPlayerModel, TeamPlayerCreate, Tea
         return await self._get(field_id, options=options)
 
     async def list_by_team(self, team_id: UUID) -> Sequence[TeamPlayer]:
-        return await self.list(
+        return await self.get_list(
             0, None, None,
             TeamPlayerModel.team_id == team_id
         )

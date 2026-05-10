@@ -28,7 +28,7 @@ class PlayerRoleRepository(BaseRepository[PlayerRoleModel, PlayerRoleCreate, Pla
         return await self._get(field_id, options=options)
 
     async def list_by_player(self, player_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[PlayerRole]:
-        return await self.list(
+        return await self.get_list(
             offset, limit, None,
             PlayerRoleModel.event_player_id == player_id
         )

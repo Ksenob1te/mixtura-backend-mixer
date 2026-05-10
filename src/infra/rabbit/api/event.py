@@ -41,7 +41,7 @@ async def list_events(
     data: ListEventsCommand,
     service: EventServiceDependency,
 ) -> ResponseMessage[list[EventCard]]:
-    result = await service.list(data)
+    result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)
 
 

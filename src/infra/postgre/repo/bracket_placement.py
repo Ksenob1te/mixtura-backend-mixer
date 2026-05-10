@@ -26,7 +26,7 @@ class BracketPlacementRepository(BaseRepository[BracketPlacementModel, BracketPl
         return await self._get(field_id, options=options)
 
     async def list_by_bracket(self, bracket_id: UUID) -> Sequence[BracketPlacement]:
-        return await self.list(
+        return await self.get_list(
             0, None, None,
             BracketPlacementModel.bracket_id == bracket_id
         )

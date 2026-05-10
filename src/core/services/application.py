@@ -343,7 +343,7 @@ class ApplicationService:
             "event_player_id": str(application.event_player.id) if application.event_player else None,
         }
 
-    async def list(self, command: ListApplicationsCommand) -> list[dict]:
+    async def get_list(self, command: ListApplicationsCommand) -> list[dict]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")

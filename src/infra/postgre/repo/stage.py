@@ -31,7 +31,7 @@ class StageRepository(BaseRepository[StageModel, StageCreate, Stage, StageUpdate
         return await self._get(field_id, options=options)
 
     async def list_by_bracket(self, bracket_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[Stage]:
-        return await self.list(
+        return await self.get_list(
             offset, limit, None,
             StageModel.bracket_id == bracket_id
         )

@@ -19,7 +19,7 @@ class TeamService:
         self._team_repo = team_repo
         self._event_repo = event_repo
 
-    async def list(self, cmd: ListTeamsCommand) -> list[Team]:
+    async def get_list(self, cmd: ListTeamsCommand) -> list[Team]:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,

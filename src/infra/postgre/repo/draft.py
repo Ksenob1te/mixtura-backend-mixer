@@ -25,7 +25,7 @@ class DraftRepository(BaseRepository[DraftModel, DraftCreate, Draft, DraftUpdate
         return await self._get(field_id, options=options)
 
     async def list_by_event(self, event_id: UUID, offset: int = 0, limit: int = 100) -> Sequence[Draft]:
-        return await self.list(
+        return await self.get_list(
             offset, limit, None,
             DraftModel.event_id == event_id
         )

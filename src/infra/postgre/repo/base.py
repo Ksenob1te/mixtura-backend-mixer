@@ -77,7 +77,7 @@ class BaseRepository(Generic[ModelType, CreateDTO, ReadDTO, UpdateDTO]):
         result = await self._session.scalars(stmt)
         return result.all()
 
-    async def list(
+    async def get_list(
             self,
             offset: int = 0,
             limit: int | None = 100,

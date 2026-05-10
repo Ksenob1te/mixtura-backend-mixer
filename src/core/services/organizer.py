@@ -25,7 +25,7 @@ class OrganizerService:
         self._organizer_repo = organizer_repo
         self._event_repo = event_repo
 
-    async def list(self, command: ListOrganizersCommand) -> list[dict]:
+    async def get_list(self, command: ListOrganizersCommand) -> list[dict]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
