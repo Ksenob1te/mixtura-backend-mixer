@@ -28,6 +28,7 @@ from src.core.results.event import (
     SelectedGameRoleResponse,
     ApplicationCustomFieldResponse,
     ApplicationTimeSettingsResponse,
+    ApplicationFormSettingsResponse,
     OrganizerResponse,
 )
 from src.core.usecases._access import (
@@ -523,8 +524,8 @@ class GetApplicationFormSettingsUseCase:
         self._field_repo = field_repo
         self._time_repo = time_repo
 
-    async def __call__(self, command: GetApplicationFormSettingsCommand) -> dict:
-        event = await self._event_repo.get(command.event_id, load_organizers=False)
+    async def __call__(self, command: GetApplicationFormSettingsCommand) -> ApplicationFormSettingsResponse:
+        event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
 
@@ -535,10 +536,14 @@ class GetApplicationFormSettingsUseCase:
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
 
-        if event.status != EventStatus.REGISTRATION:
-            if event.status in (EventStatus.CREATED, EventStatus.IDLE):
-                raise BadRequestException("Registration not open yet")
-            raise BadRequestException("Registration is closed")
+        is_organizer = any(o.member_id == access.member_id for o in event.organizers)
+        has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_UPDATE)
+
+        if not is_organizer and not has_admin:
+            if event.status != EventStatus.REGISTRATION:
+                if event.status in (EventStatus.CREATED, EventStatus.IDLE):
+                    raise BadRequestException("Registration not open yet")
+                raise BadRequestException("Registration is closed")
 
         integrations = await self._integration_repo.list_by_event(command.event_id)
         roles = await self._role_repo.list_by_event(command.event_id)
@@ -552,33 +557,34 @@ class GetApplicationFormSettingsUseCase:
             elif not f.is_private:
                 visible_fields.append(f)
 
-        return {
-            "event_id": str(command.event_id),
-            "event_name": event.name,
-            "required_integrations": [
-                {"id": str(i.id), "name": i.name}
+        return ApplicationFormSettingsResponse(
+            event_id=command.event_id,
+            event_name=event.name,
+            required_integrations=[
+                RequiredIntegrationResponse(id=i.id, name=i.name)
                 for i in integrations
             ],
-            "available_roles": [
-                {
-                    "id": str(r.id),
-                    "game_role_id": str(r.game_role_id),
-                    "override_max_count": r.override_max_count,
-                    "override_min_count": r.override_min_count,
-                }
+            available_roles=[
+                SelectedGameRoleResponse(
+                    id=r.id,
+                    game_role_id=r.game_role_id,
+                    override_max_count=r.override_max_count,
+                    override_min_count=r.override_min_count,
+                )
                 for r in roles
             ],
-            "custom_fields": [
-                {
-                    "id": str(f.id),
-                    "name": f.name,
-                    "is_private": f.is_private,
-                    "is_required": f.is_required,
-                }
+            custom_fields=[
+                ApplicationCustomFieldResponse(
+                    id=f.id,
+                    name=f.name,
+                    is_private=f.is_private,
+                    is_required=f.is_required,
+                )
                 for f in visible_fields
             ],
-            "time_settings": {
-                "start_time": time_settings.start_time.isoformat() if time_settings and time_settings.start_time else None,
-                "end_time": time_settings.end_time.isoformat() if time_settings and time_settings.end_time else None,
-            } if time_settings else None,
-        }
+            time_settings=ApplicationTimeSettingsResponse(
+                id=time_settings.id,
+                start_time=time_settings.start_time,
+                end_time=time_settings.end_time,
+            ) if time_settings else None,
+        )

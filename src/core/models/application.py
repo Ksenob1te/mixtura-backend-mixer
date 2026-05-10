@@ -28,7 +28,6 @@ class Application(BaseModel):
     member_id: UUID
     is_approved: bool
     status: ApplicationStatus
-    role_priorities: dict[str, int] = Field(default_factory=dict)
     created_at: datetime
     event: Optional[Event] = None
     integrations: list[ApplicationIntegration] = Field(default_factory=list)
@@ -42,7 +41,6 @@ class ApplicationCreate(BaseModel):
     member_id: UUID
     is_approved: bool = False
     status: ApplicationStatus = ApplicationStatus.PENDING
-    role_priorities: dict[str, int] = Field(default_factory=dict)
 
 
 class ApplicationUpdate(BaseModel):
@@ -50,4 +48,3 @@ class ApplicationUpdate(BaseModel):
     id: UUID
     is_approved: bool | None = None
     status: ApplicationStatus | None = None
-    role_priorities: dict[str, int] | None = None

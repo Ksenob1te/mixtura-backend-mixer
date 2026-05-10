@@ -13,7 +13,7 @@ from src.core.commands.settings import (
     GetApplicationFormSettingsCommand,
 )
 from src.core.response import ResponseMessage, StatusResponse
-from src.core.results.event import EventDetail
+from src.core.results.event import EventDetail, ApplicationFormSettingsResponse
 from src.core.usecases.settings import (
     AddIntegrationUseCase,
     RemoveIntegrationUseCase,
@@ -127,6 +127,6 @@ async def update_time_settings(
 async def get_application_form_settings(
     data: GetApplicationFormSettingsCommand,
     use_case: GetApplicationFormSettingsUseCaseDependency,
-) -> ResponseMessage[dict]:
+) -> ResponseMessage[ApplicationFormSettingsResponse]:
     result = await use_case(data)
     return ResponseMessage(status=200, message=result)

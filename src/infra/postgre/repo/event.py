@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import selectinload
 
-from src.core.exceptions import NotFoundException
+from src.core.exceptions import ConflictException, NotFoundException
 from src.core.interfaces.repo.event import EventRepositoryProtocol
 from src.core.models.event import Event, EventCreate, EventUpdate, EventStatus
 from .base import BaseRepository

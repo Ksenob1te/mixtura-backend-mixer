@@ -41,6 +41,16 @@ class ApplicationCustomFieldResponse(BaseModel):
     is_required: bool
 
 
+class ApplicationFormSettingsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    event_id: UUID
+    event_name: str
+    required_integrations: list[RequiredIntegrationResponse] = []
+    available_roles: list[SelectedGameRoleResponse] = []
+    custom_fields: list[ApplicationCustomFieldResponse] = []
+    time_settings: ApplicationTimeSettingsResponse | None = None
+
+
 class EventCard(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID

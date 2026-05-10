@@ -17,6 +17,8 @@ class ApplicationIntegrationModel(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     application_id: Mapped[UUID] = mapped_column(ForeignKey('application_table.id', ondelete="CASCADE"))
     user_provider_id: Mapped[UUID]
+    provider_id: Mapped[UUID]
+    provider_name: Mapped[str]
 
     application: Mapped["ApplicationModel"] = relationship("ApplicationModel", back_populates="integrations",
                                                            lazy="noload")

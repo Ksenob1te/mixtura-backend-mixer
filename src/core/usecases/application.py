@@ -94,11 +94,11 @@ class SubmitApplicationUseCase:
         if missing_required:
             raise BadRequestException(f"Missing required custom fields: {missing_required}")
 
-        required_integration_ids = {i.id for i in event.required_integrations}
-        provided_integration_ids = set(command.integration_ids)
-        missing_integrations = required_integration_ids - provided_integration_ids
+        required_integration_names = {i.name for i in event.required_integrations}
+        submitted_integration_names = {i.provider_name for i in command.integrations}
+        missing_integrations = required_integration_names - submitted_integration_names
         if missing_integrations:
-            raise BadRequestException(f"Missing required integrations: {missing_integrations}")
+            raise BadRequestException(f"Missing required integrations: {', '.join(missing_integrations)}")
 
         role_id_map = {}
         for role in event.selected_game_roles:
@@ -118,7 +118,6 @@ class SubmitApplicationUseCase:
                 member_id=access.member_id,
                 is_approved=not event.use_application,
                 status=ApplicationStatus.APPROVED if not event.use_application else ApplicationStatus.PENDING,
-                role_priorities=role_priorities,
             )
         )
 
@@ -131,20 +130,15 @@ class SubmitApplicationUseCase:
                 )
             )
 
-        for integration_id in command.integration_ids:
+        for integration in command.integrations:
             await self._application_integration_repo.create(
                 ApplicationIntegrationCreate(
                     application_id=application.id,
-                    user_provider_id=integration_id,
+                    user_provider_id=integration.integration_id,
+                    provider_id=integration.provider_id,
+                    provider_name=integration.provider_name,
                 )
             )
-
-        if event.use_application:
-            return {
-                "id": str(application.id),
-                "status": application.status.value,
-                "auto_approved": False,
-            }
 
         player = await self._player_repo.create(
             EventPlayerCreate(
@@ -154,7 +148,7 @@ class SubmitApplicationUseCase:
             )
         )
 
-        for role_id_str, priority in application.role_priorities.items():
+        for role_id_str, priority in role_priorities.items():
             await self._player_role_repo.create(
                 PlayerRoleCreate(
                     game_role_id=UUID(role_id_str),
@@ -162,6 +156,14 @@ class SubmitApplicationUseCase:
                     event_player_id=player.id,
                 )
             )
+
+        if event.use_application:
+            return {
+                "id": str(application.id),
+                "status": application.status.value,
+                "auto_approved": False,
+                "player_id": str(player.id),
+            }
 
         return {
             "id": str(application.id),
@@ -239,19 +241,35 @@ class ReviewApplicationUseCase:
                     )
                 )
 
-            player_with_roles = await self._player_repo.get(player.id, load_roles=True, load_drafted=False)
-            existing_role_ids = {r.game_role_id for r in (player_with_roles.player_roles if player_with_roles else [])}
-            for role_id_str, priority in application.role_priorities.items():
-                role_id = UUID(role_id_str)
-                if role_id in existing_role_ids:
-                    continue
-                await self._player_role_repo.create(
-                    PlayerRoleCreate(
-                        game_role_id=role_id,
-                        priority=priority,
-                        event_player_id=player.id,
+            if command.role_priorities:
+                event_with_roles = await self._event_repo.get(application.event_id, load_game_roles=True)
+                if not event_with_roles:
+                    raise NotFoundException("Event not found")
+                role_id_map = {}
+                for role in event_with_roles.selected_game_roles:
+                    role_id_map[role.id] = role.id
+                    role_id_map[role.game_role_id] = role.id
+
+                validated_role_priorities = {}
+                for role_id, priority in command.role_priorities.items():
+                    selected_role_id = role_id_map.get(role_id)
+                    if selected_role_id is None:
+                        raise BadRequestException(f"Unknown game role: {role_id}")
+                    validated_role_priorities[str(selected_role_id)] = priority
+
+                player_with_roles = await self._player_repo.get(player.id, load_roles=True, load_drafted=False)
+                existing_role_ids = {r.game_role_id for r in (player_with_roles.player_roles if player_with_roles else [])}
+                for role_id_str, priority in validated_role_priorities.items():
+                    role_id = UUID(role_id_str)
+                    if role_id in existing_role_ids:
+                        continue
+                    await self._player_role_repo.create(
+                        PlayerRoleCreate(
+                            game_role_id=role_id,
+                            priority=priority,
+                            event_player_id=player.id,
+                        )
                     )
-                )
 
             return {"id": str(application.id), "status": "APPROVED", "player_id": str(player.id)}
 
@@ -316,13 +334,20 @@ class GetApplicationUseCase:
             "event_id": str(application.event_id),
             "member_id": str(application.member_id),
             "status": application.status.value,
-            "role_priorities": application.role_priorities,
+            "role_priorities": {
+                str(pr.game_role_id): pr.priority
+                for pr in (application.event_player.player_roles if application.event_player else [])
+            },
             "filled_fields": [
                 {"custom_field_id": str(f.custom_field_id), "value": f.value}
                 for f in application.filled_fields
             ],
             "integrations": [
-                {"user_provider_id": str(i.user_provider_id)}
+                {
+                    "integration_id": str(i.user_provider_id),
+                    "provider_id": str(i.provider_id),
+                    "provider_name": i.provider_name,
+                }
                 for i in application.integrations
             ],
             "event_player_id": str(application.event_player.id) if application.event_player else None,
