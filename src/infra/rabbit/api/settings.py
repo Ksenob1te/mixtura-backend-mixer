@@ -14,30 +14,7 @@ from src.core.commands.settings import (
 )
 from src.core.response import ResponseMessage, StatusResponse
 from src.core.results.event import EventDetail, ApplicationFormSettingsResponse
-from src.core.usecases.settings import (
-    AddIntegrationUseCase,
-    RemoveIntegrationUseCase,
-    AddGameRoleUseCase,
-    UpdateGameRoleUseCase,
-    RemoveGameRoleUseCase,
-    AddCustomFieldUseCase,
-    UpdateCustomFieldUseCase,
-    RemoveCustomFieldUseCase,
-    UpdateTimeSettingsUseCase,
-    GetApplicationFormSettingsUseCase,
-)
-from src.dependency import (
-    AddIntegrationUseCaseDependency,
-    RemoveIntegrationUseCaseDependency,
-    AddGameRoleUseCaseDependency,
-    UpdateGameRoleUseCaseDependency,
-    RemoveGameRoleUseCaseDependency,
-    AddCustomFieldUseCaseDependency,
-    UpdateCustomFieldUseCaseDependency,
-    RemoveCustomFieldUseCaseDependency,
-    UpdateTimeSettingsUseCaseDependency,
-    GetApplicationFormSettingsUseCaseDependency,
-)
+from src.dependency import SettingsServiceDependency
 
 router = RabbitRouter()
 
@@ -45,88 +22,88 @@ router = RabbitRouter()
 @router.subscriber(queue="event.settings.integration.add")
 async def add_integration(
     data: AddIntegrationCommand,
-    use_case: AddIntegrationUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.add_integration(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.settings.integration.remove")
 async def remove_integration(
     data: RemoveIntegrationCommand,
-    use_case: RemoveIntegrationUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.remove_integration(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.settings.roles.add")
 async def add_game_role(
     data: AddGameRoleCommand,
-    use_case: AddGameRoleUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.add_game_role(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.settings.roles.update")
 async def update_game_role(
     data: UpdateGameRoleCommand,
-    use_case: UpdateGameRoleUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.update_game_role(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.settings.roles.remove")
 async def remove_game_role(
     data: RemoveGameRoleCommand,
-    use_case: RemoveGameRoleUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.remove_game_role(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.settings.custom_fields.add")
 async def add_custom_field(
     data: AddCustomFieldCommand,
-    use_case: AddCustomFieldUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.add_custom_field(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.settings.custom_fields.update")
 async def update_custom_field(
     data: UpdateCustomFieldCommand,
-    use_case: UpdateCustomFieldUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.update_custom_field(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.settings.custom_fields.remove")
 async def remove_custom_field(
     data: RemoveCustomFieldCommand,
-    use_case: RemoveCustomFieldUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.remove_custom_field(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.settings.time_settings.update")
 async def update_time_settings(
     data: UpdateTimeSettingsCommand,
-    use_case: UpdateTimeSettingsUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[EventDetail]:
-    result = await use_case(data)
+    result = await service.update_time_settings(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.application.form_settings")
 async def get_application_form_settings(
     data: GetApplicationFormSettingsCommand,
-    use_case: GetApplicationFormSettingsUseCaseDependency,
+    service: SettingsServiceDependency,
 ) -> ResponseMessage[ApplicationFormSettingsResponse]:
-    result = await use_case(data)
+    result = await service.get_application_form_settings(data)
     return ResponseMessage(status=200, message=result)

@@ -4,19 +4,23 @@ from src.core.interfaces.repo.event import EventRepositoryProtocol
 from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 from src.core.models.event import EventStatus
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_MANAGE_PLAYERS,
     has_event_admin_permission,
     is_same_server,
 )
 
 
-class ListPlayersUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, player_repo: PlayerRepositoryProtocol):
+class PlayerService:
+    def __init__(
+        self,
+        event_repo: EventRepositoryProtocol,
+        player_repo: PlayerRepositoryProtocol,
+    ):
         self._event_repo = event_repo
         self._player_repo = player_repo
 
-    async def __call__(self, command: ListPlayersCommand) -> list[dict]:
+    async def list(self, command: ListPlayersCommand) -> list[dict]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -47,13 +51,7 @@ class ListPlayersUseCase:
             for p in players
         ]
 
-
-class UpdatePlayerStatusUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, player_repo: PlayerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._player_repo = player_repo
-
-    async def __call__(self, command: UpdatePlayerStatusCommand) -> dict:
+    async def update_status(self, command: UpdatePlayerStatusCommand) -> dict:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -91,13 +89,7 @@ class UpdatePlayerStatusUseCase:
             "status": player.status.value,
         }
 
-
-class RemovePlayerUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, player_repo: PlayerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._player_repo = player_repo
-
-    async def __call__(self, command: RemovePlayerCommand) -> None:
+    async def remove(self, command: RemovePlayerCommand) -> None:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")

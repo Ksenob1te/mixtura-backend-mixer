@@ -6,16 +6,7 @@ from src.core.commands.player import (
     UpdatePlayerStatusCommand,
 )
 from src.core.response import ResponseMessage, StatusResponse
-from src.core.usecases.player import (
-    ListPlayersUseCase,
-    RemovePlayerUseCase,
-    UpdatePlayerStatusUseCase,
-)
-from src.dependency import (
-    ListPlayersUseCaseDependency,
-    RemovePlayerUseCaseDependency,
-    UpdatePlayerStatusUseCaseDependency,
-)
+from src.dependency import PlayerServiceDependency
 
 router = RabbitRouter()
 
@@ -23,25 +14,25 @@ router = RabbitRouter()
 @router.subscriber(queue="event.player.list")
 async def list_players(
     data: ListPlayersCommand,
-    use_case: ListPlayersUseCaseDependency,
+    service: PlayerServiceDependency,
 ) -> ResponseMessage[list[dict]]:
-    result = await use_case(data)
+    result = await service.list(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.player.status.update")
 async def update_player_status(
     data: UpdatePlayerStatusCommand,
-    use_case: UpdatePlayerStatusUseCaseDependency,
+    service: PlayerServiceDependency,
 ) -> ResponseMessage[dict]:
-    result = await use_case(data)
+    result = await service.update_status(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.player.remove")
 async def remove_player(
     data: RemovePlayerCommand,
-    use_case: RemovePlayerUseCaseDependency,
+    service: PlayerServiceDependency,
 ) -> ResponseMessage[StatusResponse]:
-    await use_case(data)
+    await service.remove(data)
     return ResponseMessage(status=200, message=StatusResponse())

@@ -8,7 +8,7 @@ from src.core.interfaces.repo.event import EventRepositoryProtocol
 from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.models.event import EventStatus
 from src.core.models.organizer import OrganizerCreate
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_VIEW,
     P_EVENT_ADMIN_MANAGE_ORGANIZERS,
     has_event_admin_permission,
@@ -16,12 +16,16 @@ from src.core.usecases._access import (
 )
 
 
-class ListOrganizersUseCase:
-    def __init__(self, organizer_repo: OrganizerRepositoryProtocol, event_repo: EventRepositoryProtocol):
+class OrganizerService:
+    def __init__(
+        self,
+        organizer_repo: OrganizerRepositoryProtocol,
+        event_repo: EventRepositoryProtocol,
+    ):
         self._organizer_repo = organizer_repo
         self._event_repo = event_repo
 
-    async def __call__(self, command: ListOrganizersCommand) -> list[dict]:
+    async def list(self, command: ListOrganizersCommand) -> list[dict]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -46,13 +50,7 @@ class ListOrganizersUseCase:
             for o in organizers
         ]
 
-
-class AddOrganizerUseCase:
-    def __init__(self, organizer_repo: OrganizerRepositoryProtocol, event_repo: EventRepositoryProtocol):
-        self._organizer_repo = organizer_repo
-        self._event_repo = event_repo
-
-    async def __call__(self, command: AddOrganizerCommand) -> dict:
+    async def add(self, command: AddOrganizerCommand) -> dict:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -81,13 +79,7 @@ class AddOrganizerUseCase:
 
         return {"id": str(organizer.id), "event_id": str(organizer.event_id), "member_id": str(organizer.member_id)}
 
-
-class RemoveOrganizerUseCase:
-    def __init__(self, organizer_repo: OrganizerRepositoryProtocol, event_repo: EventRepositoryProtocol):
-        self._organizer_repo = organizer_repo
-        self._event_repo = event_repo
-
-    async def __call__(self, command: RemoveOrganizerCommand) -> None:
+    async def remove(self, command: RemoveOrganizerCommand) -> None:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")

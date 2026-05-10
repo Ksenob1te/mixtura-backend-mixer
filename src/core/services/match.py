@@ -23,7 +23,7 @@ from src.core.models.stage import Stage, StageCreate, StageFormat
 from src.core.models.stage_group import StageGroup, StageGroupCreate
 from src.core.models.team import Team
 from src.core.results.match import RecordedMatchResult, SingleMatchSlotView, SingleMatchView
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_COMPLETE,
     P_EVENT_ADMIN_MANAGE_BRACKET,
     P_EVENT_ADMIN_VIEW,
@@ -32,7 +32,7 @@ from src.core.usecases._access import (
 )
 
 
-class SingleMatchSetupUseCase:
+class MatchService:
     def __init__(
         self,
         event_repo: EventRepositoryProtocol,
@@ -44,6 +44,9 @@ class SingleMatchSetupUseCase:
         match_score_repo: MatchScoreRepositoryProtocol,
         team_repo: TeamRepositoryProtocol,
         draft_repo: DraftRepositoryProtocol,
+        player_repo: PlayerRepositoryProtocol,
+        rating_client,
+        env,
     ):
         self._event_repo = event_repo
         self._bracket_repo = bracket_repo
@@ -54,8 +57,11 @@ class SingleMatchSetupUseCase:
         self._match_score_repo = match_score_repo
         self._team_repo = team_repo
         self._draft_repo = draft_repo
+        self._player_repo = player_repo
+        self._rating_client = rating_client
+        self._env = env
 
-    async def __call__(self, cmd: SetupMatchCommand) -> SingleMatchView:
+    async def setup(self, cmd: SetupMatchCommand) -> SingleMatchView:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,
@@ -138,98 +144,7 @@ class SingleMatchSetupUseCase:
             slots=slots,
         )
 
-    async def _load_teams(self, team_ids: list[UUID], event_id: UUID) -> list[Team]:
-        teams: list[Team] = []
-        for team_id in team_ids:
-            team = await self._team_repo.get(team_id, load_event=False, load_players=True)
-            if team is None:
-                raise NotFoundException(f"Team {team_id} not found")
-            if team.event_id != event_id:
-                raise BadRequestException(f"Team {team_id} belongs to a different event")
-            if not team.players:
-                raise BadRequestException(f"Team {team_id} has no players")
-            teams.append(team)
-        return teams
-
-    async def _resolve_draft_id(self, command_draft_id: UUID | None, teams: list[Team], event_id: UUID) -> UUID | None:
-        team_draft_ids = {team.draft_id for team in teams if team.draft_id is not None}
-        if command_draft_id is not None:
-            draft = await self._draft_repo.get(command_draft_id, load_drafted_players=False)
-            if draft is None:
-                raise NotFoundException(f"Draft {command_draft_id} not found")
-            if draft.event_id != event_id:
-                raise BadRequestException("Draft belongs to a different event")
-            if any(team.draft_id is not None and team.draft_id != command_draft_id for team in teams):
-                raise BadRequestException("Team draft_id does not match command draft_id")
-            return command_draft_id
-        if len(team_draft_ids) > 1:
-            raise BadRequestException("Teams from different drafts cannot be mixed in one match")
-        return next(iter(team_draft_ids), None)
-
-    async def _validate_not_busy(
-        self,
-        event_id: UUID,
-        team_ids: list[UUID],
-        draft_id: UUID | None,
-        allow_multiple_drafts: bool,
-    ) -> None:
-        active_team_ids = await self._match_repo.list_active_team_ids_by_event(event_id)
-        busy_team_ids = active_team_ids.intersection(team_ids)
-        if busy_team_ids:
-            raise ConflictException(f"Teams are already assigned to an active match: {sorted(str(t) for t in busy_team_ids)}")
-
-        if draft_id is None:
-            return
-        active_draft_ids = await self._match_repo.list_active_draft_ids_by_event(event_id)
-        if draft_id in active_draft_ids:
-            raise ConflictException(f"Draft {draft_id} is already linked to an active match")
-        if not allow_multiple_drafts and active_draft_ids:
-            raise ConflictException("Event already has active match draft and parallel drafts are disabled")
-
-    async def _get_or_create_bracket(self, event_id: UUID) -> Bracket:
-        brackets = await self._bracket_repo.list_by_event(event_id, 0, 1)
-        if brackets:
-            return brackets[0]
-        return await self._bracket_repo.create(BracketCreate(event_id=event_id))
-
-    async def _get_or_create_stage(self, bracket_id: UUID) -> Stage:
-        stages = await self._stage_repo.list_by_bracket(bracket_id, 0, 100)
-        for stage in stages:
-            if stage.format == StageFormat.SINGLE_MATCH:
-                return stage
-        if stages:
-            raise ConflictException("Bracket already contains non-single-match stages")
-        return await self._stage_repo.create(StageCreate(
-            bracket_id=bracket_id,
-            stage_index=0,
-            format=StageFormat.SINGLE_MATCH,
-            name="Single Matches",
-        ))
-
-    async def _get_or_create_group(self, stage_id: UUID) -> StageGroup:
-        groups = await self._stage_group_repo.list_by_stage(stage_id)
-        if groups:
-            return groups[0]
-        return await self._stage_group_repo.create(StageGroupCreate(
-            stage_id=stage_id,
-            name="Single Match Group",
-            advance_count=None,
-        ))
-
-
-class RecordSingleMatchResultUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, match_repo: MatchRepositoryProtocol,
-                 match_score_repo: MatchScoreRepositoryProtocol, team_repo: TeamRepositoryProtocol,
-                 player_repo: PlayerRepositoryProtocol, rating_client, env):
-        self._event_repo = event_repo
-        self._match_repo = match_repo
-        self._match_score_repo = match_score_repo
-        self._team_repo = team_repo
-        self._player_repo = player_repo
-        self._rating_client = rating_client
-        self._env = env
-
-    async def __call__(self, cmd: RecordMatchResultCommand) -> RecordedMatchResult:
+    async def record_result(self, cmd: RecordMatchResultCommand) -> RecordedMatchResult:
         context = await self._match_repo.get_event_context(cmd.match_id)
         if context is None:
             raise NotFoundException(f"Match {cmd.match_id} not found")
@@ -344,6 +259,132 @@ class RecordSingleMatchResultUseCase:
             rating_published=rating_published,
         )
 
+    async def get(self, cmd: GetMatchCommand) -> SingleMatchView:
+        context = await self._match_repo.get_event_context(cmd.match_id)
+        if context is None:
+            raise NotFoundException(f"Match {cmd.match_id} not found")
+        event_id, server_id, _stage_format, bracket_id, stage_id, group_id = context
+        event = await self._event_repo.get(event_id, load_organizers=True)
+        if event is None:
+            raise NotFoundException(f"Event {event_id} not found")
+        if server_id != event.server_id:
+            raise NotFoundException(f"Match {cmd.match_id} not found")
+        if not is_same_server(cmd.access_data, event.server_id):
+            raise ForbiddenException("Match belongs to a different server")
+        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
+        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_VIEW) or has_event_admin_permission(
+            cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET
+        )
+        if not event.is_public and not is_organizer and not is_admin:
+            raise ForbiddenException("Access denied")
+
+        match = await self._match_repo.get(cmd.match_id, load_slots=True, load_group=False)
+        if match is None:
+            raise NotFoundException(f"Match {cmd.match_id} not found")
+        return await _build_single_match_view(match, event_id, bracket_id, stage_id, group_id, self._team_repo)
+
+    async def list(self, cmd: ListMatchesCommand) -> list[SingleMatchView]:
+        event = await self._event_repo.get(cmd.event_id, load_organizers=True)
+        if event is None:
+            raise NotFoundException(f"Event {cmd.event_id} not found")
+        if not is_same_server(cmd.access_data, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
+        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_VIEW) or has_event_admin_permission(
+            cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET
+        )
+        if not event.is_public and not is_organizer and not is_admin:
+            raise ForbiddenException("Access denied")
+
+        offset = (cmd.pagination.page - 1) * cmd.pagination.page_size if cmd.pagination.page else 0
+        matches = await self._match_repo.list_by_event(cmd.event_id, offset, cmd.pagination.page_size, active=cmd.active)
+        result = []
+        for match in matches:
+            context = await self._match_repo.get_event_context(match.id)
+            if context is None:
+                continue
+            event_id, _server_id, _stage_format, bracket_id, stage_id, group_id = context
+            result.append(await _build_single_match_view(match, event_id, bracket_id, stage_id, group_id, self._team_repo))
+        return result
+
+    async def _load_teams(self, team_ids: list[UUID], event_id: UUID) -> list[Team]:
+        teams: list[Team] = []
+        for team_id in team_ids:
+            team = await self._team_repo.get(team_id, load_event=False, load_players=True)
+            if team is None:
+                raise NotFoundException(f"Team {team_id} not found")
+            if team.event_id != event_id:
+                raise BadRequestException(f"Team {team_id} belongs to a different event")
+            if not team.players:
+                raise BadRequestException(f"Team {team_id} has no players")
+            teams.append(team)
+        return teams
+
+    async def _resolve_draft_id(self, command_draft_id: UUID | None, teams: list[Team], event_id: UUID) -> UUID | None:
+        team_draft_ids = {team.draft_id for team in teams if team.draft_id is not None}
+        if command_draft_id is not None:
+            draft = await self._draft_repo.get(command_draft_id, load_drafted_players=False)
+            if draft is None:
+                raise NotFoundException(f"Draft {command_draft_id} not found")
+            if draft.event_id != event_id:
+                raise BadRequestException("Draft belongs to a different event")
+            if any(team.draft_id is not None and team.draft_id != command_draft_id for team in teams):
+                raise BadRequestException("Team draft_id does not match command draft_id")
+            return command_draft_id
+        if len(team_draft_ids) > 1:
+            raise BadRequestException("Teams from different drafts cannot be mixed in one match")
+        return next(iter(team_draft_ids), None)
+
+    async def _validate_not_busy(
+        self,
+        event_id: UUID,
+        team_ids: list[UUID],
+        draft_id: UUID | None,
+        allow_multiple_drafts: bool,
+    ) -> None:
+        active_team_ids = await self._match_repo.list_active_team_ids_by_event(event_id)
+        busy_team_ids = active_team_ids.intersection(team_ids)
+        if busy_team_ids:
+            raise ConflictException(f"Teams are already assigned to an active match: {sorted(str(t) for t in busy_team_ids)}")
+
+        if draft_id is None:
+            return
+        active_draft_ids = await self._match_repo.list_active_draft_ids_by_event(event_id)
+        if draft_id in active_draft_ids:
+            raise ConflictException(f"Draft {draft_id} is already linked to an active match")
+        if not allow_multiple_drafts and active_draft_ids:
+            raise ConflictException("Event already has active match draft and parallel drafts are disabled")
+
+    async def _get_or_create_bracket(self, event_id: UUID) -> Bracket:
+        brackets = await self._bracket_repo.list_by_event(event_id, 0, 1)
+        if brackets:
+            return brackets[0]
+        return await self._bracket_repo.create(BracketCreate(event_id=event_id))
+
+    async def _get_or_create_stage(self, bracket_id: UUID) -> Stage:
+        stages = await self._stage_repo.list_by_bracket(bracket_id, 0, 100)
+        for stage in stages:
+            if stage.format == StageFormat.SINGLE_MATCH:
+                return stage
+        if stages:
+            raise ConflictException("Bracket already contains non-single-match stages")
+        return await self._stage_repo.create(StageCreate(
+            bracket_id=bracket_id,
+            stage_index=0,
+            format=StageFormat.SINGLE_MATCH,
+            name="Single Matches",
+        ))
+
+    async def _get_or_create_group(self, stage_id: UUID) -> StageGroup:
+        groups = await self._stage_group_repo.list_by_stage(stage_id)
+        if groups:
+            return groups[0]
+        return await self._stage_group_repo.create(StageGroupCreate(
+            stage_id=stage_id,
+            name="Single Match Group",
+            advance_count=None,
+        ))
+
     def _validate_scores(self, match: Match, scores: dict[UUID, int]) -> list[UUID]:
         team_ids: list[UUID] = []
         for slot in sorted(match.slots, key=lambda item: item.slot_num):
@@ -431,6 +472,7 @@ class RecordSingleMatchResultUseCase:
                     "open_rating": float(player.rating),
                 })
 
+        rating_settings = rating_settings or {}
         return {
             "match_id": str(match_id),
             "match_time": match_time.isoformat(),
@@ -439,70 +481,6 @@ class RecordSingleMatchResultUseCase:
             "players": players_payload,
             "settings": rating_settings,
         }
-
-
-class GetMatchUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, match_repo: MatchRepositoryProtocol,
-                 team_repo: TeamRepositoryProtocol):
-        self._event_repo = event_repo
-        self._match_repo = match_repo
-        self._team_repo = team_repo
-
-    async def __call__(self, cmd: GetMatchCommand) -> SingleMatchView:
-        context = await self._match_repo.get_event_context(cmd.match_id)
-        if context is None:
-            raise NotFoundException(f"Match {cmd.match_id} not found")
-        event_id, server_id, _stage_format, bracket_id, stage_id, group_id = context
-        event = await self._event_repo.get(event_id, load_organizers=True)
-        if event is None:
-            raise NotFoundException(f"Event {event_id} not found")
-        if server_id != event.server_id:
-            raise NotFoundException(f"Match {cmd.match_id} not found")
-        if not is_same_server(cmd.access_data, event.server_id):
-            raise ForbiddenException("Match belongs to a different server")
-        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
-        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_VIEW) or has_event_admin_permission(
-            cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET
-        )
-        if not event.is_public and not is_organizer and not is_admin:
-            raise ForbiddenException("Access denied")
-
-        match = await self._match_repo.get(cmd.match_id, load_slots=True, load_group=False)
-        if match is None:
-            raise NotFoundException(f"Match {cmd.match_id} not found")
-        return await _build_single_match_view(match, event_id, bracket_id, stage_id, group_id, self._team_repo)
-
-
-class ListMatchesUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, match_repo: MatchRepositoryProtocol,
-                 team_repo: TeamRepositoryProtocol):
-        self._event_repo = event_repo
-        self._match_repo = match_repo
-        self._team_repo = team_repo
-
-    async def __call__(self, cmd: ListMatchesCommand) -> list[SingleMatchView]:
-        event = await self._event_repo.get(cmd.event_id, load_organizers=True)
-        if event is None:
-            raise NotFoundException(f"Event {cmd.event_id} not found")
-        if not is_same_server(cmd.access_data, event.server_id):
-            raise ForbiddenException("Event belongs to a different server")
-        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
-        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_VIEW) or has_event_admin_permission(
-            cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET
-        )
-        if not event.is_public and not is_organizer and not is_admin:
-            raise ForbiddenException("Access denied")
-
-        offset = (cmd.pagination.page - 1) * cmd.pagination.page_size if cmd.pagination.page else 0
-        matches = await self._match_repo.list_by_event(cmd.event_id, offset, cmd.pagination.page_size, active=cmd.active)
-        result = []
-        for match in matches:
-            context = await self._match_repo.get_event_context(match.id)
-            if context is None:
-                continue
-            event_id, _server_id, _stage_format, bracket_id, stage_id, group_id = context
-            result.append(await _build_single_match_view(match, event_id, bracket_id, stage_id, group_id, self._team_repo))
-        return result
 
 
 async def _build_single_match_view(

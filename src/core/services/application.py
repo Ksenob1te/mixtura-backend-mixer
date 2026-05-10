@@ -20,7 +20,7 @@ from src.core.models.event import EventMatchType, EventStatus
 from src.core.models.event_player import EventPlayerCreate, EventPlayerStatus, EventPlayerUpdate
 from src.core.models.filled_application_field import FilledApplicationFieldCreate
 from src.core.models.player_role import PlayerRoleCreate
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     R_MIX_BAN,
     R_TOURNAMENT_BAN,
     P_EVENT_ADMIN_MANAGE_PLAYERS,
@@ -30,11 +30,16 @@ from src.core.usecases._access import (
 )
 
 
-class SubmitApplicationUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, application_repo: ApplicationRepositoryProtocol,
-                 player_repo: PlayerRepositoryProtocol, player_role_repo: PlayerRoleRepositoryProtocol,
-                 filled_field_repo: FilledApplicationFieldRepositoryProtocol,
-                 application_integration_repo: ApplicationIntegrationRepositoryProtocol):
+class ApplicationService:
+    def __init__(
+        self,
+        event_repo: EventRepositoryProtocol,
+        application_repo: ApplicationRepositoryProtocol,
+        player_repo: PlayerRepositoryProtocol,
+        player_role_repo: PlayerRoleRepositoryProtocol,
+        filled_field_repo: FilledApplicationFieldRepositoryProtocol,
+        application_integration_repo: ApplicationIntegrationRepositoryProtocol,
+    ):
         self._event_repo = event_repo
         self._application_repo = application_repo
         self._player_repo = player_repo
@@ -42,7 +47,7 @@ class SubmitApplicationUseCase:
         self._filled_field_repo = filled_field_repo
         self._application_integration_repo = application_integration_repo
 
-    async def __call__(self, command: SubmitApplicationCommand) -> dict:
+    async def submit(self, command: SubmitApplicationCommand) -> dict:
         access = command.access_data
 
         event = await self._event_repo.get(
@@ -172,16 +177,7 @@ class SubmitApplicationUseCase:
             "player_id": str(player.id),
         }
 
-
-class ReviewApplicationUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, application_repo: ApplicationRepositoryProtocol,
-                 player_repo: PlayerRepositoryProtocol, player_role_repo: PlayerRoleRepositoryProtocol):
-        self._event_repo = event_repo
-        self._application_repo = application_repo
-        self._player_repo = player_repo
-        self._player_role_repo = player_role_repo
-
-    async def __call__(self, command: ReviewApplicationCommand) -> dict:
+    async def review(self, command: ReviewApplicationCommand) -> dict:
         application = await self._application_repo.get(
             command.application_id,
             load_filled_fields=True,
@@ -301,13 +297,7 @@ class ReviewApplicationUseCase:
         else:
             raise BadRequestException(f"Unsupported application status: {new_status}")
 
-
-class GetApplicationUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, application_repo: ApplicationRepositoryProtocol):
-        self._event_repo = event_repo
-        self._application_repo = application_repo
-
-    async def __call__(self, command: GetApplicationCommand) -> dict:
+    async def get(self, command: GetApplicationCommand) -> dict:
         application = await self._application_repo.get(
             command.application_id,
             load_filled_fields=True,
@@ -353,13 +343,7 @@ class GetApplicationUseCase:
             "event_player_id": str(application.event_player.id) if application.event_player else None,
         }
 
-
-class ListApplicationsUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, application_repo: ApplicationRepositoryProtocol):
-        self._event_repo = event_repo
-        self._application_repo = application_repo
-
-    async def __call__(self, command: ListApplicationsCommand) -> list[dict]:
+    async def list(self, command: ListApplicationsCommand) -> list[dict]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")

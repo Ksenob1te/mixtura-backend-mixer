@@ -7,18 +7,7 @@ from src.core.commands.application import (
     SubmitApplicationCommand,
 )
 from src.core.response import ResponseMessage, StatusResponse
-from src.core.usecases.application import (
-    GetApplicationUseCase,
-    ListApplicationsUseCase,
-    ReviewApplicationUseCase,
-    SubmitApplicationUseCase,
-)
-from src.dependency import (
-    GetApplicationUseCaseDependency,
-    ListApplicationsUseCaseDependency,
-    ReviewApplicationUseCaseDependency,
-    SubmitApplicationUseCaseDependency,
-)
+from src.dependency import ApplicationServiceDependency
 
 router = RabbitRouter()
 
@@ -26,34 +15,34 @@ router = RabbitRouter()
 @router.subscriber(queue="event.application.submit")
 async def submit_application(
     data: SubmitApplicationCommand,
-    use_case: SubmitApplicationUseCaseDependency,
+    service: ApplicationServiceDependency,
 ) -> ResponseMessage[dict]:
-    result = await use_case(data)
+    result = await service.submit(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.application.get")
 async def get_application(
     data: GetApplicationCommand,
-    use_case: GetApplicationUseCaseDependency,
+    service: ApplicationServiceDependency,
 ) -> ResponseMessage[dict]:
-    result = await use_case(data)
+    result = await service.get(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.application.list")
 async def list_applications(
     data: ListApplicationsCommand,
-    use_case: ListApplicationsUseCaseDependency,
+    service: ApplicationServiceDependency,
 ) -> ResponseMessage[list[dict]]:
-    result = await use_case(data)
+    result = await service.list(data)
     return ResponseMessage(status=200, message=result)
 
 
 @router.subscriber(queue="event.application.review")
 async def review_application(
     data: ReviewApplicationCommand,
-    use_case: ReviewApplicationUseCaseDependency,
+    service: ApplicationServiceDependency,
 ) -> ResponseMessage[dict]:
-    result = await use_case(data)
+    result = await service.review(data)
     return ResponseMessage(status=200, message=result)

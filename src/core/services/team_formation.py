@@ -25,30 +25,48 @@ from src.core.results.team_formation import (
     TeamFormationVariantMetrics,
     RatingSnapshotPlayer,
 )
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_MANAGE_BRACKET,
     has_event_admin_permission,
     is_same_server,
 )
 
 
-class RunTeamFormationUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol,
-                 draft_repo: DraftRepositoryProtocol, player_repo: PlayerRepositoryProtocol,
-                 team_repo: TeamRepositoryProtocol, variant_store, rating_client, mix_balancer_client,
-                 tournament_balancer_client, env):
+def _get_first_role(event):
+    roles = event.selected_game_roles
+    if roles:
+        return roles[0].id
+    return uuid.uuid4()
+
+
+class TeamFormationService:
+    def __init__(
+        self,
+        event_repo: EventRepositoryProtocol,
+        organizer_repo: OrganizerRepositoryProtocol,
+        draft_repo: DraftRepositoryProtocol,
+        player_repo: PlayerRepositoryProtocol,
+        team_repo: TeamRepositoryProtocol,
+        team_player_repo: TeamPlayerRepositoryProtocol,
+        variant_store,
+        rating_client,
+        mix_balancer_client,
+        tournament_balancer_client,
+        env,
+    ):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
         self._draft_repo = draft_repo
         self._player_repo = player_repo
         self._team_repo = team_repo
+        self._team_player_repo = team_player_repo
         self._variant_store = variant_store
         self._rating_client = rating_client
         self._mix_balancer = mix_balancer_client
         self._tournament_balancer = tournament_balancer_client
         self._env = env
 
-    async def __call__(self, cmd: RunTeamFormationCommand) -> TeamFormationJob:
+    async def run(self, cmd: RunTeamFormationCommand) -> TeamFormationJob:
         draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=True)
         if draft is None:
             raise NotFoundException(f"Draft {cmd.draft_id} not found")
@@ -151,6 +169,118 @@ class RunTeamFormationUseCase:
         await self._draft_repo.update(DraftUpdate(id=cmd.draft_id, status=DraftStatus.BALANCE_REQUESTED))
 
         return job
+
+    async def get(self, cmd: GetTeamFormationCommand) -> TeamFormationJob:
+        draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=False)
+        if draft is None:
+            raise NotFoundException(f"Draft {cmd.draft_id} not found")
+
+        event = await self._event_repo.get(
+            draft.event_id,
+            load_organizers=True,
+            load_integrations=False,
+            load_time_settings=False,
+            load_game_roles=False,
+            load_custom_fields=False,
+            load_applications=False,
+            load_teams=False,
+            load_drafts=False,
+            load_players=False,
+            load_brackets=False,
+        )
+        if event is None:
+            raise NotFoundException(f"Event {draft.event_id} not found")
+        if not is_same_server(cmd.access_data, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
+        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET)
+        if not is_organizer and not is_admin:
+            raise ForbiddenException("Access denied")
+
+        job = await self._variant_store.get_latest_by_draft(draft.event_id, cmd.draft_id)
+        if job is None:
+            raise NotFoundException("Team formation job not found or expired, run team formation again")
+
+        offset = (cmd.pagination.page - 1) * cmd.pagination.page_size if cmd.pagination.page else 0
+        limit = cmd.pagination.page_size
+        return job.model_copy(update={"variants": job.variants[offset:offset + limit]})
+
+    async def choose_variant(self, cmd: ChooseTeamFormationVariantCommand) -> list[Team]:
+        draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=True)
+        if draft is None:
+            raise NotFoundException(f"Draft {cmd.draft_id} not found")
+
+        event = await self._event_repo.get(
+            draft.event_id,
+            load_organizers=True,
+            load_game_roles=True,
+            load_integrations=False,
+            load_time_settings=False,
+            load_custom_fields=False,
+            load_applications=False,
+            load_teams=True,
+            load_drafts=False,
+            load_players=False,
+            load_brackets=False,
+        )
+        if event is None:
+            raise NotFoundException(f"Event {draft.event_id} not found")
+
+        if not is_same_server(cmd.access_data, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
+        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET)
+        if not is_organizer and not is_admin:
+            raise ForbiddenException("Only organizer or admin can choose team formation variant")
+
+        if draft.status not in (DraftStatus.BALANCE_REQUESTED, DraftStatus.OPEN):
+            raise ConflictException(f"Draft status is {draft.status.value}, cannot select variant")
+
+        job = await self._variant_store.get_latest_by_draft(draft.event_id, cmd.draft_id)
+        if job is None:
+            raise NotFoundException("Team formation job expired or not found, run team formation again")
+
+        selected = None
+        for v in job.variants:
+            if v.id == cmd.variant_id:
+                selected = v
+                break
+
+        if selected is None:
+            raise NotFoundException(f"Variant {cmd.variant_id} not found in cached job")
+
+        if not selected.teams:
+            raise ConflictException("Selected variant has no teams")
+
+        created_teams: list[Team] = []
+        role_ids = {role.id for role in (event.selected_game_roles or [])}
+        for vt in selected.teams:
+            team = await self._team_repo.create(TeamCreate(
+                event_id=draft.event_id,
+                draft_id=cmd.draft_id,
+                name=vt.name,
+            ))
+            for i, ep_id in enumerate(vt.event_player_ids):
+                role_id = vt.game_role_ids[i] if i < len(vt.game_role_ids) else _get_first_role(event)
+                if role_id not in role_ids:
+                    raise BadRequestException(f"Unknown game role in selected variant: {role_id}")
+                rating_val = vt.calculated_ratings[i] if i < len(vt.calculated_ratings) else 1000.0
+                mid = vt.member_ids[i] if i < len(vt.member_ids) else ep_id
+                await self._team_player_repo.create(TeamPlayerCreate(
+                    team_id=team.id,
+                    member_id=mid,
+                    game_role_id=role_id,
+                    rating=rating_val,
+                ))
+                await self._player_repo.update(ep_id, EventPlayerUpdate(status=EventPlayerStatus.SELECTED))
+            loaded = await self._team_repo.get(team.id, load_event=False, load_players=True)
+            if loaded:
+                created_teams.append(loaded)
+
+        await self._draft_repo.update(DraftUpdate(id=cmd.draft_id, status=DraftStatus.BALANCE_SELECTED))
+        await self._variant_store.delete(job.job_id, draft.event_id, cmd.draft_id)
+
+        return created_teams
 
     async def _call_mix_balancer(self, draft_id, event, balancer_players, cmd):
         team_size = event.team_size or 2
@@ -381,145 +511,3 @@ class RunTeamFormationUseCase:
     def _read_float(self, data, key: str) -> float | None:
         value = data.get(key) if isinstance(data, dict) else getattr(data, key, None)
         return None if value is None else float(value)
-
-
-class GetTeamFormationUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol,
-                 draft_repo: DraftRepositoryProtocol, variant_store):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-        self._draft_repo = draft_repo
-        self._variant_store = variant_store
-
-    async def __call__(self, cmd: GetTeamFormationCommand) -> TeamFormationJob:
-        draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=False)
-        if draft is None:
-            raise NotFoundException(f"Draft {cmd.draft_id} not found")
-
-        event = await self._event_repo.get(
-            draft.event_id,
-            load_organizers=True,
-            load_integrations=False,
-            load_time_settings=False,
-            load_game_roles=False,
-            load_custom_fields=False,
-            load_applications=False,
-            load_teams=False,
-            load_drafts=False,
-            load_players=False,
-            load_brackets=False,
-        )
-        if event is None:
-            raise NotFoundException(f"Event {draft.event_id} not found")
-        if not is_same_server(cmd.access_data, event.server_id):
-            raise ForbiddenException("Event belongs to a different server")
-        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
-        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET)
-        if not is_organizer and not is_admin:
-            raise ForbiddenException("Access denied")
-
-        job = await self._variant_store.get_latest_by_draft(draft.event_id, cmd.draft_id)
-        if job is None:
-            raise NotFoundException("Team formation job not found or expired, run team formation again")
-
-        offset = (cmd.pagination.page - 1) * cmd.pagination.page_size if cmd.pagination.page else 0
-        limit = cmd.pagination.page_size
-        return job.model_copy(update={"variants": job.variants[offset:offset + limit]})
-
-
-class ChooseTeamFormationVariantUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol,
-                 draft_repo: DraftRepositoryProtocol, team_repo: TeamRepositoryProtocol,
-                 team_player_repo: TeamPlayerRepositoryProtocol, player_repo: PlayerRepositoryProtocol,
-                 variant_store):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-        self._draft_repo = draft_repo
-        self._team_repo = team_repo
-        self._team_player_repo = team_player_repo
-        self._player_repo = player_repo
-        self._variant_store = variant_store
-
-    async def __call__(self, cmd: ChooseTeamFormationVariantCommand) -> list[Team]:
-        draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=True)
-        if draft is None:
-            raise NotFoundException(f"Draft {cmd.draft_id} not found")
-
-        event = await self._event_repo.get(
-            draft.event_id,
-            load_organizers=True,
-            load_game_roles=True,
-            load_integrations=False,
-            load_time_settings=False,
-            load_custom_fields=False,
-            load_applications=False,
-            load_teams=True,
-            load_drafts=False,
-            load_players=False,
-            load_brackets=False,
-        )
-        if event is None:
-            raise NotFoundException(f"Event {draft.event_id} not found")
-
-        if not is_same_server(cmd.access_data, event.server_id):
-            raise ForbiddenException("Event belongs to a different server")
-        is_organizer = any(o.member_id == cmd.access_data.member_id for o in event.organizers)
-        is_admin = has_event_admin_permission(cmd.access_data, event.server_id, P_EVENT_ADMIN_MANAGE_BRACKET)
-        if not is_organizer and not is_admin:
-            raise ForbiddenException("Only organizer or admin can choose team formation variant")
-
-        if draft.status not in (DraftStatus.BALANCE_REQUESTED, DraftStatus.OPEN):
-            raise ConflictException(f"Draft status is {draft.status.value}, cannot select variant")
-
-        job = await self._variant_store.get_latest_by_draft(draft.event_id, cmd.draft_id)
-        if job is None:
-            raise NotFoundException("Team formation job expired or not found, run team formation again")
-
-        selected = None
-        for v in job.variants:
-            if v.id == cmd.variant_id:
-                selected = v
-                break
-
-        if selected is None:
-            raise NotFoundException(f"Variant {cmd.variant_id} not found in cached job")
-
-        if not selected.teams:
-            raise ConflictException("Selected variant has no teams")
-
-        created_teams: list[Team] = []
-        role_ids = {role.id for role in (event.selected_game_roles or [])}
-        for vt in selected.teams:
-            team = await self._team_repo.create(TeamCreate(
-                event_id=draft.event_id,
-                draft_id=cmd.draft_id,
-                name=vt.name,
-            ))
-            for i, ep_id in enumerate(vt.event_player_ids):
-                role_id = vt.game_role_ids[i] if i < len(vt.game_role_ids) else _get_first_role(event)
-                if role_id not in role_ids:
-                    raise BadRequestException(f"Unknown game role in selected variant: {role_id}")
-                rating_val = vt.calculated_ratings[i] if i < len(vt.calculated_ratings) else 1000.0
-                mid = vt.member_ids[i] if i < len(vt.member_ids) else ep_id
-                await self._team_player_repo.create(TeamPlayerCreate(
-                    team_id=team.id,
-                    member_id=mid,
-                    game_role_id=role_id,
-                    rating=rating_val,
-                ))
-                await self._player_repo.update(ep_id, EventPlayerUpdate(status=EventPlayerStatus.SELECTED))
-            loaded = await self._team_repo.get(team.id, load_event=False, load_players=True)
-            if loaded:
-                created_teams.append(loaded)
-
-        await self._draft_repo.update(DraftUpdate(id=cmd.draft_id, status=DraftStatus.BALANCE_SELECTED))
-        await self._variant_store.delete(job.job_id, draft.event_id, cmd.draft_id)
-
-        return created_teams
-
-
-def _get_first_role(event):
-    roles = event.selected_game_roles
-    if roles:
-        return roles[0].id
-    return uuid.uuid4()

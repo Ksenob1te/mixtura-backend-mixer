@@ -12,7 +12,6 @@ from src.core.commands.settings import (
 )
 from src.core.exceptions import BadRequestException, ForbiddenException, NotFoundException, ConflictException
 from src.core.interfaces.repo.event import EventRepositoryProtocol
-from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.interfaces.repo.required_integration import RequiredIntegrationRepositoryProtocol
 from src.core.interfaces.repo.selected_game_role import SelectedGameRoleRepositoryProtocol
 from src.core.interfaces.repo.application_custom_field import ApplicationCustomFieldRepositoryProtocol
@@ -31,7 +30,7 @@ from src.core.results.event import (
     ApplicationFormSettingsResponse,
     OrganizerResponse,
 )
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_UPDATE,
     has_event_admin_permission,
     is_same_server,
@@ -59,16 +58,22 @@ def _to_detail(event) -> EventDetail:
     )
 
 
-class AddIntegrationUseCase:
+class SettingsService:
     def __init__(
         self,
         event_repo: EventRepositoryProtocol,
         integration_repo: RequiredIntegrationRepositoryProtocol,
+        role_repo: SelectedGameRoleRepositoryProtocol,
+        field_repo: ApplicationCustomFieldRepositoryProtocol,
+        time_repo: ApplicationTimeSettingsRepositoryProtocol,
     ):
         self._event_repo = event_repo
         self._integration_repo = integration_repo
+        self._role_repo = role_repo
+        self._field_repo = field_repo
+        self._time_repo = time_repo
 
-    async def __call__(self, command: AddIntegrationCommand) -> EventDetail:
+    async def add_integration(self, command: AddIntegrationCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -104,17 +109,7 @@ class AddIntegrationUseCase:
         )
         return _to_detail(full)
 
-
-class RemoveIntegrationUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        integration_repo: RequiredIntegrationRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._integration_repo = integration_repo
-
-    async def __call__(self, command: RemoveIntegrationCommand) -> EventDetail:
+    async def remove_integration(self, command: RemoveIntegrationCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -148,17 +143,7 @@ class RemoveIntegrationUseCase:
         )
         return _to_detail(full)
 
-
-class AddGameRoleUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        role_repo: SelectedGameRoleRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._role_repo = role_repo
-
-    async def __call__(self, command: AddGameRoleCommand) -> EventDetail:
+    async def add_game_role(self, command: AddGameRoleCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -199,17 +184,7 @@ class AddGameRoleUseCase:
         )
         return _to_detail(full)
 
-
-class UpdateGameRoleUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        role_repo: SelectedGameRoleRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._role_repo = role_repo
-
-    async def __call__(self, command: UpdateGameRoleCommand) -> EventDetail:
+    async def update_game_role(self, command: UpdateGameRoleCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -248,17 +223,7 @@ class UpdateGameRoleUseCase:
         )
         return _to_detail(full)
 
-
-class RemoveGameRoleUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        role_repo: SelectedGameRoleRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._role_repo = role_repo
-
-    async def __call__(self, command: RemoveGameRoleCommand) -> EventDetail:
+    async def remove_game_role(self, command: RemoveGameRoleCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -292,17 +257,7 @@ class RemoveGameRoleUseCase:
         )
         return _to_detail(full)
 
-
-class AddCustomFieldUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        field_repo: ApplicationCustomFieldRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._field_repo = field_repo
-
-    async def __call__(self, command: AddCustomFieldCommand) -> EventDetail:
+    async def add_custom_field(self, command: AddCustomFieldCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -346,17 +301,7 @@ class AddCustomFieldUseCase:
         )
         return _to_detail(full)
 
-
-class UpdateCustomFieldUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        field_repo: ApplicationCustomFieldRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._field_repo = field_repo
-
-    async def __call__(self, command: UpdateCustomFieldCommand) -> EventDetail:
+    async def update_custom_field(self, command: UpdateCustomFieldCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -399,17 +344,7 @@ class UpdateCustomFieldUseCase:
         )
         return _to_detail(full)
 
-
-class RemoveCustomFieldUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        field_repo: ApplicationCustomFieldRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._field_repo = field_repo
-
-    async def __call__(self, command: RemoveCustomFieldCommand) -> EventDetail:
+    async def remove_custom_field(self, command: RemoveCustomFieldCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -446,17 +381,7 @@ class RemoveCustomFieldUseCase:
         )
         return _to_detail(full)
 
-
-class UpdateTimeSettingsUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        time_repo: ApplicationTimeSettingsRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._time_repo = time_repo
-
-    async def __call__(self, command: UpdateTimeSettingsCommand) -> EventDetail:
+    async def update_time_settings(self, command: UpdateTimeSettingsCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -508,23 +433,7 @@ class UpdateTimeSettingsUseCase:
         )
         return _to_detail(full)
 
-
-class GetApplicationFormSettingsUseCase:
-    def __init__(
-        self,
-        event_repo: EventRepositoryProtocol,
-        integration_repo: RequiredIntegrationRepositoryProtocol,
-        role_repo: SelectedGameRoleRepositoryProtocol,
-        field_repo: ApplicationCustomFieldRepositoryProtocol,
-        time_repo: ApplicationTimeSettingsRepositoryProtocol,
-    ):
-        self._event_repo = event_repo
-        self._integration_repo = integration_repo
-        self._role_repo = role_repo
-        self._field_repo = field_repo
-        self._time_repo = time_repo
-
-    async def __call__(self, command: GetApplicationFormSettingsCommand) -> ApplicationFormSettingsResponse:
+    async def get_application_form_settings(self, command: GetApplicationFormSettingsCommand) -> ApplicationFormSettingsResponse:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")

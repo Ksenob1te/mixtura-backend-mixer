@@ -1,24 +1,25 @@
 from src.core.commands.team import ListTeamsCommand
 from src.core.exceptions import ForbiddenException, NotFoundException
 from src.core.interfaces.repo.event import EventRepositoryProtocol
-from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.interfaces.repo.team import TeamRepositoryProtocol
 from src.core.models.team import Team
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_MANAGE_BRACKET,
     has_event_admin_permission,
     is_same_server,
 )
 
 
-class ListTeamsUseCase:
-    def __init__(self, team_repo: TeamRepositoryProtocol, event_repo: EventRepositoryProtocol,
-                 organizer_repo: OrganizerRepositoryProtocol):
+class TeamService:
+    def __init__(
+        self,
+        team_repo: TeamRepositoryProtocol,
+        event_repo: EventRepositoryProtocol,
+    ):
         self._team_repo = team_repo
         self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
 
-    async def __call__(self, cmd: ListTeamsCommand) -> list[Team]:
+    async def list(self, cmd: ListTeamsCommand) -> list[Team]:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,

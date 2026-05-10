@@ -12,18 +12,23 @@ from src.core.models.draft import Draft, DraftCreate
 from src.core.models.drafted_player import DraftedPlayerCreate
 from src.core.models.event import EventStatus, EventMatchType
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
-from src.core.results.event import EventCard
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_MANAGE_PLAYERS,
     has_event_admin_permission,
     is_same_server,
 )
 
 
-class CreateDraftUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol,
-                 player_repo: PlayerRepositoryProtocol, draft_repo: DraftRepositoryProtocol,
-                 drafted_player_repo: DraftedPlayerRepositoryProtocol, match_repo: MatchRepositoryProtocol):
+class DraftService:
+    def __init__(
+        self,
+        event_repo: EventRepositoryProtocol,
+        organizer_repo: OrganizerRepositoryProtocol,
+        player_repo: PlayerRepositoryProtocol,
+        draft_repo: DraftRepositoryProtocol,
+        drafted_player_repo: DraftedPlayerRepositoryProtocol,
+        match_repo: MatchRepositoryProtocol,
+    ):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
         self._player_repo = player_repo
@@ -31,7 +36,7 @@ class CreateDraftUseCase:
         self._drafted_player_repo = drafted_player_repo
         self._match_repo = match_repo
 
-    async def __call__(self, cmd: CreateDraftCommand) -> Draft:
+    async def create(self, cmd: CreateDraftCommand) -> Draft:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,
@@ -100,28 +105,7 @@ class CreateDraftUseCase:
             raise NotFoundException("Draft not found after creation")
         return result
 
-    async def _resolve_busy_players(self, event_id: UUID, allow_multiple: bool) -> set[UUID]:
-        if allow_multiple:
-            return set()
-
-        busy_draft_ids = await self._match_repo.list_active_draft_ids_by_event(event_id)
-        busy_ids: set[UUID] = set()
-        for did in busy_draft_ids:
-            drafted = await self._draft_repo.get(did, load_drafted_players=True)
-            if drafted:
-                for dp in drafted.drafted_players:
-                    busy_ids.add(dp.event_player_id)
-        return busy_ids
-
-
-class GetDraftUseCase:
-    def __init__(self, draft_repo: DraftRepositoryProtocol, event_repo: EventRepositoryProtocol,
-                 organizer_repo: OrganizerRepositoryProtocol):
-        self._draft_repo = draft_repo
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, cmd: GetDraftCommand) -> Draft:
+    async def get(self, cmd: GetDraftCommand) -> Draft:
         draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=True)
         if draft is None:
             raise NotFoundException(f"Draft {cmd.draft_id} not found")
@@ -150,15 +134,7 @@ class GetDraftUseCase:
 
         return draft
 
-
-class ListDraftsUseCase:
-    def __init__(self, draft_repo: DraftRepositoryProtocol, event_repo: EventRepositoryProtocol,
-                 organizer_repo: OrganizerRepositoryProtocol):
-        self._draft_repo = draft_repo
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, cmd: ListDraftsCommand) -> list[Draft]:
+    async def list(self, cmd: ListDraftsCommand) -> list[Draft]:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,
@@ -187,3 +163,16 @@ class ListDraftsUseCase:
             cmd.pagination.page_size,
         )
         return list(result)
+
+    async def _resolve_busy_players(self, event_id: UUID, allow_multiple: bool) -> set[UUID]:
+        if allow_multiple:
+            return set()
+
+        busy_draft_ids = await self._match_repo.list_active_draft_ids_by_event(event_id)
+        busy_ids: set[UUID] = set()
+        for did in busy_draft_ids:
+            drafted = await self._draft_repo.get(did, load_drafted_players=True)
+            if drafted:
+                for dp in drafted.drafted_players:
+                    busy_ids.add(dp.event_player_id)
+        return busy_ids

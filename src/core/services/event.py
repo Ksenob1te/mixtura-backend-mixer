@@ -26,7 +26,7 @@ from src.core.results.event import (
     RequiredIntegrationResponse,
     SelectedGameRoleResponse,
 )
-from src.core.usecases._access import (
+from src.core.interfaces.repo.access import (
     P_EVENT_CREATE,
     P_EVENT_ADMIN_VIEW,
     P_EVENT_ADMIN_UPDATE,
@@ -38,18 +38,41 @@ from src.core.usecases._access import (
 )
 
 
-class CreateEventUseCase:
+def _to_detail(event) -> EventDetail:
+    return EventDetail(
+        id=event.id,
+        name=event.name,
+        match_type=event.match_type,
+        use_application=event.use_application,
+        is_public=event.is_public,
+        team_size=event.team_size,
+        team_formation=event.team_formation,
+        status=event.status,
+        allow_multiple_drafts=event.allow_multiple_drafts,
+        rating_set_id=event.rating_set_id,
+        server_id=event.server_id,
+        organizers=[OrganizerResponse(id=o.id, member_id=o.member_id) for o in (event.organizers or [])],
+        required_integrations=[RequiredIntegrationResponse(id=i.id, name=i.name) for i in (event.required_integrations or [])],
+        selected_game_roles=[SelectedGameRoleResponse(id=r.id, game_role_id=r.game_role_id, override_max_count=r.override_max_count, override_min_count=r.override_min_count) for r in (event.selected_game_roles or [])],
+        time_settings=ApplicationTimeSettingsResponse(id=event.time_settings.id, start_time=event.time_settings.start_time, end_time=event.time_settings.end_time) if event.time_settings else None,
+        custom_fields=[ApplicationCustomFieldResponse(id=f.id, name=f.name, is_private=f.is_private, is_required=f.is_required) for f in (event.custom_fields or [])],
+    )
+
+
+class EventService:
     def __init__(
         self,
         event_repo: EventRepositoryProtocol,
         organizer_repo: OrganizerRepositoryProtocol,
         time_settings_repo: ApplicationTimeSettingsRepositoryProtocol,
+        match_repo: MatchRepositoryProtocol,
     ):
         self._event_repo = event_repo
         self._organizer_repo = organizer_repo
         self._time_settings_repo = time_settings_repo
+        self._match_repo = match_repo
 
-    async def __call__(self, command: CreateEventCommand) -> EventDetail:
+    async def create(self, command: CreateEventCommand) -> EventDetail:
         access = command.access_data
 
         if access.member_id is None:
@@ -92,13 +115,7 @@ class CreateEventUseCase:
         )
         return _to_detail(full)
 
-
-class GetEventUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, command: GetEventCommand) -> EventDetail:
+    async def get(self, command: GetEventCommand) -> EventDetail:
         event = await self._event_repo.get(
             command.event_id,
             load_organizers=True,
@@ -117,13 +134,7 @@ class GetEventUseCase:
 
         return _to_detail(event)
 
-
-class ListEventsUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, command: ListEventsCommand) -> list[EventCard]:
+    async def list(self, command: ListEventsCommand) -> list[EventCard]:
         access = command.access_data
         same_server = is_same_server(access, command.server_id)
         if not same_server:
@@ -159,13 +170,7 @@ class ListEventsUseCase:
             for e in visible
         ]
 
-
-class UpdateEventUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, command: UpdateEventCommand) -> EventDetail:
+    async def update(self, command: UpdateEventCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -198,13 +203,7 @@ class UpdateEventUseCase:
         )
         return _to_detail(full)
 
-
-class ActivateEventUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, command: ActivateEventCommand) -> EventDetail:
+    async def activate(self, command: ActivateEventCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -230,13 +229,7 @@ class ActivateEventUseCase:
         )
         return _to_detail(full)
 
-
-class OpenRegistrationUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, command: OpenRegistrationCommand) -> EventDetail:
+    async def open_registration(self, command: OpenRegistrationCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -262,13 +255,7 @@ class OpenRegistrationUseCase:
         )
         return _to_detail(full)
 
-
-class CloseRegistrationUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, command: CloseRegistrationCommand) -> EventDetail:
+    async def close_registration(self, command: CloseRegistrationCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -294,13 +281,7 @@ class CloseRegistrationUseCase:
         )
         return _to_detail(full)
 
-
-class CancelEventUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, organizer_repo: OrganizerRepositoryProtocol):
-        self._event_repo = event_repo
-        self._organizer_repo = organizer_repo
-
-    async def __call__(self, command: CancelEventCommand) -> EventDetail:
+    async def cancel(self, command: CancelEventCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -326,13 +307,7 @@ class CancelEventUseCase:
         )
         return _to_detail(full)
 
-
-class CompleteSingleGameEventUseCase:
-    def __init__(self, event_repo: EventRepositoryProtocol, match_repo: MatchRepositoryProtocol):
-        self._event_repo = event_repo
-        self._match_repo = match_repo
-
-    async def __call__(self, command: CompleteEventCommand) -> EventDetail:
+    async def complete(self, command: CompleteEventCommand) -> EventDetail:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -365,24 +340,3 @@ class CompleteSingleGameEventUseCase:
             load_custom_fields=True,
         )
         return _to_detail(full)
-
-
-def _to_detail(event) -> EventDetail:
-    return EventDetail(
-        id=event.id,
-        name=event.name,
-        match_type=event.match_type,
-        use_application=event.use_application,
-        is_public=event.is_public,
-        team_size=event.team_size,
-        team_formation=event.team_formation,
-        status=event.status,
-        allow_multiple_drafts=event.allow_multiple_drafts,
-        rating_set_id=event.rating_set_id,
-        server_id=event.server_id,
-        organizers=[OrganizerResponse(id=o.id, member_id=o.member_id) for o in (event.organizers or [])],
-        required_integrations=[RequiredIntegrationResponse(id=i.id, name=i.name) for i in (event.required_integrations or [])],
-        selected_game_roles=[SelectedGameRoleResponse(id=r.id, game_role_id=r.game_role_id, override_max_count=r.override_max_count, override_min_count=r.override_min_count) for r in (event.selected_game_roles or [])],
-        time_settings=ApplicationTimeSettingsResponse(id=event.time_settings.id, start_time=event.time_settings.start_time, end_time=event.time_settings.end_time) if event.time_settings else None,
-        custom_fields=[ApplicationCustomFieldResponse(id=f.id, name=f.name, is_private=f.is_private, is_required=f.is_required) for f in (event.custom_fields or [])],
-    )
