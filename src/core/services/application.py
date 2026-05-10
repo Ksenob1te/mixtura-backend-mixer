@@ -214,12 +214,11 @@ class ApplicationService:
                 application.event_id, application.member_id
             )
             await self._application_repo.update(
-                application.id,
                 ApplicationUpdate(
                     id=application.id,
                     is_approved=True,
                     status=ApplicationStatus.APPROVED,
-                ),
+                )
             )
 
             if existing_player:
@@ -275,23 +274,21 @@ class ApplicationService:
                 await self._player_repo.delete(application.event_player.id)
 
             await self._application_repo.update(
-                application.id,
                 ApplicationUpdate(
                     id=application.id,
                     is_approved=False,
                     status=ApplicationStatus.REJECTED,
-                ),
+                )
             )
             return {"id": str(application.id), "status": "REJECTED"}
 
         elif new_status == ApplicationStatus.WAITLIST:
             await self._application_repo.update(
-                application.id,
                 ApplicationUpdate(
                     id=application.id,
                     is_approved=False,
                     status=ApplicationStatus.WAITLIST,
-                ),
+                )
             )
             return {"id": str(application.id), "status": "WAITLIST"}
 

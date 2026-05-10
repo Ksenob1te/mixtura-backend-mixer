@@ -11,7 +11,8 @@ from .base import BaseRepository
 from ..models import ApplicationModel, EventPlayerModel, PlayerRoleModel
 
 
-class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, Application, ApplicationUpdate], ApplicationRepositoryProtocol):
+class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, Application, ApplicationUpdate],
+                            ApplicationRepositoryProtocol):
     model = ApplicationModel
     dto_model = Application
 
@@ -42,13 +43,13 @@ class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, 
         return self._to_dto(obj) if obj else None
 
     async def list_by_event(
-        self,
-        event_id: UUID,
-        offset: int = 0,
-        limit: int = 100,
-        status: ApplicationStatus | None = None,
-        sort_by: str = "created_at",
-        sort_order: str = "desc",
+            self,
+            event_id: UUID,
+            offset: int = 0,
+            limit: int = 100,
+            status: ApplicationStatus | None = None,
+            sort_by: str = "created_at",
+            sort_order: str = "desc",
         load_event_player_with_roles: bool = False,
         load_integrations: bool = False,
     ) -> Sequence[Application]:
@@ -78,14 +79,3 @@ class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, 
             .where(ApplicationModel.event_id == event_id, ApplicationModel.status == status)
         )
         return (await self._session.scalar(stmt)) or 0
-
-    async def update(self, application_id: UUID, dto: ApplicationUpdate) -> Application:  # type: ignore[override]
-        obj = await self._get_model(application_id)
-        if not obj:
-            raise NotFoundException("Application not found")
-        update_data = self._dto_to_data(dto, exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(obj, key, value)
-        await self._flush()
-        await self._session.refresh(obj)
-        return self._to_dto(obj)
