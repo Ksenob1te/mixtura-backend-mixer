@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 748aa3a6e82d
+Revision ID: 4f3d2e410643
 Revises: 
-Create Date: 2026-05-08 21:35:10.115637
+Create Date: 2026-05-10 18:08:07.299906
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '748aa3a6e82d'
+revision: str = '4f3d2e410643'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -50,7 +50,7 @@ def upgrade() -> None:
     sa.Column('member_id', sa.Uuid(), nullable=False),
     sa.Column('is_approved', sa.Boolean(), nullable=False),
     sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'WAITLIST', name='applicationstatus'), nullable=False),
-    sa.Column('role_priorities', sa.JSON(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['event_id'], ['event_table.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('event_id', 'member_id', name='uq_application_event_member')
@@ -105,6 +105,8 @@ def upgrade() -> None:
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('application_id', sa.Uuid(), nullable=False),
     sa.Column('user_provider_id', sa.Uuid(), nullable=False),
+    sa.Column('provider_id', sa.Uuid(), nullable=False),
+    sa.Column('provider_name', sa.String(), nullable=False),
     sa.ForeignKeyConstraint(['application_id'], ['application_table.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('application_id', 'user_provider_id', name='uq_app_integration_app_provider')
