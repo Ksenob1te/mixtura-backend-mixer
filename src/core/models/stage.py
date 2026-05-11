@@ -44,5 +44,6 @@ class StageCreate(BaseModel):
 
 class StageUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
+    id: UUID
     format: StageFormat | None = None
     name: str | None = None

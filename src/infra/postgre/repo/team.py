@@ -3,6 +3,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import selectinload
 
+from src.core.exceptions import NotFoundException
 from src.core.interfaces.repo.team import TeamRepositoryProtocol
 from src.core.models.team import Team, TeamCreate, TeamUpdate
 from .base import BaseRepository
@@ -32,3 +33,14 @@ class TeamRepository(BaseRepository[TeamModel, TeamCreate, Team, TeamUpdate], Te
             offset, limit, None,
             TeamModel.event_id == event_id
         )
+
+    async def update(self, dto: TeamUpdate) -> Team:  # type: ignore[override]
+        obj = await self._get_model(dto.id)
+        if not obj:
+            raise NotFoundException("Team not found")
+        update_data = self._dto_to_data(dto, exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(obj, key, value)
+        await self._flush()
+        await self._session.refresh(obj)
+        return self._to_dto(obj)

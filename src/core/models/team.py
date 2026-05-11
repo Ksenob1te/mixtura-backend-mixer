@@ -31,4 +31,5 @@ class TeamCreate(BaseModel):
 
 class TeamUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
+    id: UUID
     name: str | None = None

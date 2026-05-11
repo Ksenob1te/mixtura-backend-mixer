@@ -74,6 +74,7 @@ class EventCreate(BaseModel):
     team_size: int
     team_formation: TeamFormation
     allow_multiple_drafts: bool
+    status: EventStatus = EventStatus.CREATED
     rating_set_id: UUID | None = None
     server_id: UUID
 

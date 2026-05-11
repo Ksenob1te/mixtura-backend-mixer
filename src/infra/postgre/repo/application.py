@@ -50,8 +50,8 @@ class ApplicationRepository(BaseRepository[ApplicationModel, ApplicationCreate, 
             status: ApplicationStatus | None = None,
             sort_by: str = "created_at",
             sort_order: str = "desc",
-        load_event_player_with_roles: bool = False,
-        load_integrations: bool = False,
+            load_event_player_with_roles: bool = False,
+            load_integrations: bool = False,
     ) -> Sequence[Application]:
         where_clauses = [ApplicationModel.event_id == event_id]
         if status is not None:
