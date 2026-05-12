@@ -20,7 +20,16 @@ from src.core.models.event import EventMatchType, EventStatus
 from src.core.models.event_player import EventPlayerCreate, EventPlayerStatus, EventPlayerUpdate
 from src.core.models.filled_application_field import FilledApplicationFieldCreate
 from src.core.models.player_role import PlayerRoleCreate
-from src.core.results.application import ApplicationListItem, ApplicationIntegrationItem, ApplicationRoleItem
+from src.core.results.application import (
+    ApplicationDetail,
+    ApplicationFilledFieldItem,
+    ApplicationIntegrationItem,
+    ApplicationListItem,
+    ApplicationRolePriorityItem,
+    ApplicationReviewResult,
+    ApplicationRoleItem,
+    ApplicationSubmitResult,
+)
 from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_VIEW,
     R_MIX_BAN,
@@ -57,7 +66,7 @@ class ApplicationService:
         self._filled_field_repo = filled_field_repo
         self._application_integration_repo = application_integration_repo
 
-    async def submit(self, command: SubmitApplicationCommand) -> dict:
+    async def submit(self, command: SubmitApplicationCommand) -> ApplicationSubmitResult:
         access = command.access_data
 
         event = await self._event_repo.get(
@@ -97,13 +106,15 @@ class ApplicationService:
             if event.time_settings.end_time and now > event.time_settings.end_time:
                 raise BadRequestException("Application period has ended")
 
-        valid_field_ids = {str(f.id) for f in event.custom_fields}
-        required_ids = {str(f.id) for f in event.custom_fields if f.is_required}
-        provided_field_ids = {str(k) for k in command.filled_fields}
+        valid_field_ids = {f.id for f in event.custom_fields}
+        required_ids = {f.id for f in event.custom_fields if f.is_required}
+        provided_field_ids = {f.custom_field_id for f in command.filled_fields}
+        if len(provided_field_ids) != len(command.filled_fields):
+            raise BadRequestException("Duplicate custom fields are not allowed")
 
-        for fid in command.filled_fields:
-            if str(fid) not in valid_field_ids:
-                raise BadRequestException(f"Unknown custom field: {fid}")
+        for filled_field in command.filled_fields:
+            if filled_field.custom_field_id not in valid_field_ids:
+                raise BadRequestException(f"Unknown custom field: {filled_field.custom_field_id}")
 
         missing_required = required_ids - provided_field_ids
         if missing_required:
@@ -121,11 +132,13 @@ class ApplicationService:
             role_id_map[role.game_role_id] = role.id
 
         role_priorities = {}
-        for role_id, priority in command.role_priorities.items():
-            selected_role_id = role_id_map.get(role_id)
+        for role_priority in command.role_priorities:
+            selected_role_id = role_id_map.get(role_priority.role_id)
             if selected_role_id is None:
-                raise BadRequestException(f"Unknown game role: {role_id}")
-            role_priorities[str(selected_role_id)] = priority
+                raise BadRequestException(f"Unknown game role: {role_priority.role_id}")
+            if str(selected_role_id) in role_priorities:
+                raise BadRequestException(f"Duplicate game role priority: {role_priority.role_id}")
+            role_priorities[str(selected_role_id)] = role_priority.priority
 
         application = await self._application_repo.create(
             ApplicationCreate(
@@ -136,11 +149,11 @@ class ApplicationService:
             )
         )
 
-        for custom_field_id, value in command.filled_fields.items():
+        for filled_field in command.filled_fields:
             await self._filled_field_repo.create(
                 FilledApplicationFieldCreate(
-                    value=value,
-                    custom_field_id=custom_field_id,
+                    value=filled_field.value,
+                    custom_field_id=filled_field.custom_field_id,
                     application_id=application.id,
                 )
             )
@@ -172,22 +185,14 @@ class ApplicationService:
                 )
             )
 
-        if event.use_application:
-            return {
-                "id": str(application.id),
-                "status": application.status.value,
-                "auto_approved": False,
-                "player_id": str(player.id),
-            }
+        return ApplicationSubmitResult(
+            id=application.id,
+            status=application.status,
+            auto_approved=not event.use_application,
+            player_id=player.id,
+        )
 
-        return {
-            "id": str(application.id),
-            "status": application.status.value,
-            "auto_approved": True,
-            "player_id": str(player.id),
-        }
-
-    async def review(self, command: ReviewApplicationCommand) -> dict:
+    async def review(self, command: ReviewApplicationCommand) -> ApplicationReviewResult:
         application = await self._application_repo.get(
             command.application_id,
             load_filled_fields=True,
@@ -256,11 +261,13 @@ class ApplicationService:
                     role_id_map[role.game_role_id] = role.id
 
                 validated_role_priorities = {}
-                for role_id, priority in command.role_priorities.items():
-                    selected_role_id = role_id_map.get(role_id)
+                for role_priority in command.role_priorities:
+                    selected_role_id = role_id_map.get(role_priority.role_id)
                     if selected_role_id is None:
-                        raise BadRequestException(f"Unknown game role: {role_id}")
-                    validated_role_priorities[str(selected_role_id)] = priority
+                        raise BadRequestException(f"Unknown game role: {role_priority.role_id}")
+                    if str(selected_role_id) in validated_role_priorities:
+                        raise BadRequestException(f"Duplicate game role priority: {role_priority.role_id}")
+                    validated_role_priorities[str(selected_role_id)] = role_priority.priority
 
                 player_with_roles = await self._player_repo.get(player.id, load_roles=True, load_drafted=False)
                 existing_role_ids = {r.game_role_id for r in (player_with_roles.player_roles if player_with_roles else [])}
@@ -276,7 +283,11 @@ class ApplicationService:
                         )
                     )
 
-            return {"id": str(application.id), "status": "APPROVED", "player_id": str(player.id)}
+            return ApplicationReviewResult(
+                id=application.id,
+                status=ApplicationStatus.APPROVED,
+                player_id=player.id,
+            )
 
         elif new_status == ApplicationStatus.REJECTED:
             if application.event_player:
@@ -289,7 +300,7 @@ class ApplicationService:
                     status=ApplicationStatus.REJECTED,
                 )
             )
-            return {"id": str(application.id), "status": "REJECTED"}
+            return ApplicationReviewResult(id=application.id, status=ApplicationStatus.REJECTED)
 
         elif new_status == ApplicationStatus.WAITLIST:
             await self._application_repo.update(
@@ -299,12 +310,12 @@ class ApplicationService:
                     status=ApplicationStatus.WAITLIST,
                 )
             )
-            return {"id": str(application.id), "status": "WAITLIST"}
+            return ApplicationReviewResult(id=application.id, status=ApplicationStatus.WAITLIST)
 
         else:
             raise BadRequestException(f"Unsupported application status: {new_status}")
 
-    async def get(self, command: GetApplicationCommand) -> dict:
+    async def get(self, command: GetApplicationCommand) -> ApplicationDetail:
         application = await self._application_repo.get(
             command.application_id,
             load_filled_fields=True,
@@ -325,29 +336,29 @@ class ApplicationService:
         if not is_own and not _can_view_event(access, event) and not has_admin:
             raise ForbiddenException("Access denied")
 
-        return {
-            "id": str(application.id),
-            "event_id": str(application.event_id),
-            "member_id": str(application.member_id),
-            "status": application.status.value,
-            "role_priorities": {
-                str(pr.game_role_id): pr.priority
+        return ApplicationDetail(
+            id=application.id,
+            event_id=application.event_id,
+            member_id=application.member_id,
+            status=application.status,
+            role_priorities=[
+                ApplicationRolePriorityItem(role_id=pr.game_role_id, priority=pr.priority)
                 for pr in (application.event_player.player_roles if application.event_player else [])
-            },
-            "filled_fields": [
-                {"custom_field_id": str(f.custom_field_id), "value": f.value}
+            ],
+            filled_fields=[
+                ApplicationFilledFieldItem(custom_field_id=f.custom_field_id, value=f.value)
                 for f in application.filled_fields
             ],
-            "integrations": [
-                {
-                    "integration_id": str(i.user_provider_id),
-                    "provider_id": str(i.provider_id),
-                    "provider_name": i.provider_name,
-                }
+            integrations=[
+                ApplicationIntegrationItem(
+                    integration_id=i.user_provider_id,
+                    provider_id=i.provider_id,
+                    provider_name=i.provider_name,
+                )
                 for i in application.integrations
             ],
-            "event_player_id": str(application.event_player.id) if application.event_player else None,
-        }
+            event_player_id=application.event_player.id if application.event_player else None,
+        )
 
     async def get_list(self, command: ListApplicationsCommand) -> list[ApplicationListItem]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
@@ -379,7 +390,7 @@ class ApplicationService:
             ApplicationListItem(
                 id=a.id,
                 member_id=a.member_id,
-                status=a.status.value,
+                status=a.status,
                 is_approved=a.is_approved,
                 created_at=a.created_at,
                 roles=[

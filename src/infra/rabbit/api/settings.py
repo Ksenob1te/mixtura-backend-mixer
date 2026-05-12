@@ -12,7 +12,7 @@ from src.core.commands.settings import (
     UpdateTimeSettingsCommand,
     GetApplicationFormSettingsCommand,
 )
-from src.core.response import ResponseMessage, StatusResponse
+from src.core.response import ResponseMessage
 from src.core.results.event import EventDetail, ApplicationFormSettingsResponse
 from src.dependency import SettingsServiceDependency
 

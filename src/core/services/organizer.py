@@ -8,6 +8,7 @@ from src.core.interfaces.repo.event import EventRepositoryProtocol
 from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.models.event import EventStatus
 from src.core.models.organizer import OrganizerCreate
+from src.core.results.organizer import OrganizerItem
 from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_VIEW,
     P_EVENT_ADMIN_MANAGE_ORGANIZERS,
@@ -25,7 +26,7 @@ class OrganizerService:
         self._organizer_repo = organizer_repo
         self._event_repo = event_repo
 
-    async def get_list(self, command: ListOrganizersCommand) -> list[dict]:
+    async def get_list(self, command: ListOrganizersCommand) -> list[OrganizerItem]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -45,12 +46,9 @@ class OrganizerService:
 
         organizers = await self._organizer_repo.list_by_event(command.event_id)
 
-        return [
-            {"id": str(o.id), "event_id": str(o.event_id), "member_id": str(o.member_id)}
-            for o in organizers
-        ]
+        return [OrganizerItem(id=o.id, event_id=o.event_id, member_id=o.member_id) for o in organizers]
 
-    async def add(self, command: AddOrganizerCommand) -> dict:
+    async def add(self, command: AddOrganizerCommand) -> OrganizerItem:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -77,7 +75,7 @@ class OrganizerService:
             OrganizerCreate(event_id=command.event_id, member_id=command.member_id)
         )
 
-        return {"id": str(organizer.id), "event_id": str(organizer.event_id), "member_id": str(organizer.member_id)}
+        return OrganizerItem(id=organizer.id, event_id=organizer.event_id, member_id=organizer.member_id)
 
     async def remove(self, command: RemoveOrganizerCommand) -> None:
         event = await self._event_repo.get(command.event_id, load_organizers=True)

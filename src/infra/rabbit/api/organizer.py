@@ -6,6 +6,7 @@ from src.core.commands.organizer import (
     RemoveOrganizerCommand,
 )
 from src.core.response import ResponseMessage, StatusResponse
+from src.core.results.organizer import OrganizerItem
 from src.dependency import OrganizerServiceDependency
 
 router = RabbitRouter()
@@ -15,7 +16,7 @@ router = RabbitRouter()
 async def list_organizers(
     data: ListOrganizersCommand,
     service: OrganizerServiceDependency,
-) -> ResponseMessage[list[dict]]:
+) -> ResponseMessage[list[OrganizerItem]]:
     result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)
 
@@ -24,7 +25,7 @@ async def list_organizers(
 async def add_organizer(
     data: AddOrganizerCommand,
     service: OrganizerServiceDependency,
-) -> ResponseMessage[dict]:
+) -> ResponseMessage[OrganizerItem]:
     result = await service.add(data)
     return ResponseMessage(status=200, message=result)
 

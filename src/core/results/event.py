@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.core.models.event import EventMatchType, EventStatus, TeamFormation
 
@@ -45,9 +45,9 @@ class ApplicationFormSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     event_id: UUID
     event_name: str
-    required_integrations: list[RequiredIntegrationResponse] = []
-    available_roles: list[SelectedGameRoleResponse] = []
-    custom_fields: list[ApplicationCustomFieldResponse] = []
+    required_integrations: list[RequiredIntegrationResponse] = Field(default_factory=list)
+    available_roles: list[SelectedGameRoleResponse] = Field(default_factory=list)
+    custom_fields: list[ApplicationCustomFieldResponse] = Field(default_factory=list)
     time_settings: ApplicationTimeSettingsResponse | None = None
 
 
@@ -77,8 +77,8 @@ class EventDetail(BaseModel):
     allow_multiple_drafts: bool
     rating_set_id: UUID | None
     server_id: UUID
-    organizers: list[OrganizerResponse] = []
-    required_integrations: list[RequiredIntegrationResponse] = []
-    selected_game_roles: list[SelectedGameRoleResponse] = []
+    organizers: list[OrganizerResponse] = Field(default_factory=list)
+    required_integrations: list[RequiredIntegrationResponse] = Field(default_factory=list)
+    selected_game_roles: list[SelectedGameRoleResponse] = Field(default_factory=list)
     time_settings: ApplicationTimeSettingsResponse | None = None
-    custom_fields: list[ApplicationCustomFieldResponse] = []
+    custom_fields: list[ApplicationCustomFieldResponse] = Field(default_factory=list)

@@ -6,8 +6,13 @@ from src.core.commands.application import (
     ReviewApplicationCommand,
     SubmitApplicationCommand,
 )
-from src.core.response import ResponseMessage, StatusResponse
-from src.core.results.application import ApplicationListItem
+from src.core.response import ResponseMessage
+from src.core.results.application import (
+    ApplicationDetail,
+    ApplicationListItem,
+    ApplicationReviewResult,
+    ApplicationSubmitResult,
+)
 from src.dependency import ApplicationServiceDependency
 
 router = RabbitRouter()
@@ -17,7 +22,7 @@ router = RabbitRouter()
 async def submit_application(
     data: SubmitApplicationCommand,
     service: ApplicationServiceDependency,
-) -> ResponseMessage[dict]:
+) -> ResponseMessage[ApplicationSubmitResult]:
     result = await service.submit(data)
     return ResponseMessage(status=200, message=result)
 
@@ -26,7 +31,7 @@ async def submit_application(
 async def get_application(
     data: GetApplicationCommand,
     service: ApplicationServiceDependency,
-) -> ResponseMessage[dict]:
+) -> ResponseMessage[ApplicationDetail]:
     result = await service.get(data)
     return ResponseMessage(status=200, message=result)
 
@@ -44,6 +49,6 @@ async def list_applications(
 async def review_application(
     data: ReviewApplicationCommand,
     service: ApplicationServiceDependency,
-) -> ResponseMessage[dict]:
+) -> ResponseMessage[ApplicationReviewResult]:
     result = await service.review(data)
     return ResponseMessage(status=200, message=result)
