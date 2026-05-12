@@ -23,19 +23,6 @@ class TestSwissSettingsRepository:
         assert created.score_per_draw == 1
         assert created.score_per_bye == 3
 
-    async def test_create_swiss_settings_different_scores(self, swiss_settings_repo, swiss_stage_dto):
-        created = await swiss_settings_repo.create(
-            SwissSettingsCreate(
-                stage_id=swiss_stage_dto.id,
-                score_per_win=5,
-                score_per_draw=2,
-                score_per_bye=5,
-            )
-        )
-        assert created.score_per_win == 5
-        assert created.score_per_draw == 2
-        assert created.score_per_bye == 5
-
     async def test_get_swiss_settings_by_id(self, swiss_settings_repo, swiss_stage_dto):
         created = await swiss_settings_repo.create(
             SwissSettingsCreate(

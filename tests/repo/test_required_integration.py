@@ -16,12 +16,6 @@ class TestRequiredIntegrationRepository:
         assert created.event_id == event_dto.id
         assert created.name == "twitch"
 
-    async def test_create_required_integration_discord(self, required_integration_repo, event_dto):
-        created = await required_integration_repo.create(
-            RequiredIntegrationCreate(event_id=event_dto.id, name="discord")
-        )
-        assert created.name == "discord"
-
     async def test_get_required_integration_by_id(self, required_integration_repo, event_dto):
         created = await required_integration_repo.create(
             RequiredIntegrationCreate(event_id=event_dto.id, name="github")

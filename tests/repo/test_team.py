@@ -1,80 +1,48 @@
-"""
-Test suite for TeamRepository using testcontainers + pytest.
-Covers CRUD operations, relationship loading, pagination, and edge cases.
-"""
-from uuid import UUID, uuid4
+"""Test suite for TeamRepository."""
+import uuid
 
 import pytest
 
 from src.core.models.draft import DraftCreate
 from src.core.models.event import EventCreate, EventMatchType, TeamFormation
 from src.core.models.team import Team, TeamCreate, TeamUpdate
-from src.infra.postgre.repo.draft import DraftRepository
-from src.infra.postgre.repo.event import EventRepository
-from src.infra.postgre.repo.team import TeamRepository
+from src.infra.postgre.exceptions import IntegrityForeignException
 
-
-@pytest.fixture
-def server_id() -> UUID:
-    return uuid4()
-
-
-@pytest.fixture
-async def event_dto(async_session, server_id):
-    event_repo = EventRepository(async_session)
-    return await event_repo.create(
-        EventCreate(
-            server_id=server_id,
-            name="Team Test Event",
-            match_type=EventMatchType.SINGLE,
-            use_application=True,
-            is_public=True,
-            team_size=5,
-            team_formation=TeamFormation.BALANCE,
-            allow_multiple_drafts=False,
-        )
-    )
-
-
-@pytest.fixture
-def team_repo(async_session):
-    return TeamRepository(async_session)
-
-
-@pytest.fixture
-def draft_repo(async_session):
-    return DraftRepository(async_session)
-
-
-@pytest.fixture
-def event_repo(async_session):
-    return EventRepository(async_session)
+pytestmark = pytest.mark.asyncio
 
 
 class TestTeamRepository:
     async def test_create_team(self, team_repo, event_dto):
         created = await team_repo.create(TeamCreate(event_id=event_dto.id, name="Alpha"))
+
         assert isinstance(created, Team)
         assert created.event_id == event_dto.id
         assert created.draft_id is None
         assert created.name == "Alpha"
 
     async def test_create_team_without_draft_optional(self, team_repo, event_dto):
-        created = await team_repo.create(TeamCreate(event_id=event_dto.id, draft_id=None, name="Standalone"))
+        created = await team_repo.create(
+            TeamCreate(event_id=event_dto.id, draft_id=None, name="Standalone")
+        )
+
         assert created.draft_id is None
 
     async def test_create_team_with_draft(self, team_repo, draft_repo, event_dto):
         draft = await draft_repo.create(DraftCreate(event_id=event_dto.id))
-        created = await team_repo.create(TeamCreate(event_id=event_dto.id, draft_id=draft.id, name="Draft Team"))
+        created = await team_repo.create(
+            TeamCreate(event_id=event_dto.id, draft_id=draft.id, name="Draft Team")
+        )
+
         assert created.draft_id == draft.id
 
     async def test_create_team_foreign_key_violation(self, team_repo):
-        with pytest.raises(Exception):
-            await team_repo.create(TeamCreate(event_id=uuid4(), name="Invalid Team"))
+        with pytest.raises(IntegrityForeignException):
+            await team_repo.create(TeamCreate(event_id=uuid.uuid4(), name="Invalid Team"))
 
     async def test_get_team_by_id(self, team_repo, event_dto):
         created = await team_repo.create(TeamCreate(event_id=event_dto.id, name="Lookup"))
         retrieved = await team_repo.get(created.id)
+
         assert retrieved is not None
         assert retrieved.id == created.id
         assert retrieved.name == "Lookup"
@@ -82,6 +50,7 @@ class TestTeamRepository:
     async def test_get_team_with_event_relation(self, team_repo, event_dto):
         created = await team_repo.create(TeamCreate(event_id=event_dto.id, name="With Event"))
         retrieved = await team_repo.get(created.id, load_event=True)
+
         assert retrieved is not None
         assert retrieved.event is not None
         assert retrieved.event.id == event_dto.id
@@ -89,20 +58,22 @@ class TestTeamRepository:
     async def test_get_team_with_players_relation(self, team_repo, event_dto):
         created = await team_repo.create(TeamCreate(event_id=event_dto.id, name="With Players"))
         retrieved = await team_repo.get(created.id, load_players=True)
+
         assert retrieved is not None
         assert retrieved.players == []
 
     async def test_list_by_event(self, team_repo, event_dto):
         for i in range(3):
-            await team_repo.create(TeamCreate(event_id=event_dto.id, name=f"Team {i+1}"))
+            await team_repo.create(TeamCreate(event_id=event_dto.id, name=f"Team {i + 1}"))
 
         teams = await team_repo.list_by_event(event_dto.id)
+
         assert len(teams) == 3
         assert all(team.event_id == event_dto.id for team in teams)
 
     async def test_list_by_event_with_pagination(self, team_repo, event_dto):
         for i in range(5):
-            await team_repo.create(TeamCreate(event_id=event_dto.id, name=f"Team {i+1}"))
+            await team_repo.create(TeamCreate(event_id=event_dto.id, name=f"Team {i + 1}"))
 
         assert len(await team_repo.list_by_event(event_dto.id, offset=0, limit=2)) == 2
         assert len(await team_repo.list_by_event(event_dto.id, offset=2, limit=2)) == 2
@@ -114,17 +85,19 @@ class TestTeamRepository:
     async def test_update_team(self, team_repo, event_dto):
         created = await team_repo.create(TeamCreate(event_id=event_dto.id, name="Original"))
         updated = await team_repo.update(TeamUpdate(id=created.id, name="Updated"))
+
         assert updated.name == "Updated"
         assert updated.event_id == event_dto.id
         assert updated.id == created.id
 
     async def test_delete_team(self, team_repo, event_dto):
         created = await team_repo.create(TeamCreate(event_id=event_dto.id, name="Delete Me"))
+
         assert await team_repo.delete(created.id) is True
         assert await team_repo.get(created.id) is None
 
     async def test_delete_non_existent_team_returns_false(self, team_repo):
-        assert await team_repo.delete(uuid4()) is False
+        assert await team_repo.delete(uuid.uuid4()) is False
 
     async def test_list_teams_different_events_isolated(self, team_repo, event_repo, draft_repo, server_id):
         event1 = await event_repo.create(
@@ -160,4 +133,3 @@ class TestTeamRepository:
 
         assert len(await team_repo.list_by_event(event1.id)) == 1
         assert len(await team_repo.list_by_event(event2.id)) == 1
-

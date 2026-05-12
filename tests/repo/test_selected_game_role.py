@@ -103,19 +103,6 @@ class TestSelectedGameRoleRepository:
         assert len(listed) == 3
         assert all(r.event_id == event_dto.id for r in listed)
 
-    async def test_list_selected_game_roles_multiple(self, selected_game_role_repo, event_dto):
-        for i in range(5):
-            await selected_game_role_repo.create(
-                SelectedGameRoleCreate(
-                    event_id=event_dto.id,
-                    game_role_id=__import__('uuid', fromlist=['uuid4']).uuid4(),
-                    override_max_count=i + 1,
-                    override_min_count=1,
-                )
-            )
-        listed = await selected_game_role_repo.list_by_event(event_dto.id)
-        assert len(listed) == 5
-
     async def test_exists_selected_game_role(self, selected_game_role_repo, event_dto):
         created = await selected_game_role_repo.create(
             SelectedGameRoleCreate(

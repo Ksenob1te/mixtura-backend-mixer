@@ -24,19 +24,6 @@ class TestRoundRobinSettingsRepository:
         assert created.score_per_win == 3
         assert created.score_per_draw == 1
 
-    async def test_create_round_robin_settings_different_points(self, round_robin_settings_repo, round_robin_stage_dto):
-        created = await round_robin_settings_repo.create(
-            RoundRobinSettingsCreate(
-                stage_id=round_robin_stage_dto.id,
-                meetings_per_pair=1,
-                score_system="points",
-                score_per_win=5,
-                score_per_draw=2,
-            )
-        )
-        assert created.score_per_win == 5
-        assert created.score_per_draw == 2
-
     async def test_get_round_robin_settings_by_id(self, round_robin_settings_repo, round_robin_stage_dto):
         created = await round_robin_settings_repo.create(
             RoundRobinSettingsCreate(

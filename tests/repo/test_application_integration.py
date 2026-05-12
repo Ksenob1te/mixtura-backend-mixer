@@ -3,7 +3,6 @@ import pytest
 
 from src.core.models.application_integration import ApplicationIntegrationCreate
 
-
 pytestmark = pytest.mark.asyncio
 
 

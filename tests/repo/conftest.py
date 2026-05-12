@@ -1,27 +1,22 @@
 import uuid
-from datetime import datetime
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.models.application import ApplicationCreate, ApplicationStatus
-from src.core.models.application_custom_field import ApplicationCustomFieldCreate, ApplicationCustomFieldUpdate
+from src.core.models.application_custom_field import ApplicationCustomFieldCreate
 from src.core.models.application_integration import ApplicationIntegrationCreate
-from src.core.models.application_time_settings import ApplicationTimeSettingsCreate, ApplicationTimeSettingsUpdate
 from src.core.models.bracket import BracketCreate
 from src.core.models.bracket_placement import BracketPlacementCreate
 from src.core.models.draft import DraftCreate
-from src.core.models.drafted_player import DraftedPlayerCreate
 from src.core.models.event import Event, EventCreate, EventMatchType, TeamFormation
 from src.core.models.event_player import EventPlayerCreate
 from src.core.models.filled_application_field import FilledApplicationFieldCreate
 from src.core.models.match import MatchCreate
-from src.core.models.match_score import MatchScoreCreate, MatchScoreUpdate
-from src.core.models.match_slot import MatchSlotCreate, MatchSlotSourceType
 from src.core.models.player_role import PlayerRoleCreate
 from src.core.models.required_integration import RequiredIntegrationCreate
 from src.core.models.round_robin_settings import RoundRobinSettingsCreate
-from src.core.models.selected_game_role import SelectedGameRoleCreate, SelectedGameRoleUpdate
+from src.core.models.selected_game_role import SelectedGameRoleCreate
 from src.core.models.stage import StageCreate, StageFormat
 from src.core.models.stage_group import StageGroupCreate
 from src.core.models.swiss_settings import SwissSettingsCreate
@@ -40,6 +35,7 @@ from src.infra.postgre.repo.filled_application_field import FilledApplicationFie
 from src.infra.postgre.repo.match import MatchRepository
 from src.infra.postgre.repo.match_score import MatchScoreRepository
 from src.infra.postgre.repo.match_slot import MatchSlotRepository
+from src.infra.postgre.repo.organizer import OrganizerRepository
 from src.infra.postgre.repo.player import PlayerRepository
 from src.infra.postgre.repo.player_role import PlayerRoleRepository
 from src.infra.postgre.repo.required_integration import RequiredIntegrationRepository
@@ -100,6 +96,11 @@ def player_repo(async_session: AsyncSession) -> PlayerRepository:
 @pytest.fixture
 def match_repo(async_session: AsyncSession) -> MatchRepository:
     return MatchRepository(async_session)
+
+
+@pytest.fixture
+def organizer_repo(async_session: AsyncSession) -> OrganizerRepository:
+    return OrganizerRepository(async_session)
 
 
 @pytest.fixture
@@ -260,9 +261,9 @@ async def integration_dto(application_integration_repo: ApplicationIntegrationRe
 
 @pytest.fixture
 async def filled_field_dto(
-    filled_application_field_repo: FilledApplicationFieldRepository,
-    application_dto,
-    custom_field_dto,
+        filled_application_field_repo: FilledApplicationFieldRepository,
+        application_dto,
+        custom_field_dto,
 ):
     return await filled_application_field_repo.create(
         FilledApplicationFieldCreate(
@@ -361,4 +362,3 @@ async def swiss_settings_dto(swiss_settings_repo: SwissSettingsRepository, swiss
 @pytest.fixture
 async def match_dto(match_repo: MatchRepository, stage_group_dto):
     return await match_repo.create(MatchCreate(group_id=stage_group_dto.id, match_index=1))
-

@@ -19,13 +19,6 @@ class TestMatchScoreRepository:
         assert created.team_id == team_dto.id
         assert created.score == 0
 
-    async def test_create_match_score_with_high_score(self, match_score_repo, match_slot_repo, match_dto, team_dto):
-        slot = await match_slot_repo.create(
-            MatchSlotCreate(match_id=match_dto.id, slot_num=2, source_type=MatchSlotSourceType.MANUAL)
-        )
-        created = await match_score_repo.create(MatchScoreCreate(slot_id=slot.id, team_id=team_dto.id, score=100))
-        assert created.score == 100
-
     async def test_get_match_score_by_id(self, match_score_repo, match_slot_repo, match_dto, team_dto):
         slot = await match_slot_repo.create(
             MatchSlotCreate(match_id=match_dto.id, slot_num=1, source_type=MatchSlotSourceType.MANUAL)

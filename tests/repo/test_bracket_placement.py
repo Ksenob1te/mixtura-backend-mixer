@@ -3,7 +3,6 @@ import pytest
 
 from src.core.models.bracket_placement import BracketPlacementCreate
 
-
 pytestmark = pytest.mark.asyncio
 
 

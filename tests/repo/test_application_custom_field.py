@@ -3,7 +3,6 @@ import pytest
 
 from src.core.models.application_custom_field import ApplicationCustomFieldCreate, ApplicationCustomFieldUpdate
 
-
 pytestmark = pytest.mark.asyncio
 
 
@@ -84,6 +83,3 @@ class TestApplicationCustomFieldRepository:
 
     async def test_delete_non_existent_application_custom_field_returns_false(self, application_custom_field_repo):
         assert await application_custom_field_repo.delete(uuid.uuid4()) is False
-
-
-

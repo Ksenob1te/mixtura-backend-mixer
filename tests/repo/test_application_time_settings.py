@@ -46,8 +46,6 @@ class TestApplicationTimeSettingsRepository:
         assert fetched.event_id == event_dto.id
         assert fetched.start_time == datetime(2026, 1, 1, 12, 0, 0)
 
-    # TODO: stopped here
-
     async def test_get_application_time_settings_by_event_id_with_relations(self, application_time_settings_repo,
                                                                             event_dto):
         created = await application_time_settings_repo.create(

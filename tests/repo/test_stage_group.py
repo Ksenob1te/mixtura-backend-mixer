@@ -9,12 +9,6 @@ pytestmark = pytest.mark.asyncio
 
 
 class TestStageGroupRepository:
-    async def test_create_stage_group(self, stage_group_repo, round_robin_stage_dto):
-        created = await stage_group_repo.create(StageGroupCreate(stage_id=round_robin_stage_dto.id, name="Group A"))
-        assert created.id is not None
-        assert created.stage_id == round_robin_stage_dto.id
-        assert created.name == "Group A"
-
     async def test_create_stage_group_different_names(self, stage_group_repo, round_robin_stage_dto):
         group_b = await stage_group_repo.create(StageGroupCreate(stage_id=round_robin_stage_dto.id, name="Group B"))
         group_c = await stage_group_repo.create(StageGroupCreate(stage_id=round_robin_stage_dto.id, name="Group C"))
@@ -50,13 +44,6 @@ class TestStageGroupRepository:
         listed = await stage_group_repo.list_by_stage(round_robin_stage_dto.id)
         assert len(listed) == 3
         assert {g.id for g in listed} == {group_a.id, group_b.id, group_c.id}
-
-    async def test_list_stage_groups_by_stage_multiple(self, stage_group_repo, round_robin_stage_dto):
-        for i in range(5):
-            await stage_group_repo.create(StageGroupCreate(stage_id=round_robin_stage_dto.id, name=f"Group {i}"))
-
-        listed = await stage_group_repo.list_by_stage(round_robin_stage_dto.id)
-        assert len(listed) == 5
 
     async def test_exists_stage_group(self, stage_group_repo, round_robin_stage_dto):
         created = await stage_group_repo.create(StageGroupCreate(stage_id=round_robin_stage_dto.id, name="Group A"))

@@ -3,7 +3,6 @@ import pytest
 
 from src.core.models.drafted_player import DraftedPlayerCreate
 
-
 pytestmark = pytest.mark.asyncio
 
 

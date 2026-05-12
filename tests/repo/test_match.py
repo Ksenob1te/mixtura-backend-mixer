@@ -1,90 +1,13 @@
-"""
-Test suite for MatchRepository using testcontainers + pytest.
-Covers CRUD operations, relationship loading, filtering, and edge cases.
-"""
 from datetime import datetime, timedelta
-from uuid import UUID, uuid4
+import uuid
 
 import pytest
 
 from src.core.exceptions import NotFoundException
-from src.core.models.bracket import BracketCreate
-from src.core.models.event import EventCreate, EventMatchType, TeamFormation
 from src.core.models.match import Match, MatchCreate, MatchUpdate
-from src.core.models.stage import StageCreate, StageFormat
-from src.core.models.stage_group import StageGroupCreate
-from src.infra.postgre.repo.bracket import BracketRepository
-from src.infra.postgre.repo.event import EventRepository
-from src.infra.postgre.repo.match import MatchRepository
-from src.infra.postgre.repo.stage import StageRepository
-from src.infra.postgre.repo.stage_group import StageGroupRepository
+from src.infra.postgre.exceptions import IntegrityForeignException
 
-
-@pytest.fixture
-def server_id() -> UUID:
-    return uuid4()
-
-
-@pytest.fixture
-async def event_dto(async_session, server_id):
-    event_repo = EventRepository(async_session)
-    return await event_repo.create(
-        EventCreate(
-            server_id=server_id,
-            name="Match Test Event",
-            match_type=EventMatchType.SINGLE,
-            use_application=True,
-            is_public=True,
-            team_size=5,
-            team_formation=TeamFormation.BALANCE,
-            allow_multiple_drafts=False,
-        )
-    )
-
-
-@pytest.fixture
-async def bracket_dto(async_session, event_dto):
-    bracket_repo = BracketRepository(async_session)
-    return await bracket_repo.create(BracketCreate(event_id=event_dto.id))
-
-
-@pytest.fixture
-async def stage_dto(async_session, bracket_dto):
-    stage_repo = StageRepository(async_session)
-    return await stage_repo.create(
-        StageCreate(stage_index=1, bracket_id=bracket_dto.id, format=StageFormat.ROUND_ROBIN, name="Group Stage")
-    )
-
-
-@pytest.fixture
-async def stage_group_dto(async_session, stage_dto):
-    group_repo = StageGroupRepository(async_session)
-    return await group_repo.create(StageGroupCreate(stage_id=stage_dto.id, name="Group A"))
-
-
-@pytest.fixture
-def match_repo(async_session):
-    return MatchRepository(async_session)
-
-
-@pytest.fixture
-def event_repo(async_session):
-    return EventRepository(async_session)
-
-
-@pytest.fixture
-def bracket_repo(async_session):
-    return BracketRepository(async_session)
-
-
-@pytest.fixture
-def stage_repo(async_session):
-    return StageRepository(async_session)
-
-
-@pytest.fixture
-def stage_group_repo(async_session):
-    return StageGroupRepository(async_session)
+pytestmark = pytest.mark.asyncio
 
 
 class TestMatchRepository:
@@ -95,8 +18,8 @@ class TestMatchRepository:
         assert created.match_index == 1
 
     async def test_create_match_foreign_key_violation(self, match_repo):
-        with pytest.raises(Exception):
-            await match_repo.create(MatchCreate(group_id=uuid4(), match_index=1))
+        with pytest.raises(IntegrityForeignException):
+            await match_repo.create(MatchCreate(group_id=uuid.uuid4(), match_index=1))
 
     async def test_get_match_by_id(self, match_repo, stage_group_dto):
         created = await match_repo.create(MatchCreate(group_id=stage_group_dto.id, match_index=2))
@@ -106,7 +29,7 @@ class TestMatchRepository:
         assert retrieved.match_index == 2
 
     async def test_get_non_existent_match_returns_none(self, match_repo):
-        assert await match_repo.get(uuid4()) is None
+        assert await match_repo.get(uuid.uuid4()) is None
 
     async def test_get_match_with_slots_relation(self, match_repo, stage_group_dto):
         created = await match_repo.create(MatchCreate(group_id=stage_group_dto.id, match_index=1))
@@ -156,7 +79,7 @@ class TestMatchRepository:
 
     async def test_update_match_not_found(self, match_repo):
         with pytest.raises(NotFoundException):
-            await match_repo.update(uuid4(), MatchUpdate(time_end=datetime.utcnow()))
+            await match_repo.update(uuid.uuid4(), MatchUpdate(time_end=datetime.utcnow()))
 
     async def test_delete_match(self, match_repo, stage_group_dto):
         created = await match_repo.create(MatchCreate(group_id=stage_group_dto.id, match_index=1))
@@ -164,7 +87,7 @@ class TestMatchRepository:
         assert await match_repo.get(created.id) is None
 
     async def test_delete_non_existent_match_returns_false(self, match_repo):
-        assert await match_repo.delete(uuid4()) is False
+        assert await match_repo.delete(uuid.uuid4()) is False
 
     async def test_list_by_event(self, match_repo, event_dto, stage_group_dto):
         await match_repo.create(MatchCreate(group_id=stage_group_dto.id, match_index=1))

@@ -2,6 +2,7 @@ import uuid
 import pytest
 
 from src.core.models.filled_application_field import FilledApplicationFieldCreate
+from src.core.models.application_custom_field import ApplicationCustomFieldCreate
 
 
 pytestmark = pytest.mark.asyncio
@@ -58,8 +59,11 @@ class TestFilledApplicationFieldRepository:
         custom_fields = []
         for i in range(3):
             cf = await application_custom_field_repo.create(
-                __import__('src.core.models.application_custom_field', fromlist=['ApplicationCustomFieldCreate']).ApplicationCustomFieldCreate(
-                    event_id=application_dto.event_id, name=f"Field {i}", is_private=False, is_required=False
+                ApplicationCustomFieldCreate(
+                    event_id=application_dto.event_id,
+                    name=f"Field {i}",
+                    is_private=False,
+                    is_required=False,
                 )
             )
             custom_fields.append(cf)
