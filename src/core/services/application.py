@@ -22,6 +22,7 @@ from src.core.models.filled_application_field import FilledApplicationFieldCreat
 from src.core.models.player_role import PlayerRoleCreate
 from src.core.results.application import ApplicationListItem, ApplicationIntegrationItem, ApplicationRoleItem
 from src.core.interfaces.repo.access import (
+    P_EVENT_ADMIN_VIEW,
     R_MIX_BAN,
     R_TOURNAMENT_BAN,
     P_EVENT_ADMIN_MANAGE_PLAYERS,
@@ -29,6 +30,14 @@ from src.core.interfaces.repo.access import (
     has_event_admin_permission,
     is_same_server,
 )
+
+
+def _can_view_event(access, event) -> bool:
+    return (
+        event.is_public
+        or any(o.member_id == access.member_id for o in event.organizers)
+        or has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_VIEW)
+    )
 
 
 class ApplicationService:
@@ -311,10 +320,9 @@ class ApplicationService:
             raise NotFoundException("Event not found")
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         is_own = application.member_id == access.member_id
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
-        if not is_organizer and not is_own and not has_admin:
+        if not is_own and not _can_view_event(access, event) and not has_admin:
             raise ForbiddenException("Access denied")
 
         return {
@@ -349,10 +357,9 @@ class ApplicationService:
         access = command.access_data
         if not is_same_server(access, event.server_id):
             raise ForbiddenException("Event belongs to a different server")
-        is_organizer = any(o.member_id == access.member_id for o in event.organizers)
         has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
-        if not is_organizer and not has_admin:
-            raise ForbiddenException("Only organizer or event admin can list applications")
+        if not _can_view_event(access, event) and not has_admin:
+            raise ForbiddenException("Only event viewers or event admin can list applications")
 
         offset = (command.pagination.page - 1) * command.pagination.page_size if command.pagination.page else 0
         limit = command.pagination.page_size
