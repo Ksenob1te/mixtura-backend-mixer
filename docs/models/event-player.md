@@ -15,7 +15,7 @@
 | `event_id` | `UUID` | ID события |
 | `member_id` | `UUID` | ID участника (глобальный) |
 | `application_id` | `UUID \| None` | Связанная заявка (если была) |
-| `custom_id` | `UUID \| None` | Пользовательский ID (резерв) |
+| `custom_id` | `UUID \| None` | ID оценки игрока (рейтинги на разных ролях). Организатор может менять оценку, поле обновляемое |
 | `is_draft_pinned` | `bool` | Закреплён ли для draft (приоритетный игрок) |
 | `status` | `EventPlayerStatus` | Текущий статус участия |
 
@@ -27,6 +27,18 @@
 | `application` | `Application \| None` | Связанная заявка |
 | `drafted_players` | `list[DraftedPlayer]` | Вхождения в draft-сессии |
 | `player_roles` | `list[PlayerRole]` | Выбранные роли с приоритетами |
+
+## Enums
+
+### EventPlayerStatus
+
+| Value | Description |
+|-------|-------------|
+| `REGISTERED` | Игрок зарегистрирован, ожидает формирования команд |
+| `SELECTED` | Игрок выбран в команду (draft/balance/manual) |
+| `PLAYING` | Игрок участвует в активном матче |
+| `COMPLETED` | Игрок завершил участие в событии |
+| `BENCHED` | Игрок на скамейке (не участвует в текущем матче) |
 
 ## Create/Update Models
 
@@ -46,8 +58,9 @@
 |-------|------|----------|---------|-------|
 | `is_draft_pinned` | `bool \| None` | No | `None` | |
 | `status` | `EventPlayerStatus \| None` | No | `None` | |
+| `custom_id` | `UUID \| None` | No | `None` | ID оценки игрока, обновляемый |
 
-> Поля `id`, `event_id`, `member_id`, `application_id` и `custom_id` неизменяемы и не включены в Update-модель.
+> Поля `id`, `event_id`, `member_id` и `application_id` неизменяемы и не включены в Update-модель.
 
 ### Read — `EventPlayer` (`src/core/models/event_player.py`)
 

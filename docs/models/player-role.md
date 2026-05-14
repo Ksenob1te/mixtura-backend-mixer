@@ -12,8 +12,8 @@
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | `UUID` | Уникальный идентификатор |
-| `game_role_id` | `UUID` | ID выбранной игровой роли (`SelectedGameRole.id`) |
-| `priority` | `int` | Приоритет роли (меньше = предпочтительнее) |
+| `game_role_id` | `UUID` | ID выбранной игровой роли (`SelectedGameRole.id`), неизменяем |
+| `priority` | `int` | Приоритет роли (больше = предпочтительнее, 0 = не играет этой ролью) |
 | `event_player_id` | `UUID` | ID участника |
 
 ## Relations
@@ -37,10 +37,9 @@
 
 | Field | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
-| `game_role_id` | `UUID \| None` | No | `None` | |
 | `priority` | `int \| None` | No | `None` | |
 
-> Поле `event_player_id` неизменяемо и не включено в Update-модель.
+> Поля `id`, `game_role_id` и `event_player_id` неизменяемы и не включены в Update-модель.
 
 ### Read — `PlayerRole` (`src/core/models/player_role.py`)
 

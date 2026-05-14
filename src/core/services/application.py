@@ -120,11 +120,11 @@ class ApplicationService:
         if missing_required:
             raise BadRequestException(f"Missing required custom fields: {missing_required}")
 
-        required_integration_names = {i.name for i in event.required_integrations}
-        submitted_integration_names = {i.provider_name for i in command.integrations}
-        missing_integrations = required_integration_names - submitted_integration_names
+        required_integration_provider_ids = {i.provider_id for i in event.required_integrations}
+        submitted_provider_ids = {i.provider_id for i in command.integrations}
+        missing_integrations = required_integration_provider_ids - submitted_provider_ids
         if missing_integrations:
-            raise BadRequestException(f"Missing required integrations: {', '.join(missing_integrations)}")
+            raise BadRequestException(f"Missing required integrations: {', '.join(str(p) for p in missing_integrations)}")
 
         role_id_map = {}
         for role in event.selected_game_roles:
@@ -144,7 +144,6 @@ class ApplicationService:
             ApplicationCreate(
                 event_id=command.event_id,
                 member_id=access.member_id,
-                is_approved=not event.use_application,
                 status=ApplicationStatus.APPROVED if not event.use_application else ApplicationStatus.PENDING,
             )
         )
@@ -230,7 +229,6 @@ class ApplicationService:
             await self._application_repo.update(
                 ApplicationUpdate(
                     id=application.id,
-                    is_approved=True,
                     status=ApplicationStatus.APPROVED,
                 )
             )
@@ -296,7 +294,6 @@ class ApplicationService:
             await self._application_repo.update(
                 ApplicationUpdate(
                     id=application.id,
-                    is_approved=False,
                     status=ApplicationStatus.REJECTED,
                 )
             )
@@ -306,7 +303,6 @@ class ApplicationService:
             await self._application_repo.update(
                 ApplicationUpdate(
                     id=application.id,
-                    is_approved=False,
                     status=ApplicationStatus.WAITLIST,
                 )
             )
@@ -391,7 +387,6 @@ class ApplicationService:
                 id=a.id,
                 member_id=a.member_id,
                 status=a.status,
-                is_approved=a.is_approved,
                 created_at=a.created_at,
                 roles=[
                     ApplicationRoleItem(

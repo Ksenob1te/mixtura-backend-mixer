@@ -26,7 +26,6 @@ class Application(BaseModel):
     id: UUID
     event_id: UUID
     member_id: UUID
-    is_approved: bool
     status: ApplicationStatus
     created_at: datetime
     event: Optional[Event] = None
@@ -39,12 +38,10 @@ class ApplicationCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
     event_id: UUID
     member_id: UUID
-    is_approved: bool = False
     status: ApplicationStatus = ApplicationStatus.PENDING
 
 
 class ApplicationUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
     id: UUID
-    is_approved: bool | None = None
     status: ApplicationStatus | None = None

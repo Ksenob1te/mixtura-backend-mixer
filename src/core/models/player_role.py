@@ -29,5 +29,4 @@ class PlayerRoleCreate(BaseModel):
 
 class PlayerRoleUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
-    game_role_id: UUID | None = None
     priority: int | None = None

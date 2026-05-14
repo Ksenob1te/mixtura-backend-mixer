@@ -49,3 +49,4 @@ class EventPlayerUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
     is_draft_pinned: bool | None = None
     status: EventPlayerStatus | None = None
+    custom_id: UUID | None = None

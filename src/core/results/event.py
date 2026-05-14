@@ -15,7 +15,7 @@ class OrganizerResponse(BaseModel):
 class RequiredIntegrationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
-    name: str
+    provider_id: UUID
 
 
 class SelectedGameRoleResponse(BaseModel):

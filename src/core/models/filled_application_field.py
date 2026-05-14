@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
@@ -17,7 +16,6 @@ class FilledApplicationField(BaseModel):
     value: str
     custom_field_id: UUID
     application_id: UUID
-    created_at: datetime
     custom_field: Optional[ApplicationCustomField] = None
     application: Optional[Application] = None
 

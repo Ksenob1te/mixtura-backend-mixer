@@ -1,9 +1,8 @@
 import uuid
-from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, func, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..engine import Base
@@ -20,8 +19,6 @@ class FilledApplicationFieldModel(Base):
     value: Mapped[str] = mapped_column(Text)
     custom_field_id: Mapped[UUID] = mapped_column(ForeignKey('application_custom_field_table.id'))
     application_id: Mapped[UUID] = mapped_column(ForeignKey('application_table.id', ondelete="CASCADE"))
-
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     custom_field: Mapped["ApplicationCustomFieldModel"] = relationship("ApplicationCustomFieldModel",
                                                                        back_populates="filled_fields", lazy="noload")

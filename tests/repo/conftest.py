@@ -330,7 +330,7 @@ async def bracket_placement_dto(bracket_placement_repo: BracketPlacementReposito
 @pytest.fixture
 async def required_integration_dto(required_integration_repo: RequiredIntegrationRepository, event_dto: Event):
     return await required_integration_repo.create(
-        RequiredIntegrationCreate(event_id=event_dto.id, name="discord")
+        RequiredIntegrationCreate(event_id=event_dto.id, provider_id=uuid.uuid4())
     )
 
 

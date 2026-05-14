@@ -5,7 +5,7 @@
 - **Used by services:** `ApplicationService`
 
 ## Role
-Заявка на участие в событии. Содержит статус рассмотрения, заполненные поля, интеграции и роли.
+Заявка на участие в событии. К этой модели отдельньыми моедлями привязываются заполненные поля, интеграции и роли.
 
 ## Fields
 
@@ -14,7 +14,6 @@
 | `id` | `UUID` | Уникальный идентификатор |
 | `event_id` | `UUID` | ID события |
 | `member_id` | `UUID` | ID заявителя |
-| `is_approved` | `bool` | Одобрена ли заявка |
 | `status` | `ApplicationStatus` | Текущий статус (`PENDING`/`APPROVED`/`REJECTED`/`WAITLIST`) |
 | `created_at` | `datetime` | Время создания |
 
@@ -35,14 +34,12 @@
 |-------|------|----------|---------|-------|
 | `event_id` | `UUID` | Yes | — | FK, неизменяем |
 | `member_id` | `UUID` | Yes | — | FK, неизменяем |
-| `is_approved` | `bool` | No | `False` | |
 | `status` | `ApplicationStatus` | No | `ApplicationStatus.PENDING` | |
 
 ### Update — `ApplicationUpdate` (`src/core/models/application.py`)
 
 | Field | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
-| `is_approved` | `bool \| None` | No | `None` | |
 | `status` | `ApplicationStatus \| None` | No | `None` | |
 
 > Поля `id`, `event_id`, `member_id` и `created_at` неизменяемы и не включены в Update-модель.
@@ -54,7 +51,6 @@
 | `id` | `UUID` | |
 | `event_id` | `UUID` | |
 | `member_id` | `UUID` | |
-| `is_approved` | `bool` | |
 | `status` | `ApplicationStatus` | |
 | `created_at` | `datetime` | |
 | `event` | `Event \| None` | Навигационное свойство |

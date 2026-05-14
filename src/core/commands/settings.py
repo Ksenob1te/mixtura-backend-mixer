@@ -9,7 +9,7 @@ from src.core.commands.access_data import AccessDataRequest
 class AddIntegrationCommand(BaseModel):
     access_data: AccessDataRequest
     event_id: UUID
-    name: str
+    provider_id: UUID
 
 
 class RemoveIntegrationCommand(BaseModel):

@@ -22,7 +22,6 @@ class ApplicationModel(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     event_id: Mapped[UUID] = mapped_column(ForeignKey('event_table.id', ondelete="CASCADE"))
     member_id: Mapped[UUID]
-    is_approved: Mapped[bool] = mapped_column(default=False)
     status: Mapped[ApplicationStatus] = mapped_column(default=ApplicationStatus.PENDING)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 

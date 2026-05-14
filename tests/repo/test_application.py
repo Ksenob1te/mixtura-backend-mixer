@@ -13,7 +13,6 @@ class TestApplicationRepository:
         app_create = ApplicationCreate(
             event_id=event_dto.id,
             member_id=member_id,
-            is_approved=False,
             status=ApplicationStatus.PENDING
         )
 
@@ -32,10 +31,8 @@ class TestApplicationRepository:
         app = await application_repo.create(ApplicationCreate(
             event_id=event_dto.id,
             member_id=uuid.uuid4(),
-            is_approved=True,
             status=ApplicationStatus.APPROVED
         ))
-        assert app.is_approved is True
         assert app.status == ApplicationStatus.APPROVED
 
     async def test_create_application_foreign_key_violation(self, application_repo):
@@ -43,7 +40,6 @@ class TestApplicationRepository:
         app_create = ApplicationCreate(
             event_id=invalid_event_id,
             member_id=uuid.uuid4(),
-            is_approved=False,
             status=ApplicationStatus.PENDING
         )
         with pytest.raises(IntegrityForeignException):
@@ -82,12 +78,10 @@ class TestApplicationRepository:
         app_update = ApplicationUpdate(
             id=app.id,
             status=ApplicationStatus.APPROVED,
-            is_approved=True
         )
 
         updated_app = await application_repo.update(app_update)
         assert updated_app.status == ApplicationStatus.APPROVED
-        assert updated_app.is_approved is True
 
         fetched_app = await application_repo.get(app.id)
         assert fetched_app.status == ApplicationStatus.APPROVED

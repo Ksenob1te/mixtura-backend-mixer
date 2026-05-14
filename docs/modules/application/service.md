@@ -68,7 +68,7 @@
 **При APPROVED:**
 6. Проверка `server_id` совпадает → `ForbiddenException`
 7. Поиск существующего EventPlayer
-8. Обновление application: is_approved=True, status=APPROVED
+8. Обновление application: status=APPROVED
 9. Если EventPlayer существует: проверка не PLAYING → `ConflictException`, обновление status=REGISTERED
 10. Если EventPlayer не существует: создание нового
 11. Если переданы role_priorities: валидация ролей, создание недостающих PlayerRole
@@ -76,11 +76,11 @@
 
 **При REJECTED:**
 6. Удаление EventPlayer (если есть)
-7. Обновление application: is_approved=False, status=REJECTED
+7. Обновление application: status=REJECTED
 8. Возврат `ApplicationReviewResult(player_id=None)`
 
 **При WAITLIST:**
-6. Обновление application: is_approved=False, status=WAITLIST
+6. Обновление application: status=WAITLIST
 7. Возврат `ApplicationReviewResult(player_id=None)`
 
 ### Exceptions

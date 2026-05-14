@@ -58,7 +58,7 @@ class TestApplicationService:
                 is_private=False,
             )
         )
-        await required_integration_repo.create(RequiredIntegrationCreate(event_id=event.id, name="discord"))
+        await required_integration_repo.create(RequiredIntegrationCreate(event_id=event.id, provider_id=uuid4()))
         selected_role = await selected_game_role_repo.create(
             SelectedGameRoleCreate(event_id=event.id, game_role_id=uuid4())
         )
@@ -142,7 +142,6 @@ class TestApplicationService:
         assert result.status == ApplicationStatus.APPROVED
         assert result.auto_approved is True
         assert application is not None
-        assert application.is_approved is True
 
     async def test_submit_rejects_duplicate_application_for_member(
             self,
@@ -236,7 +235,6 @@ class TestApplicationService:
         player = await player_repo.get(result.player_id)
         assert result.status == ApplicationStatus.APPROVED
         assert stored is not None
-        assert stored.is_approved is True
         assert player is not None
         assert player.member_id == applicant_id
 

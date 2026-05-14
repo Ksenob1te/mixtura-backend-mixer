@@ -52,7 +52,7 @@ def _to_detail(event) -> EventDetail:
         rating_set_id=event.rating_set_id,
         server_id=event.server_id,
         organizers=[OrganizerResponse(id=o.id, member_id=o.member_id) for o in (event.organizers or [])],
-        required_integrations=[RequiredIntegrationResponse(id=i.id, name=i.name) for i in (event.required_integrations or [])],
+        required_integrations=[RequiredIntegrationResponse(id=i.id, provider_id=i.provider_id) for i in (event.required_integrations or [])],
         selected_game_roles=[SelectedGameRoleResponse(id=r.id, game_role_id=r.game_role_id, override_max_count=r.override_max_count, override_min_count=r.override_min_count) for r in (event.selected_game_roles or [])],
         time_settings=ApplicationTimeSettingsResponse(id=event.time_settings.id, start_time=event.time_settings.start_time, end_time=event.time_settings.end_time) if event.time_settings else None,
         custom_fields=[ApplicationCustomFieldResponse(id=f.id, name=f.name, is_private=f.is_private, is_required=f.is_required) for f in (event.custom_fields or [])],
@@ -93,11 +93,11 @@ class SettingsService:
             raise BadRequestException("Cannot modify settings after registration opens")
 
         existing = await self._integration_repo.list_by_event(command.event_id)
-        if any(i.name.lower() == command.name.lower() for i in existing):
-            raise ConflictException("Integration with this name already exists")
+        if any(i.provider_id == command.provider_id for i in existing):
+            raise ConflictException("Integration with this provider already exists")
 
         await self._integration_repo.create(
-            RequiredIntegrationCreate(name=command.name, event_id=command.event_id)
+            RequiredIntegrationCreate(provider_id=command.provider_id, event_id=command.event_id)
         )
 
         full = await self._event_repo.get(
@@ -474,7 +474,7 @@ class SettingsService:
             event_id=command.event_id,
             event_name=event.name,
             required_integrations=[
-                RequiredIntegrationResponse(id=i.id, name=i.name)
+                RequiredIntegrationResponse(id=i.id, provider_id=i.provider_id)
                 for i in integrations
             ],
             available_roles=[

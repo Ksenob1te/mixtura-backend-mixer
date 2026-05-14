@@ -46,6 +46,7 @@ Flow: `api -|commands/results|> services -|dtos|> repos -> orm models`.
 
 ## Important Conventions
 
+- **Documentation:** When making code changes, you MUST update `docs/INDEX.md` and the corresponding documentation files. For looking up methods, services, repositories, and APIs, start by reading `docs/INDEX.md` and only load files for the relevant module — do not load the entire documentation tree. Use source code only for clarifying implementation details.
 - **Auth/perms:** `src/core/interfaces/repo/access.py` — only event-related permission bits (24-31) and restrictions (1-2). Services call `is_same_server()` and `has_event_admin_permission()`.
 - **Transactions:** One `AsyncSession` per message via `Depends`. `DomainException` triggers auto-rollback in middleware (`main.py`).
 - **Repositories:** Protocol in `core/interfaces/repo/`, implementation in `infra/postgre/repo/`. `BaseRepository` provides generic CRUD.

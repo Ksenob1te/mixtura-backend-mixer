@@ -15,7 +15,6 @@
 | `value` | `str` | Введённое значение |
 | `custom_field_id` | `UUID` | ID кастомного поля |
 | `application_id` | `UUID` | ID заявки |
-| `created_at` | `datetime` | Время заполнения |
 
 ## Relations
 
@@ -46,6 +45,5 @@ Update-модель отсутствует. Записи не обновляют
 | `value` | `str` | |
 | `custom_field_id` | `UUID` | |
 | `application_id` | `UUID` | |
-| `created_at` | `datetime` | |
 | `custom_field` | `ApplicationCustomField \| None` | Навигационное свойство |
 | `application` | `Application \| None` | Навигационное свойство |

@@ -48,7 +48,6 @@ def upgrade() -> None:
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('event_id', sa.Uuid(), nullable=False),
     sa.Column('member_id', sa.Uuid(), nullable=False),
-    sa.Column('is_approved', sa.Boolean(), nullable=False),
     sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'WAITLIST', name='applicationstatus'), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['event_id'], ['event_table.id'], ondelete='CASCADE'),
@@ -86,10 +85,11 @@ def upgrade() -> None:
     )
     op.create_table('required_integration_table',
     sa.Column('id', sa.Uuid(), nullable=False),
-    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('provider_id', sa.Uuid(), nullable=False),
     sa.Column('event_id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['event_id'], ['event_table.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('event_id', 'provider_id', name='uq_required_integration_event_provider')
     )
     op.create_table('selected_game_role_table',
     sa.Column('id', sa.Uuid(), nullable=False),
@@ -129,7 +129,6 @@ def upgrade() -> None:
     sa.Column('value', sa.Text(), nullable=False),
     sa.Column('custom_field_id', sa.Uuid(), nullable=False),
     sa.Column('application_id', sa.Uuid(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['application_id'], ['application_table.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['custom_field_id'], ['application_custom_field_table.id'], ),
     sa.PrimaryKeyConstraint('id'),

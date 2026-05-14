@@ -9,29 +9,32 @@ pytestmark = pytest.mark.asyncio
 
 class TestRequiredIntegrationRepository:
     async def test_create_required_integration(self, required_integration_repo, event_dto):
+        provider_id = uuid.uuid4()
         created = await required_integration_repo.create(
-            RequiredIntegrationCreate(event_id=event_dto.id, name="twitch")
+            RequiredIntegrationCreate(event_id=event_dto.id, provider_id=provider_id)
         )
         assert created.id is not None
         assert created.event_id == event_dto.id
-        assert created.name == "twitch"
+        assert created.provider_id == provider_id
 
     async def test_get_required_integration_by_id(self, required_integration_repo, event_dto):
+        provider_id = uuid.uuid4()
         created = await required_integration_repo.create(
-            RequiredIntegrationCreate(event_id=event_dto.id, name="github")
+            RequiredIntegrationCreate(event_id=event_dto.id, provider_id=provider_id)
         )
         fetched = await required_integration_repo.get(created.id)
         assert fetched is not None
         assert fetched.id == created.id
-        assert fetched.name == "github"
+        assert fetched.provider_id == provider_id
 
     async def test_get_non_existent_required_integration_returns_none(self, required_integration_repo):
         fetched = await required_integration_repo.get(uuid.uuid4())
         assert fetched is None
 
     async def test_get_required_integration_with_relations(self, required_integration_repo, event_dto):
+        provider_id = uuid.uuid4()
         created = await required_integration_repo.create(
-            RequiredIntegrationCreate(event_id=event_dto.id, name="twitch")
+            RequiredIntegrationCreate(event_id=event_dto.id, provider_id=provider_id)
         )
         fetched = await required_integration_repo.get(created.id, load_event=True)
         assert fetched is not None
@@ -39,17 +42,18 @@ class TestRequiredIntegrationRepository:
         assert fetched.event.id == event_dto.id
 
     async def test_list_required_integrations_by_event(self, required_integration_repo, event_dto):
-        for i, name in enumerate(["twitch", "discord", "github"]):
+        for _ in range(3):
             await required_integration_repo.create(
-                RequiredIntegrationCreate(event_id=event_dto.id, name=name)
+                RequiredIntegrationCreate(event_id=event_dto.id, provider_id=uuid.uuid4())
             )
         listed = await required_integration_repo.list_by_event(event_dto.id)
         assert len(listed) == 3
         assert all(i.event_id == event_dto.id for i in listed)
 
     async def test_exists_required_integration(self, required_integration_repo, event_dto):
+        provider_id = uuid.uuid4()
         created = await required_integration_repo.create(
-            RequiredIntegrationCreate(event_id=event_dto.id, name="twitch")
+            RequiredIntegrationCreate(event_id=event_dto.id, provider_id=provider_id)
         )
         assert await required_integration_repo.exists(created.id) is True
 
@@ -57,8 +61,9 @@ class TestRequiredIntegrationRepository:
         assert await required_integration_repo.exists(uuid.uuid4()) is False
 
     async def test_delete_required_integration(self, required_integration_repo, event_dto):
+        provider_id = uuid.uuid4()
         created = await required_integration_repo.create(
-            RequiredIntegrationCreate(event_id=event_dto.id, name="twitch")
+            RequiredIntegrationCreate(event_id=event_dto.id, provider_id=provider_id)
         )
         assert await required_integration_repo.delete(created.id) is True
         fetched = await required_integration_repo.get(created.id)

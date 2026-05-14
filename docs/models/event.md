@@ -20,7 +20,7 @@
 | `team_formation` | `TeamFormation` | Метод формирования: `DRAFT`, `BALANCE`, `MANUAL` |
 | `status` | `EventStatus` | Текущий статус жизненного цикла |
 | `allow_multiple_drafts` | `bool` | Разрешены ли параллельные draft-сессии |
-| `rating_set_id` | `UUID \| None` | ID набора рейтингов для effective rating |
+| `rating_set_id` | `UUID \| None` | ID внешнего набора рейтингов — определяет визуальное деление рейтингов на диапазоны, минимальный и максимальный рейтинг |
 | `server_id` | `UUID` | ID сервера-владельца |
 
 ## Relations

@@ -31,26 +31,28 @@ class TestSettingsService:
         event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, use_application=True, is_public=True, team_size=5, team_formation=0, allow_multiple_drafts=False))
         await organizer_repo.create(dict(event_id=event.id, member_id=organizer_id))
 
-        result = await settings_service.add_integration(AddIntegrationCommand(event_id=event.id, name="discord", access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+        provider_id = uuid4()
+        result = await settings_service.add_integration(AddIntegrationCommand(event_id=event.id, provider_id=provider_id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
 
         integrations = await required_integration_repo.list_by_event(event.id)
-        assert [integration.name for integration in result.required_integrations] == ["discord"]
-        assert [integration.name for integration in integrations] == ["discord"]
+        assert [integration.provider_id for integration in result.required_integrations] == [provider_id]
+        assert [integration.provider_id for integration in integrations] == [provider_id]
 
-    async def test_add_integration_rejects_duplicate_name_case_insensitive(self, settings_service, event_repo, required_integration_repo, organizer_repo, server_id, organizer_id):
+    async def test_add_integration_rejects_duplicate_provider(self, settings_service, event_repo, required_integration_repo, organizer_repo, server_id, organizer_id):
         event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, use_application=True, is_public=True, team_size=5, team_formation=0, allow_multiple_drafts=False))
-        await required_integration_repo.create(RequiredIntegrationCreate(event_id=event.id, name="Discord"))
+        provider_id = uuid4()
+        await required_integration_repo.create(RequiredIntegrationCreate(event_id=event.id, provider_id=provider_id))
         await organizer_repo.create(dict(event_id=event.id, member_id=organizer_id))
 
         with pytest.raises(ConflictException):
-            await settings_service.add_integration(AddIntegrationCommand(event_id=event.id, name="discord", access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+            await settings_service.add_integration(AddIntegrationCommand(event_id=event.id, provider_id=provider_id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
 
     async def test_add_integration_rejects_non_organizer_without_admin_permission(self, settings_service, event_repo, organizer_repo, server_id):
         event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, use_application=True, is_public=True, team_size=5, team_formation=0, allow_multiple_drafts=False))
         await organizer_repo.create(dict(event_id=event.id, member_id=uuid4()))
 
         with pytest.raises(ForbiddenException):
-            await settings_service.add_integration(AddIntegrationCommand(event_id=event.id, name="discord", access_data=AccessDataRequest(server_id=server_id)))
+            await settings_service.add_integration(AddIntegrationCommand(event_id=event.id, provider_id=uuid4(), access_data=AccessDataRequest(server_id=server_id)))
 
     async def test_add_update_remove_game_role_flow(self, settings_service, event_repo, selected_game_role_repo, organizer_repo, server_id, organizer_id):
         event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, use_application=True, is_public=True, team_size=5, team_formation=0, allow_multiple_drafts=False))
@@ -121,14 +123,14 @@ class TestSettingsService:
         event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.REGISTRATION, use_application=True, is_public=True, match_type=EventMatchType.SINGLE, team_size=5, team_formation=0, allow_multiple_drafts=False))
         public_field = await application_custom_field_repo.create(ApplicationCustomFieldCreate(event_id=event.id, name="Nickname", is_private=False, is_required=False))
         private_field = await application_custom_field_repo.create(ApplicationCustomFieldCreate(event_id=event.id, name="Phone", is_private=True, is_required=False))
-        await required_integration_repo.create(RequiredIntegrationCreate(event_id=event.id, name="discord"))
+        await required_integration_repo.create(RequiredIntegrationCreate(event_id=event.id, provider_id=uuid4()))
         role = await selected_game_role_repo.create(SelectedGameRoleCreate(event_id=event.id, game_role_id=uuid4()))
         await application_time_settings_repo.create(ApplicationTimeSettingsCreate(event_id=event.id, start_time=None, end_time=None))
 
         result = await settings_service.get_application_form_settings(GetApplicationFormSettingsCommand(event_id=event.id, access_data=AccessDataRequest(server_id=server_id, anonymous=True)))
 
         assert [field.name for field in result.custom_fields] == ["Nickname"]
-        assert [item.name for item in result.required_integrations] == ["discord"]
+        assert len(result.required_integrations) == 1
         assert [item.id for item in result.available_roles] == [role.id]
         assert result.time_settings is not None
 

@@ -64,7 +64,6 @@ class ApplicationListItem(BaseModel):
     id: UUID
     member_id: UUID
     status: ApplicationStatus
-    is_approved: bool
     created_at: datetime
     roles: list[ApplicationRoleItem] = Field(default_factory=list)
     integrations: list[ApplicationIntegrationItem] = Field(default_factory=list)
