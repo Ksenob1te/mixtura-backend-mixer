@@ -1,0 +1,91 @@
+# Player — Queue Contracts
+
+## Overview
+- **Handler file:** `src/infra/rabbit/api/player.py`
+- **Service file:** `src/core/services/player.py`
+- **Commands file:** `src/core/commands/player.py`
+
+## Queues Summary
+
+| Queue | Command | Result | Description |
+|-------|---------|--------|-------------|
+| `event.player.list` | `ListPlayersCommand` | `list[dict]` | Список участников события |
+| `event.player.status.update` | `UpdatePlayerStatusCommand` | `dict` | Обновление статуса участника |
+| `event.player.remove` | `RemovePlayerCommand` | `StatusResponse` | Удаление участника |
+
+---
+
+## Queue: `event.player.list`
+
+### Command: `ListPlayersCommand`
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `event_id` | `UUID` | Yes | |
+| `access_data` | `AccessDataRequest` | Yes | |
+| `status` | `EventPlayerStatus \| None` | No | Фильтр по статусу |
+| `pagination` | `PaginationRequest` | No | |
+
+### Result: `list[dict]`
+```
+{
+  "id": str,
+  "member_id": str,
+  "status": str,
+  "is_draft_pinned": bool,
+  "application_id": str | None
+}
+```
+
+### Exceptions
+| Exception | Condition |
+|-----------|-----------|
+| `NotFoundException` | Событие не найдено |
+| `ForbiddenException` | Не организатор и нет `P_EVENT_ADMIN_MANAGE_PLAYERS` |
+
+---
+
+## Queue: `event.player.status.update`
+
+### Command: `UpdatePlayerStatusCommand`
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `access_data` | `AccessDataRequest` | Yes | |
+| `event_id` | `UUID` | Yes | |
+| `member_id` | `UUID` | Yes | ID участника |
+| `status` | `EventPlayerStatus` | Yes | Новый статус |
+
+### Result: `dict`
+```
+{
+  "id": str,
+  "member_id": str,
+  "status": str
+}
+```
+
+### Exceptions
+| Exception | Condition |
+|-----------|-----------|
+| `NotFoundException` | Событие/участник не найден |
+| `ForbiddenException` | Не организатор и нет `P_EVENT_ADMIN_MANAGE_PLAYERS` |
+| `BadRequestException` | Событие CANCELLED |
+| `BadRequestException` | Нельзя изменить статус PLAYING игрока |
+
+---
+
+## Queue: `event.player.remove`
+
+### Command: `RemovePlayerCommand`
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `access_data` | `AccessDataRequest` | Yes | |
+| `event_id` | `UUID` | Yes | |
+| `member_id` | `UUID` | Yes | ID участника |
+
+### Exceptions
+| Exception | Condition |
+|-----------|-----------|
+| `NotFoundException` | Событие/участник не найден |
+| `ForbiddenException` | Не организатор и нет `P_EVENT_ADMIN_MANAGE_PLAYERS` |
+| `BadRequestException` | Событие CANCELLED |
+| `BadRequestException` | Нельзя удалить PLAYING игрока |
