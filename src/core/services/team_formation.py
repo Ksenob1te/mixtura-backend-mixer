@@ -13,11 +13,20 @@ from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 from src.core.interfaces.repo.team import TeamRepositoryProtocol
 from src.core.interfaces.repo.team_player import TeamPlayerRepositoryProtocol
+from src.core.models.balancer import (
+    BalancerPlayer,
+    BalancerPlayerRole,
+    MixBalanceSettings,
+    MixRoleConfig,
+    TournamentBalanceSettings,
+    TournamentRoleConfig,
+)
 from src.core.models.draft import DraftStatus, DraftUpdate
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.models.event import EventMatchType, TeamFormation as TeamFormationMethod
 from src.core.models.team import Team, TeamCreate
 from src.core.models.team_player import TeamPlayerCreate
+from src.core.results.balancer_task import BalancerTask
 from src.core.results.team_formation import (
     TeamFormationJob,
     TeamFormationVariant,
@@ -50,8 +59,8 @@ class TeamFormationService:
         team_player_repo: TeamPlayerRepositoryProtocol,
         variant_store,
         rating_client,
-        mix_balancer_client,
-        tournament_balancer_client,
+        balancer_repo,
+        balancer_task_store,
         env,
     ):
         self._event_repo = event_repo
@@ -62,8 +71,8 @@ class TeamFormationService:
         self._team_player_repo = team_player_repo
         self._variant_store = variant_store
         self._rating_client = rating_client
-        self._mix_balancer = mix_balancer_client
-        self._tournament_balancer = tournament_balancer_client
+        self._balancer_repo = balancer_repo
+        self._balancer_task_store = balancer_task_store
         self._env = env
 
     async def run(self, cmd: RunTeamFormationCommand) -> TeamFormationJob:
@@ -79,7 +88,7 @@ class TeamFormationService:
             load_time_settings=False,
             load_custom_fields=False,
             load_applications=False,
-            load_teams=True,
+            load_teams=False,
             load_drafts=False,
             load_players=False,
             load_brackets=False,
@@ -102,7 +111,7 @@ class TeamFormationService:
 
         rating_snapshot = await self._build_rating_snapshot(draft, event, cmd)
 
-        job_id = uuid.uuid4()
+        task_id = uuid.uuid4()
 
         players_with_roles = []
         for dp in draft.drafted_players:
@@ -111,19 +120,65 @@ class TeamFormationService:
                 players_with_roles.append(player)
 
         balancer_players = self._build_balancer_players(players_with_roles, rating_snapshot)
-        event_player_by_member = {player.member_id: player.id for player in players_with_roles}
-        role_by_member = {item.member_id: item.game_role_id for item in rating_snapshot}
+        event_player_by_member = {str(player.member_id): str(player.id) for player in players_with_roles}
+        role_by_member = {str(item.member_id): str(item.game_role_id) for item in rating_snapshot}
+
+        ttl = self._env.team_formation_variants_ttl_seconds
+        task = BalancerTask(
+            task_id=task_id,
+            draft_id=cmd.draft_id,
+            event_id=draft.event_id,
+            status="pending",
+            event_player_by_member=event_player_by_member,
+            role_by_member=role_by_member,
+            rating_snapshot=rating_snapshot,
+        )
+        await self._balancer_task_store.save(task, ttl)
+
+        pending_job = TeamFormationJob(
+            job_id=task_id,
+            draft_id=cmd.draft_id,
+            event_id=draft.event_id,
+            status="pending",
+            variants=[],
+            rating_snapshot=rating_snapshot,
+        )
+        await self._variant_store.save(task_id, draft.event_id, cmd.draft_id, pending_job, ttl)
 
         if event.match_type == EventMatchType.TOURNAMENT:
-            raw_variants = await self._call_tournament_balancer(
-                cmd.draft_id, event, balancer_players, cmd
+            settings, normalized_players = self._build_tournament_balancer_request(
+                event, balancer_players, cmd
+            )
+            await self._balancer_repo.request_tournament_formation(
+                task_id=task_id,
+                draft_id=cmd.draft_id,
+                players=normalized_players,
+                settings=settings,
             )
         else:
-            raw_variants = await self._call_mix_balancer(
-                cmd.draft_id, event, balancer_players, cmd
+            settings, normalized_players = self._build_mix_balancer_request(
+                event, balancer_players, cmd
+            )
+            await self._balancer_repo.request_mix_formation(
+                task_id=task_id,
+                draft_id=cmd.draft_id,
+                players=normalized_players,
+                settings=settings,
             )
 
-        variants = []
+        await self._draft_repo.update(DraftUpdate(id=cmd.draft_id, status=DraftStatus.BALANCE_REQUESTED))
+
+        return pending_job
+
+    async def complete_formation(self, task_id: UUID, raw_variants: list[dict]) -> None:
+        task = await self._balancer_task_store.get(task_id)
+        if task is None:
+            return
+
+        event_player_by_member = {UUID(k): UUID(v) for k, v in task.event_player_by_member.items()}
+        role_by_member = {UUID(k): UUID(v) for k, v in task.role_by_member.items()}
+
+        variants: list[TeamFormationVariant] = []
         for i, rv in enumerate(raw_variants):
             variant_id = uuid.uuid4()
             teams_data = rv.get("teams", [])
@@ -149,26 +204,23 @@ class TeamFormationService:
             )
             variants.append(TeamFormationVariant(
                 id=variant_id,
-                draft_id=cmd.draft_id,
+                draft_id=task.draft_id,
                 teams=variant_teams,
                 metrics=metrics,
             ))
 
         job = TeamFormationJob(
-            job_id=job_id,
-            draft_id=cmd.draft_id,
-            event_id=draft.event_id,
+            job_id=task_id,
+            draft_id=task.draft_id,
+            event_id=task.event_id,
             status="completed",
             variants=variants,
-            rating_snapshot=rating_snapshot,
+            rating_snapshot=task.rating_snapshot,
         )
 
         ttl = self._env.team_formation_variants_ttl_seconds
-        await self._variant_store.save(job_id, draft.event_id, cmd.draft_id, job, ttl)
-
-        await self._draft_repo.update(DraftUpdate(id=cmd.draft_id, status=DraftStatus.BALANCE_REQUESTED))
-
-        return job
+        await self._variant_store.save(task_id, task.event_id, task.draft_id, job, ttl)
+        await self._balancer_task_store.delete(task_id)
 
     async def get(self, cmd: GetTeamFormationCommand) -> TeamFormationJob:
         draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=False)
@@ -240,6 +292,9 @@ class TeamFormationService:
         if job is None:
             raise NotFoundException("Team formation job expired or not found, run team formation again")
 
+        if job.status == "pending":
+            raise ConflictException("Team formation is still in progress, wait for completion before selecting a variant")
+
         selected = None
         for v in job.variants:
             if v.id == cmd.variant_id:
@@ -282,64 +337,66 @@ class TeamFormationService:
 
         return created_teams
 
-    async def _call_mix_balancer(self, draft_id, event, balancer_players, cmd):
+    def _build_mix_balancer_request(
+        self, event, balancer_players: list[BalancerPlayer], cmd
+    ) -> tuple[MixBalanceSettings, list[BalancerPlayer]]:
         team_size = event.team_size or 2
-        balancer_settings = {
-            "min_in_team": 1,
-            "max_in_team": team_size,
-            "roles": {
-                str(role.id): {"count_in_team": (role.override_min_count or 1) if team_size > 1 else 0}
+        settings = MixBalanceSettings(
+            min_in_team=1,
+            max_in_team=team_size,
+            roles={
+                str(role.id): MixRoleConfig(
+                    count_in_team=(role.override_min_count or 1) if team_size > 1 else 0,
+                )
                 for role in (event.selected_game_roles or [])
             },
-        }
-        return await self._mix_balancer.balance(
-            draft_id=draft_id,
-            players=self._normalize_priorities_for_mix(balancer_players),
-            balance_settings=balancer_settings,
         )
+        normalized = self._normalize_priorities_for_mix(balancer_players)
+        return settings, normalized
 
-    async def _call_tournament_balancer(self, draft_id, event, balancer_players, cmd):
+    def _build_tournament_balancer_request(
+        self, event, balancer_players: list[BalancerPlayer], cmd
+    ) -> tuple[TournamentBalanceSettings, list[BalancerPlayer]]:
         team_count = cmd.team_count or (len(balancer_players) // event.team_size if event.team_size else 0)
         if team_count < 2:
             raise BadRequestException("Tournament requires at least 2 teams")
-        balancer_settings = {
-            "team_count": team_count,
-            "players_in_team": event.team_size,
-            "roles": {
-                str(role.id): {
-                    "count_in_team": (role.override_min_count or 1) if event.team_size > 1 else 0,
-                    "min_count_in_team": role.override_min_count or 0,
-                    "max_count_in_team": role.override_max_count or event.team_size,
-                }
+        settings = TournamentBalanceSettings(
+            team_count=team_count,
+            players_in_team=event.team_size,
+            roles={
+                str(role.id): TournamentRoleConfig(
+                    count_in_team=(role.override_min_count or 1) if event.team_size > 1 else 0,
+                    min_count_in_team=role.override_min_count or 0,
+                    max_count_in_team=role.override_max_count or (event.team_size or 1),
+                )
                 for role in (event.selected_game_roles or [])
             },
-            "priority": {"max_priority": 100},
-        }
-        return await self._tournament_balancer.balance(
-            draft_id=draft_id,
-            players=self._normalize_priorities_for_tournament(balancer_players, max_priority=100),
-            balance_settings=balancer_settings,
+            priority={"max_priority": 100},
         )
+        normalized = self._normalize_priorities_for_tournament(balancer_players, max_priority=100)
+        return settings, normalized
 
-    def _build_balancer_players(self, players_with_roles, rating_snapshot):
+    def _build_balancer_players(
+        self, players_with_roles, rating_snapshot
+    ) -> list[BalancerPlayer]:
         rs_index = {}
         for r in rating_snapshot:
             rs_index[(r.member_id, r.game_role_id)] = r
 
-        member_roles = {}
+        member_roles: dict[UUID, dict[str, BalancerPlayerRole]] = {}
         for player in players_with_roles:
             for role in (player.player_roles or []):
-                if player.member_id not in member_roles:
-                    member_roles[player.member_id] = {}
                 rs = rs_index.get((player.member_id, role.game_role_id))
                 calculated_rating = rs.calculated_rating if rs else 1000.0
-                member_roles[player.member_id][str(role.game_role_id)] = {
-                    "priority": role.priority,
-                    "rating": int(round(calculated_rating)),
-                }
+                if player.member_id not in member_roles:
+                    member_roles[player.member_id] = {}
+                member_roles[player.member_id][str(role.game_role_id)] = BalancerPlayerRole(
+                    priority=role.priority,
+                    rating=int(round(calculated_rating)),
+                )
 
         return [
-            {"member_id": str(mid), "roles": roles}
+            BalancerPlayer(member_id=mid, roles=roles)
             for mid, roles in member_roles.items()
         ]
 
@@ -440,21 +497,25 @@ class TeamFormationService:
                 return player.id
         raise BadRequestException(f"Rating snapshot member is not in draft: {member_id}")
 
-    def _normalize_priorities_for_mix(self, players: list[dict]) -> list[dict]:
+    def _normalize_priorities_for_mix(self, players: list[BalancerPlayer]) -> list[BalancerPlayer]:
         return self._normalize_priorities(players, lambda value: max(1, value))
 
-    def _normalize_priorities_for_tournament(self, players: list[dict], max_priority: int) -> list[dict]:
+    def _normalize_priorities_for_tournament(self, players: list[BalancerPlayer], max_priority: int) -> list[BalancerPlayer]:
         return self._normalize_priorities(players, lambda value: max(1, min(max_priority, max_priority + 1 - value)))
 
-    def _normalize_priorities(self, players: list[dict], normalize):
+    def _normalize_priorities(self, players: list[BalancerPlayer], normalize) -> list[BalancerPlayer]:
         normalized = []
         for player in players:
             roles = {}
-            for role_id, role_data in player.get("roles", {}).items():
-                data = dict(role_data)
-                data["priority"] = normalize(int(data.get("priority", 1)))
-                roles[role_id] = data
-            normalized.append({**player, "roles": roles})
+            for role_id, role_data in player.roles.items():
+                roles[role_id] = BalancerPlayerRole(
+                    priority=normalize(role_data.priority),
+                    rating=role_data.rating,
+                )
+            normalized.append(BalancerPlayer(
+                member_id=player.member_id,
+                roles=roles,
+            ))
         return normalized
 
     def _extract_team_players(

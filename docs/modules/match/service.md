@@ -19,7 +19,7 @@
 - `PlayerRepositoryProtocol` — CRUD EventPlayer, `get_by_event_and_member`
 
 ### Clients
-- `RatingClient` — `process_match_result()` (RabbitMQ)
+- `RatingClient` — `process_match_result()` (RabbitMQ publish, fire-and-forget). `calculate_effective_ratings()` реализован через неблокирующий `RabbitRpcClient` (aio_pika).
 
 ### Config
 - `env.rating_match_process_enabled` — флаг публикации рейтингов

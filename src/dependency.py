@@ -5,6 +5,8 @@ from faststream.rabbit import RabbitBroker
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .core.interfaces.clients.balancer_request import BalancerRequestRepositoryProtocol
+from .core.interfaces.clients.rating import RatingClientProtocol
 from .core.interfaces.repo import (
     ApplicationCustomFieldRepositoryProtocol,
     ApplicationIntegrationRepositoryProtocol,
@@ -31,6 +33,8 @@ from .core.interfaces.repo import (
     TeamPlayerRepositoryProtocol,
     TeamRepositoryProtocol,
 )
+from src.infra.clients.balancer_request import BalancerRequestRepository
+from src.infra.clients.rating import RatingClient
 from src.infra.postgre import DatabaseSessionManager
 from src.infra.postgre.repo import (
     ApplicationCustomFieldRepository,
@@ -58,11 +62,10 @@ from src.infra.postgre.repo import (
     TeamPlayerRepository,
     TeamRepository,
 )
+from src.infra.rabbit.rpc_client import RabbitRpcClient
+from src.infra.redis.balancer_task import BalancerTaskStore
 from src.infra.redis.engine import RedisSessionManager
 from src.infra.redis.team_formation import TeamFormationVariantStore
-from src.infra.clients.rating import RatingClient
-from src.infra.clients.mix_balancer import MixBalancerClient
-from src.infra.clients.tournament_balancer import TournamentBalancerClient
 from src.core.services import (
     ApplicationService,
     DraftService,
@@ -201,22 +204,23 @@ async def get_team_player_repository(session: DatabaseSession) -> TeamPlayerRepo
 
 # -- Client providers --
 
+async def get_rpc_client(
+    rpc_client: Annotated[RabbitRpcClient, Context()],
+) -> RabbitRpcClient:
+    return rpc_client
+
+
 async def get_rating_client(
+    rpc_client: Annotated[RabbitRpcClient, Context()],
     broker: Annotated[RabbitBroker, Context()],
-) -> RatingClient:
-    return RatingClient(broker)
+) -> RatingClientProtocol:
+    return RatingClient(rpc_client, broker)
 
 
-async def get_mix_balancer_client(
+async def get_balancer_request_repository(
     broker: Annotated[RabbitBroker, Context()],
-) -> MixBalancerClient:
-    return MixBalancerClient(broker)
-
-
-async def get_tournament_balancer_client(
-    broker: Annotated[RabbitBroker, Context()],
-) -> TournamentBalancerClient:
-    return TournamentBalancerClient(broker)
+) -> BalancerRequestRepositoryProtocol:
+    return BalancerRequestRepository(broker)
 
 
 # -- Store providers --
@@ -225,6 +229,12 @@ async def get_team_formation_variant_store(
     redis: RedisSession,
 ) -> TeamFormationVariantStore:
     return TeamFormationVariantStore(redis)
+
+
+async def get_balancer_task_store(
+    redis: RedisSession,
+) -> BalancerTaskStore:
+    return BalancerTaskStore(redis)
 
 
 # -- Repository type aliases --
@@ -303,13 +313,13 @@ TeamPlayerRepositoryDependency = Annotated[
 
 # -- Client type aliases --
 
-RatingClientDependency = Annotated[RatingClient, Depends(get_rating_client)]
-MixBalancerClientDependency = Annotated[MixBalancerClient, Depends(get_mix_balancer_client)]
-TournamentBalancerClientDependency = Annotated[TournamentBalancerClient, Depends(get_tournament_balancer_client)]
+RatingClientDependency = Annotated[RatingClientProtocol, Depends(get_rating_client)]
+BalancerRequestRepositoryDependency = Annotated[BalancerRequestRepositoryProtocol, Depends(get_balancer_request_repository)]
 
 # -- Store type aliases --
 
 TeamFormationVariantStoreDependency = Annotated[TeamFormationVariantStore, Depends(get_team_formation_variant_store)]
+BalancerTaskStoreDependency = Annotated[BalancerTaskStore, Depends(get_balancer_task_store)]
 
 # -- Service providers --
 
@@ -377,13 +387,13 @@ async def get_team_formation_service(
     team_player_repo: TeamPlayerRepositoryDependency,
     variant_store: TeamFormationVariantStoreDependency,
     rating_client: RatingClientDependency,
-    mix_balancer_client: MixBalancerClientDependency,
-    tournament_balancer_client: TournamentBalancerClientDependency,
+    balancer_repo: BalancerRequestRepositoryDependency,
+    balancer_task_store: BalancerTaskStoreDependency,
 ) -> TeamFormationService:
     return TeamFormationService(
         event_repo, organizer_repo, draft_repo, player_repo,
         team_repo, team_player_repo, variant_store, rating_client,
-        mix_balancer_client, tournament_balancer_client, env,
+        balancer_repo, balancer_task_store, env,
     )
 
 

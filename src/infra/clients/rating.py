@@ -4,10 +4,12 @@ from uuid import UUID
 from faststream.rabbit import RabbitBroker
 
 from src.core.interfaces.clients.rating import RatingClientProtocol
+from src.infra.rabbit.rpc_client import RabbitRpcClient
 
 
 class RatingClient(RatingClientProtocol):
-    def __init__(self, broker: RabbitBroker):
+    def __init__(self, rpc_client: RabbitRpcClient, broker: RabbitBroker):
+        self._rpc_client = rpc_client
         self._broker = broker
 
     async def calculate_effective_ratings(
@@ -16,10 +18,9 @@ class RatingClient(RatingClientProtocol):
         players: list[dict],
         settings: dict | None = None,
     ) -> list[dict]:
-        response = await self._broker.request(
-            {"draft_id": str(draft_id), "players": players, "settings": settings},
+        response = await self._rpc_client.request(
             queue="rating.effective.calculate",
-            timeout=30.0,
+            payload={"draft_id": str(draft_id), "players": players, "settings": settings},
         )
         body = json.loads(response.body.decode())
         return body.get("players", [])

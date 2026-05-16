@@ -2,7 +2,7 @@
 
 ## Overview
 - **File:** `src/core/services/team_formation.py`
-- **Private helpers:** `_get_first_role(event)`, `_build_rating_snapshot()`, `_build_balancer_players()`, `_call_mix_balancer()`, `_call_tournament_balancer()`, `_normalize_priorities()`, `_extract_team_players()`, `_read_uuid()`, `_read_float()`
+- **Private helpers:** `_get_first_role(event)`, `_build_rating_snapshot()`, `_build_balancer_players()`, `_build_mix_balancer_request()`, `_build_tournament_balancer_request()`, `_normalize_priorities()`, `_extract_team_players()`, `_read_uuid()`, `_read_float()`
 
 ## Dependencies
 
@@ -15,17 +15,17 @@
 - `TeamPlayerRepositoryProtocol` — создание TeamPlayer
 
 ### Clients
-- `RatingClient` — `calculate_effective_ratings()` (RabbitMQ)
-- `MixBalancerClient` — `balance()` для single match (RabbitMQ)
-- `TournamentBalancerClient` — `balance()` для tournament (RabbitMQ)
+- `RatingClient` — `calculate_effective_ratings()` (неблокирующий RabbitMQ RPC)
+- `BalancerRequestRepository` — `request_mix_formation()`, `request_tournament_formation()` (publish, не RPC)
 
 ### Stores
 - `TeamFormationVariantStore` — Redis кэш вариантов (TTL из `env.team_formation_variants_ttl_seconds`)
+- `BalancerTaskStore` — Redis хранилище контекста задач балансировки
 
 ## Method: `run(cmd: RunTeamFormationCommand) -> TeamFormationJob`
 
 ### Purpose
-Запуск автоматической балансировки команд. Вызывает внешний balancer, сохраняет варианты в Redis, обновляет статус draft.
+Запуск автоматической балансировки команд. Создаёт задачу в Redis, публикует запрос балансеру через RabbitMQ (publish, не RPC), сразу возвращает job со статусом "pending". Результаты приходят асинхронно через handler и `complete_formation()`.
 
 ### Algorithm
 1. Загрузка draft с drafted_players → `NotFoundException`
@@ -39,34 +39,35 @@
    - Для всех drafted_players: добавление с open_rating=1000.0
    - Если `use_effective_rating` и `rating_set_id`: вызов `rating_client.calculate_effective_ratings()` → `BadRequestException` при ошибке
 8. **Build balancer players:** группировка ролей по member_id с priority и rating
-9. **Вызов balancer:**
-   - Если TOURNAMENT → `_call_tournament_balancer()` (нужен team_count >= 2 → `BadRequestException`)
-   - Иначе → `_call_mix_balancer()`
-10. **Парсинг вариантов:** для каждого raw variant → TeamFormationVariant с teams, metrics
-11. Создание `TeamFormationJob`
-12. Сохранение в Redis через `variant_store.save(job_id, event_id, draft_id, job, ttl)`
-13. Обновление draft.status = BALANCE_REQUESTED
-14. Возврат job
+9. **Создание задачи:**
+   - `BalancerTask` в `BalancerTaskStore` (status="pending", event_player_by_member, role_by_member, rating_snapshot)
+   - `TeamFormationJob(status="pending")` в `TeamFormationVariantStore`
+10. **Публикация запроса балансеру:**
+    - Если TOURNAMENT → `balancer_repo.request_tournament_formation()` (нужен team_count >= 2 → `BadRequestException`)
+    - Иначе → `balancer_repo.request_mix_formation()`
+    - Публикация с `correlation_id=task_id`, `reply_to="mixer_service.balancer.result"`
+11. Обновление draft.status = BALANCE_REQUESTED
+12. Возврат pending job
 
-### Balancer Settings
+### Balancer Settings Models
 
-**Mix Balancer:**
-```json
-{
-  "min_in_team": 1,
-  "max_in_team": team_size,
-  "roles": { "<role_id>": { "count_in_team": override_min_count or 1 } }
-}
+**Mix:**
+```python
+MixBalanceSettings(
+    min_in_team: int,
+    max_in_team: int,
+    roles: dict[str, MixRoleConfig]  # role_id -> {count_in_team: int}
+)
 ```
 
-**Tournament Balancer:**
-```json
-{
-  "team_count": team_count,
-  "players_in_team": team_size,
-  "roles": { "<role_id>": { "count_in_team": ..., "min_count_in_team": ..., "max_count_in_team": ... } },
-  "priority": { "max_priority": 100 }
-}
+**Tournament:**
+```python
+TournamentBalanceSettings(
+    team_count: int,
+    players_in_team: int,
+    roles: dict[str, TournamentRoleConfig],  # role_id -> {count_in_team, min_count_in_team, max_count_in_team}
+    priority: dict[str, int]
+)
 ```
 
 ### Exceptions
@@ -85,10 +86,25 @@
 
 ---
 
+## Method: `complete_formation(task_id: UUID, raw_variants: list[dict]) -> None`
+
+### Purpose
+Вызывается handler'ом при получении результата балансировки. Читает контекст задачи из Redis, строит варианты, сохраняет завершённый `TeamFormationJob`.
+
+### Algorithm
+1. Получение `BalancerTask` из `BalancerTaskStore` по `task_id` → выход если нет
+2. Распаковка `event_player_by_member`, `role_by_member` (str→UUID)
+3. Построение `TeamFormationVariant` из `raw_variants` (логика `_extract_team_players`)
+4. Создание `TeamFormationJob(status="completed")`
+5. Сохранение в `TeamFormationVariantStore`
+6. Удаление `BalancerTask` из `BalancerTaskStore`
+
+---
+
 ## Method: `get(cmd: GetTeamFormationCommand) -> TeamFormationJob`
 
 ### Purpose
-Получение результатов последней балансировки из Redis кэша.
+Получение результатов последней балансировки из Redis кэша. Возвращает как pending (ещё в процессе), так и completed job.
 
 ### Algorithm
 1. Загрузка draft → `NotFoundException`
@@ -121,16 +137,17 @@
 4. Проверка: организатор ИЛИ `P_EVENT_ADMIN_MANAGE_BRACKET` → `ForbiddenException`
 5. Проверка draft.status в (BALANCE_REQUESTED, OPEN) → `ConflictException`
 6. `variant_store.get_latest_by_draft(event_id, draft_id)` → `NotFoundException`
-7. Поиск variant по variant_id → `NotFoundException`
-8. Проверка variant.teams не пустой → `ConflictException`
-9. Для каждой команды в варианте:
-   - Создание Team
-   - Для каждого игрока: проверка game_role в selected_game_roles → `BadRequestException`
-   - Создание TeamPlayer (member_id, game_role_id, rating)
-   - Обновление EventPlayer.status = SELECTED
-10. Обновление draft.status = BALANCE_SELECTED
-11. Удаление job из Redis
-12. Возврат созданных команд
+7. Проверка job.status == "pending" → `ConflictException` ("still in progress")
+8. Поиск variant по variant_id → `NotFoundException`
+9. Проверка variant.teams не пустой → `ConflictException`
+10. Для каждой команды в варианте:
+    - Создание Team
+    - Для каждого игрока: проверка game_role в selected_game_roles → `BadRequestException`
+    - Создание TeamPlayer (member_id, game_role_id, rating)
+    - Обновление EventPlayer.status = SELECTED
+11. Обновление draft.status = BALANCE_SELECTED
+12. Удаление job из Redis
+13. Возврат созданных команд
 
 ### Exceptions
 | Exception | Condition |
@@ -140,6 +157,7 @@
 | `ForbiddenException` | Не организатор и нет `P_EVENT_ADMIN_MANAGE_BRACKET` |
 | `ConflictException` | Draft статус не BALANCE_REQUESTED/OPEN |
 | `NotFoundException` | Job истёк |
+| `ConflictException` | Formation ещё в процессе (pending) |
 | `NotFoundException` | Variant не найден |
 | `ConflictException` | Вариант без команд |
 | `BadRequestException` | Unknown game role в варианте |

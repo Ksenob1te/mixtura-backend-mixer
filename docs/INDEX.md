@@ -27,6 +27,7 @@
 | [Draft](modules/draft/api.md) | [api.md](modules/draft/api.md) | [service.md](modules/draft/service.md) |
 | [Team](modules/team/api.md) | [api.md](modules/team/api.md) | [service.md](modules/team/service.md) |
 | [Team Formation](modules/team-formation/api.md) | [api.md](modules/team-formation/api.md) | [service.md](modules/team-formation/service.md) |
+| Balancer Result | — | [service.md](modules/team-formation/service.md#method-complete_formationtask_id-uuid-raw_variants-listdict---none) |
 | [Match](modules/match/api.md) | [api.md](modules/match/api.md) | [service.md](modules/match/service.md) |
 | [Settings](modules/settings/api.md) | [api.md](modules/settings/api.md) | [service.md](modules/settings/service.md) |
 | [Health](modules/health/api.md) | [api.md](modules/health/api.md) | — |

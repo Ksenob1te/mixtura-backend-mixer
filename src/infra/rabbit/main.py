@@ -10,6 +10,7 @@ from src.core.exceptions import DomainException
 from src.core.response import ErrorResponse, ResponseMessage
 from src.env_config import env
 from src.infra.postgre.engine import DatabaseSessionManager
+from src.infra.rabbit.rpc_client import RabbitRpcClient
 from src.infra.redis.engine import RedisSessionManager
 
 from . import api
@@ -49,7 +50,13 @@ async def lifespan(context: ContextRepo):
 
     context.set_global("broker", broker)
 
+    rpc_client = RabbitRpcClient(env.rabbit.url, default_timeout=env.rabbit_request_timeout)
+    await rpc_client.start()
+    context.set_global("rpc_client", rpc_client)
+
     yield
+
+    await rpc_client.stop()
 
     if await redis_engine.opened:
         await redis_engine.close()

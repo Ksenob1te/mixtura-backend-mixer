@@ -41,3 +41,23 @@ class InternalLogicException(DomainException):
     def __init__(self, message: str = "Internal error"):
         super().__init__(status_code=500, message=message)
 
+
+class RpcError(Exception):
+    """Base for RPC communication errors."""
+
+
+class RpcTimeoutError(RpcError):
+    pass
+
+
+class RpcClientClosedError(RpcError):
+    pass
+
+
+class RpcOverloadedError(RpcError):
+    pass
+
+
+class RpcPublishError(RpcError):
+    pass
+

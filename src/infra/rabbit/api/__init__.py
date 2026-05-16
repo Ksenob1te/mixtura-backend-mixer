@@ -10,6 +10,7 @@ from .draft import router as DraftController
 from .team_formation import router as TeamFormationController
 from .team import router as TeamController
 from .match import router as MatchController
+from .balancer_result import router as BalancerResultController
 
 router = RabbitRouter()
 
@@ -23,3 +24,4 @@ router.include_router(DraftController)
 router.include_router(TeamFormationController)
 router.include_router(TeamController)
 router.include_router(MatchController)
+router.include_router(BalancerResultController)

@@ -1,9 +1,7 @@
 from .rating import RatingClient
-from .mix_balancer import MixBalancerClient
-from .tournament_balancer import TournamentBalancerClient
+from .balancer_request import BalancerRequestRepository
 
 __all__ = [
     "RatingClient",
-    "MixBalancerClient",
-    "TournamentBalancerClient",
+    "BalancerRequestRepository",
 ]

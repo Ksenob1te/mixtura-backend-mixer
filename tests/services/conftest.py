@@ -287,8 +287,8 @@ def team_formation_service(
     team_player_repo,
     variant_store,
     rating_client,
-    mix_balancer_client,
-    tournament_balancer_client,
+    balancer_repo,
+    balancer_task_store,
     team_formation_env,
 ) -> TeamFormationService:
     return TeamFormationService(
@@ -300,8 +300,8 @@ def team_formation_service(
         team_player_repo=team_player_repo,
         variant_store=variant_store,
         rating_client=rating_client,
-        mix_balancer_client=mix_balancer_client,
-        tournament_balancer_client=tournament_balancer_client,
+        balancer_repo=balancer_repo,
+        balancer_task_store=balancer_task_store,
         env=team_formation_env,
     )
 
@@ -323,14 +323,31 @@ class RecordingVariantStore:
         self.saved_jobs.pop((event_id, draft_id), None)
 
 
-class RecordingBalancerClient:
+class RecordingBalancerRepo:
     def __init__(self, variants=None):
         self.variants = variants or []
-        self.calls = []
+        self.mix_calls: list[dict] = []
+        self.tournament_calls: list[dict] = []
 
-    async def balance(self, **kwargs):
-        self.calls.append(kwargs)
-        return self.variants
+    async def request_mix_formation(self, *, task_id, draft_id, players, settings):
+        self.mix_calls.append({"task_id": task_id, "draft_id": draft_id, "players": players, "settings": settings})
+
+    async def request_tournament_formation(self, *, task_id, draft_id, players, settings):
+        self.tournament_calls.append({"task_id": task_id, "draft_id": draft_id, "players": players, "settings": settings})
+
+
+class RecordingBalancerTaskStore:
+    def __init__(self):
+        self.tasks: dict = {}
+
+    async def save(self, task, ttl):
+        self.tasks[task.task_id] = task
+
+    async def get(self, task_id):
+        return self.tasks.get(task_id, None)
+
+    async def delete(self, task_id):
+        self.tasks.pop(task_id, None)
 
 
 class RecordingRatingClient:
@@ -359,13 +376,13 @@ def variant_store() -> RecordingVariantStore:
 
 
 @pytest.fixture
-def mix_balancer_client() -> RecordingBalancerClient:
-    return RecordingBalancerClient()
+def balancer_repo() -> RecordingBalancerRepo:
+    return RecordingBalancerRepo()
 
 
 @pytest.fixture
-def tournament_balancer_client() -> RecordingBalancerClient:
-    return RecordingBalancerClient()
+def balancer_task_store() -> RecordingBalancerTaskStore:
+    return RecordingBalancerTaskStore()
 
 
 @pytest.fixture

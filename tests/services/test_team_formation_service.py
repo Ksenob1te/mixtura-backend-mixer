@@ -19,7 +19,7 @@ class TestTeamFormationService:
         with pytest.raises(NotFoundException):
             await team_formation_service.run(RunTeamFormationCommand(draft_id=uuid4(), access_data=AccessDataRequest(server_id=uuid4(), member_id=uuid4())))
 
-    async def test_run_saves_variants_and_updates_draft(
+    async def test_run_returns_pending_and_publishes_to_balancer(
         self,
         team_formation_service,
         event_repo,
@@ -29,7 +29,45 @@ class TestTeamFormationService:
         player_repo,
         player_role_repo,
         selected_game_role_repo,
-        mix_balancer_client,
+        balancer_repo,
+        server_id,
+        organizer_id,
+    ):
+        event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, team_formation=TeamFormation.BALANCE, use_application=False, is_public=True, team_size=2, allow_multiple_drafts=False))
+        await organizer_repo.create(dict(event_id=event.id, member_id=organizer_id))
+
+        role_one = await selected_game_role_repo.create(dict(event_id=event.id, game_role_id=uuid4()))
+        role_two = await selected_game_role_repo.create(dict(event_id=event.id, game_role_id=uuid4()))
+
+        player_one = await player_repo.create(EventPlayerCreate(event_id=event.id, member_id=uuid4(), is_draft_pinned=False))
+        await player_role_repo.create(PlayerRoleCreate(game_role_id=role_one.id, priority=1, event_player_id=player_one.id))
+        player_two = await player_repo.create(EventPlayerCreate(event_id=event.id, member_id=uuid4(), is_draft_pinned=False))
+        await player_role_repo.create(PlayerRoleCreate(game_role_id=role_two.id, priority=1, event_player_id=player_two.id))
+
+        draft = await draft_repo.create(DraftCreate(event_id=event.id))
+        await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player_one.id))
+        await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player_two.id))
+
+        result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+
+        stored = await draft_repo.get(draft.id)
+        assert result.status == "pending"
+        assert stored is not None
+        assert stored.status == DraftStatus.BALANCE_REQUESTED
+        assert len(balancer_repo.mix_calls) == 1
+        assert balancer_repo.mix_calls[0]["draft_id"] == draft.id
+
+    async def test_run_saves_variants_after_completion(
+        self,
+        team_formation_service,
+        event_repo,
+        organizer_repo,
+        draft_repo,
+        drafted_player_repo,
+        player_repo,
+        player_role_repo,
+        selected_game_role_repo,
+        balancer_repo,
         variant_store,
         server_id,
         organizer_id,
@@ -46,11 +84,14 @@ class TestTeamFormationService:
         await player_role_repo.create(PlayerRoleCreate(game_role_id=role_two.id, priority=1, event_player_id=player_two.id))
 
         draft = await draft_repo.create(DraftCreate(event_id=event.id))
-        dp1 = await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player_one.id))
-        dp2 = await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player_two.id))
+        await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player_one.id))
+        await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player_two.id))
 
-        # prepare balancer variants that the service will record
-        mix_balancer_client.variants = [
+        result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+        assert result.status == "pending"
+        assert len(result.variants) == 0
+
+        raw_variants = [
             {
                 "teams": [
                     {"name": "Team A", "member_ids": [player_one.member_id], "event_player_ids": [player_one.id], "game_role_ids": [role_one.id], "calculated_ratings": [1200.0]},
@@ -62,18 +103,13 @@ class TestTeamFormationService:
                 "constraint_violations": 0,
             }
         ]
+        await team_formation_service.complete_formation(result.job_id, raw_variants)
 
-        result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
-
-        stored = await draft_repo.get(draft.id)
-        assert result.status == "completed"
-        assert stored is not None
-        from src.core.models.draft import DraftStatus
-
-        assert stored.status == DraftStatus.BALANCE_REQUESTED
-        assert mix_balancer_client.calls[0]["draft_id"] == draft.id
-        assert variant_store.saved_jobs[(event.id, draft.id)]["job"].job_id == result.job_id
-        assert len(result.variants) == 1
+        completed = await variant_store.get_latest_by_draft(event.id, draft.id)
+        assert completed is not None
+        assert completed.status == "completed"
+        assert len(completed.variants) == 1
+        assert completed.job_id == result.job_id
 
     async def test_get_raises_not_found_when_cached_job_is_missing(self, team_formation_service, event_repo, organizer_repo, selected_game_role_repo, draft_repo, server_id, organizer_id):
         event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, team_formation=TeamFormation.BALANCE, use_application=False, is_public=True, team_size=2, allow_multiple_drafts=False))
@@ -84,7 +120,7 @@ class TestTeamFormationService:
         with pytest.raises(NotFoundException):
             await team_formation_service.get(GetTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
 
-    async def test_choose_variant_creates_teams_and_selects_players(self, team_formation_service, event_repo, organizer_repo, draft_repo, drafted_player_repo, player_repo, player_role_repo, selected_game_role_repo, team_repo, team_player_repo, mix_balancer_client, server_id, organizer_id):
+    async def test_choose_variant_creates_teams_and_selects_players(self, team_formation_service, event_repo, organizer_repo, draft_repo, drafted_player_repo, player_repo, player_role_repo, selected_game_role_repo, team_repo, team_player_repo, balancer_repo, server_id, organizer_id):
         event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, team_formation=TeamFormation.BALANCE, use_application=False, is_public=True, team_size=2, allow_multiple_drafts=False))
         await organizer_repo.create(dict(event_id=event.id, member_id=organizer_id))
 
@@ -100,7 +136,9 @@ class TestTeamFormationService:
         await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player_one.id))
         await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player_two.id))
 
-        mix_balancer_client.variants = [
+        run_result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+
+        raw_variants = [
             {
                 "teams": [
                     {"name": "Team A", "member_ids": [player_one.member_id], "event_player_ids": [player_one.id], "game_role_ids": [role_one.id], "calculated_ratings": [1200.0]},
@@ -112,9 +150,10 @@ class TestTeamFormationService:
                 "constraint_violations": 0,
             }
         ]
+        await team_formation_service.complete_formation(run_result.job_id, raw_variants)
 
-        run_result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
-        variant_id = run_result.variants[0].id
+        completed = await team_formation_service.get(GetTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+        variant_id = completed.variants[0].id
 
         teams = await team_formation_service.choose_variant(ChooseTeamFormationVariantCommand(draft_id=draft.id, variant_id=variant_id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
 
@@ -152,7 +191,7 @@ class TestTeamFormationService:
                 )
             )
 
-    async def test_choose_variant_rejects_missing_variant(self, team_formation_service, event_repo, organizer_repo, draft_repo, drafted_player_repo, player_repo, player_role_repo, selected_game_role_repo, mix_balancer_client, server_id, organizer_id):
+    async def test_choose_variant_rejects_missing_variant(self, team_formation_service, event_repo, organizer_repo, draft_repo, drafted_player_repo, player_repo, player_role_repo, selected_game_role_repo, balancer_repo, server_id, organizer_id):
         event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, team_formation=TeamFormation.BALANCE, use_application=False, is_public=True, team_size=2, allow_multiple_drafts=False))
         await organizer_repo.create(dict(event_id=event.id, member_id=organizer_id))
         role = await selected_game_role_repo.create(dict(event_id=event.id, game_role_id=uuid4()))
@@ -161,7 +200,9 @@ class TestTeamFormationService:
         draft = await draft_repo.create(DraftCreate(event_id=event.id))
         await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player.id))
 
-        mix_balancer_client.variants = [
+        run_result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+
+        raw_variants = [
             {
                 "teams": [
                     {"name": "A", "member_ids": [player.member_id], "event_player_ids": [player.id], "game_role_ids": [role.id], "calculated_ratings": [1200.0]}
@@ -172,8 +213,7 @@ class TestTeamFormationService:
                 "constraint_violations": 0,
             }
         ]
-
-        await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+        await team_formation_service.complete_formation(run_result.job_id, raw_variants)
 
         with pytest.raises(NotFoundException):
             await team_formation_service.choose_variant(
@@ -184,3 +224,51 @@ class TestTeamFormationService:
                 )
             )
 
+    async def test_choose_variant_rejects_pending_formation(self, team_formation_service, event_repo, organizer_repo, draft_repo, drafted_player_repo, player_repo, player_role_repo, selected_game_role_repo, server_id, organizer_id):
+        event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, team_formation=TeamFormation.BALANCE, use_application=False, is_public=True, team_size=2, allow_multiple_drafts=False))
+        await organizer_repo.create(dict(event_id=event.id, member_id=organizer_id))
+        role = await selected_game_role_repo.create(dict(event_id=event.id, game_role_id=uuid4()))
+        player = await player_repo.create(EventPlayerCreate(event_id=event.id, member_id=uuid4(), is_draft_pinned=False))
+        await player_role_repo.create(PlayerRoleCreate(game_role_id=role.id, priority=1, event_player_id=player.id))
+        draft = await draft_repo.create(DraftCreate(event_id=event.id))
+        await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player.id))
+
+        await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+
+        with pytest.raises(ConflictException, match="still in progress"):
+            await team_formation_service.choose_variant(
+                ChooseTeamFormationVariantCommand(
+                    draft_id=draft.id,
+                    variant_id=uuid4(),
+                    access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id),
+                )
+            )
+
+    async def test_get_returns_pending_job_after_run(
+        self,
+        team_formation_service,
+        event_repo,
+        organizer_repo,
+        selected_game_role_repo,
+        draft_repo,
+        drafted_player_repo,
+        player_repo,
+        player_role_repo,
+        server_id,
+        organizer_id,
+    ):
+        event = await event_repo.create(EventCreate(server_id=server_id, name="Event", status=EventStatus.CREATED, match_type=EventMatchType.SINGLE, team_formation=TeamFormation.BALANCE, use_application=False, is_public=True, team_size=2, allow_multiple_drafts=False))
+        await organizer_repo.create(dict(event_id=event.id, member_id=organizer_id))
+        role = await selected_game_role_repo.create(dict(event_id=event.id, game_role_id=uuid4()))
+        player = await player_repo.create(EventPlayerCreate(event_id=event.id, member_id=uuid4(), is_draft_pinned=False))
+        await player_role_repo.create(PlayerRoleCreate(game_role_id=role.id, priority=1, event_player_id=player.id))
+        draft = await draft_repo.create(DraftCreate(event_id=event.id))
+        await drafted_player_repo.create(dict(draft_id=draft.id, event_player_id=player.id))
+
+        run_result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+        assert run_result.status == "pending"
+
+        job = await team_formation_service.get(GetTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
+        assert job is not None
+        assert job.status == "pending"
+        assert job.job_id == run_result.job_id
