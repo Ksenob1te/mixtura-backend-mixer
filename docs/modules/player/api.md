@@ -34,6 +34,7 @@
 | `status` | `EventPlayerStatus` | |
 | `is_draft_pinned` | `bool` | |
 | `application_id` | `UUID \| None` | |
+| `custom_id` | `UUID \| None` | ID оценки игрока (рейтинг) |
 
 ### Exceptions
 | Exception | Condition |
