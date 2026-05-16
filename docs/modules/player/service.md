@@ -41,7 +41,7 @@
 4. Проверка статуса события: не CANCELLED → `BadRequestException`
 5. Поиск player по event_id + member_id → `NotFoundException`
 6. Если player.status == PLAYING и новый статус != PLAYING → `BadRequestException`
-7. `player_repo.update(player.id, EventPlayerUpdate(status=command.status))` → возврат dict
+7. `player_repo.update(player.id, EventPlayerUpdate(status=command.status, custom_id=command.custom_id))` → возврат dict с `custom_id`
 
 ### Exceptions
 | Exception | Condition |

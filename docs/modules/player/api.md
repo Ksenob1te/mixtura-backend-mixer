@@ -53,13 +53,15 @@
 | `event_id` | `UUID` | Yes | |
 | `member_id` | `UUID` | Yes | ID участника |
 | `status` | `EventPlayerStatus` | Yes | Новый статус |
+| `custom_id` | `UUID \| None` | No | ID оценки игрока (рейтинг) |
 
 ### Result: `dict`
 ```
 {
   "id": str,
   "member_id": str,
-  "status": str
+  "status": str,
+  "custom_id": str | None
 }
 ```
 

@@ -19,6 +19,7 @@ class UpdatePlayerStatusCommand(BaseModel):
     event_id: UUID
     member_id: UUID
     status: EventPlayerStatus
+    custom_id: UUID | None = None
 
 
 class RemovePlayerCommand(BaseModel):

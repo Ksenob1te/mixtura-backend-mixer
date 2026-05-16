@@ -80,13 +80,14 @@ class PlayerService:
 
         player = await self._player_repo.update(
             player.id,
-            EventPlayerUpdate(status=command.status),
+            EventPlayerUpdate(status=command.status, custom_id=command.custom_id),
         )
 
         return {
             "id": str(player.id),
             "member_id": str(player.member_id),
             "status": player.status.value,
+            "custom_id": str(player.custom_id) if player.custom_id else None,
         }
 
     async def remove(self, command: RemovePlayerCommand) -> None:
