@@ -4,14 +4,15 @@
 - **Handler file:** `src/infra/rabbit/api/draft.py`
 - **Service file:** `src/core/services/draft.py`
 - **Commands file:** `src/core/commands/draft.py`
+- **Results file:** `src/core/results/draft.py`
 
 ## Queues Summary
 
 | Queue | Command | Result | Description |
 |-------|---------|--------|-------------|
-| `event.draft.create` | `CreateDraftCommand` | `Draft` | Создание draft-сессии |
-| `event.draft.get` | `GetDraftCommand` | `Draft` | Получение draft по ID |
-| `event.draft.list` | `ListDraftsCommand` | `list[Draft]` | Список draft-сессий события |
+| `event.draft.create` | `CreateDraftCommand` | `DraftDetail` | Создание draft-сессии |
+| `event.draft.get` | `GetDraftCommand` | `DraftDetail` | Получение draft по ID |
+| `event.draft.list` | `ListDraftsCommand` | `list[DraftItem]` | Список draft-сессий события |
 
 ---
 
@@ -27,8 +28,15 @@
 | `limit` | `int \| None` | No | Макс. количество игроков |
 | `pinned_only` | `bool` | No | Только закреплённые игроки |
 
-### Result: `Draft`
-Draft с загруженными drafted_players.
+### Result: `DraftDetail`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUID` | |
+| `event_id` | `UUID` | |
+| `status` | `DraftStatus` | |
+| `drafted_players` | `list[DraftedPlayerItem]` | |
+
+**DraftedPlayerItem:** `id` (UUID), `draft_id` (UUID), `event_player_id` (UUID), `is_captain` (bool \| None)
 
 ### Exceptions
 | Exception | Condition |
@@ -49,6 +57,9 @@ Draft с загруженными drafted_players.
 | `draft_id` | `UUID` | Yes | |
 | `access_data` | `AccessDataRequest` | Yes | |
 
+### Result: `DraftDetail`
+Draft с загруженными drafted_players.
+
 ### Exceptions
 | Exception | Condition |
 |-----------|-----------|
@@ -65,6 +76,13 @@ Draft с загруженными drafted_players.
 | `event_id` | `UUID` | Yes | |
 | `access_data` | `AccessDataRequest` | Yes | |
 | `pagination` | `PaginationRequest` | No | |
+
+### Result: `list[DraftItem]`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUID` | |
+| `event_id` | `UUID` | |
+| `status` | `DraftStatus` | |
 
 ### Exceptions
 | Exception | Condition |

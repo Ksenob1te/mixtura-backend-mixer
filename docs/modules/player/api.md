@@ -4,13 +4,14 @@
 - **Handler file:** `src/infra/rabbit/api/player.py`
 - **Service file:** `src/core/services/player.py`
 - **Commands file:** `src/core/commands/player.py`
+- **Results file:** `src/core/results/player.py`
 
 ## Queues Summary
 
 | Queue | Command | Result | Description |
 |-------|---------|--------|-------------|
-| `event.player.list` | `ListPlayersCommand` | `list[dict]` | Список участников события |
-| `event.player.status.update` | `UpdatePlayerStatusCommand` | `dict` | Обновление статуса участника |
+| `event.player.list` | `ListPlayersCommand` | `list[PlayerItem]` | Список участников события |
+| `event.player.status.update` | `UpdatePlayerStatusCommand` | `PlayerUpdateResult` | Обновление статуса участника |
 | `event.player.remove` | `RemovePlayerCommand` | `StatusResponse` | Удаление участника |
 
 ---
@@ -25,16 +26,14 @@
 | `status` | `EventPlayerStatus \| None` | No | Фильтр по статусу |
 | `pagination` | `PaginationRequest` | No | |
 
-### Result: `list[dict]`
-```
-{
-  "id": str,
-  "member_id": str,
-  "status": str,
-  "is_draft_pinned": bool,
-  "application_id": str | None
-}
-```
+### Result: `list[PlayerItem]`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUID` | |
+| `member_id` | `UUID` | |
+| `status` | `EventPlayerStatus` | |
+| `is_draft_pinned` | `bool` | |
+| `application_id` | `UUID \| None` | |
 
 ### Exceptions
 | Exception | Condition |
@@ -55,15 +54,13 @@
 | `status` | `EventPlayerStatus` | Yes | Новый статус |
 | `custom_id` | `UUID \| None` | No | ID оценки игрока (рейтинг) |
 
-### Result: `dict`
-```
-{
-  "id": str,
-  "member_id": str,
-  "status": str,
-  "custom_id": str | None
-}
-```
+### Result: `PlayerUpdateResult`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUID` | |
+| `member_id` | `UUID` | |
+| `status` | `EventPlayerStatus` | |
+| `custom_id` | `UUID \| None` | |
 
 ### Exceptions
 | Exception | Condition |

@@ -4,12 +4,13 @@
 - **Handler file:** `src/infra/rabbit/api/team.py`
 - **Service file:** `src/core/services/team.py`
 - **Commands file:** `src/core/commands/team.py`
+- **Results file:** `src/core/results/team.py`
 
 ## Queues Summary
 
 | Queue | Command | Result | Description |
 |-------|---------|--------|-------------|
-| `event.team.list` | `ListTeamsCommand` | `list[Team]` | Список команд события |
+| `event.team.list` | `ListTeamsCommand` | `list[TeamItem]` | Список команд события |
 
 ---
 
@@ -22,8 +23,13 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `pagination` | `PaginationRequest` | No | |
 
-### Result: `list[Team]`
-Команда: id, event_id, draft_id, name, players (list[TeamPlayer]).
+### Result: `list[TeamItem]`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUID` | |
+| `event_id` | `UUID` | |
+| `draft_id` | `UUID \| None` | |
+| `name` | `str` | |
 
 ### Exceptions
 | Exception | Condition |

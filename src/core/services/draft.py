@@ -8,10 +8,11 @@ from src.core.interfaces.repo.event import EventRepositoryProtocol
 from src.core.interfaces.repo.match import MatchRepositoryProtocol
 from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.interfaces.repo.player import PlayerRepositoryProtocol
-from src.core.models.draft import Draft, DraftCreate
+from src.core.models.draft import DraftCreate
 from src.core.models.drafted_player import DraftedPlayerCreate
 from src.core.models.event import EventStatus, EventMatchType
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
+from src.core.results.draft import DraftDetail, DraftItem
 from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_MANAGE_PLAYERS,
     has_event_admin_permission,
@@ -36,7 +37,7 @@ class DraftService:
         self._drafted_player_repo = drafted_player_repo
         self._match_repo = match_repo
 
-    async def create(self, cmd: CreateDraftCommand) -> Draft:
+    async def create(self, cmd: CreateDraftCommand) -> DraftDetail:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,
@@ -103,9 +104,9 @@ class DraftService:
         result = await self._draft_repo.get(draft.id, load_drafted_players=True)
         if result is None:
             raise NotFoundException("Draft not found after creation")
-        return result
+        return DraftDetail.model_validate(result)
 
-    async def get(self, cmd: GetDraftCommand) -> Draft:
+    async def get(self, cmd: GetDraftCommand) -> DraftDetail:
         draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=True)
         if draft is None:
             raise NotFoundException(f"Draft {cmd.draft_id} not found")
@@ -132,9 +133,9 @@ class DraftService:
         if not is_organizer and not is_admin:
             raise ForbiddenException("Access denied")
 
-        return draft
+        return DraftDetail.model_validate(draft)
 
-    async def get_list(self, cmd: ListDraftsCommand) -> list[Draft]:
+    async def get_list(self, cmd: ListDraftsCommand) -> list[DraftItem]:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,
@@ -162,7 +163,7 @@ class DraftService:
             (cmd.pagination.page - 1) * cmd.pagination.page_size if cmd.pagination.page else 0,
             cmd.pagination.page_size,
         )
-        return list(result)
+        return [DraftItem.model_validate(d) for d in result]
 
     async def _resolve_busy_players(self, event_id: UUID, allow_multiple: bool) -> set[UUID]:
         if allow_multiple:

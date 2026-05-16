@@ -4,7 +4,7 @@
 - **Handler files:** `src/infra/rabbit/api/team_formation.py`, `src/infra/rabbit/api/balancer_result.py`
 - **Service file:** `src/core/services/team_formation.py`
 - **Commands file:** `src/core/commands/team_formation.py`
-- **Results file:** `src/core/results/team_formation.py`
+- **Results files:** `src/core/results/team_formation.py`, `src/core/results/team.py`
 
 ## Queues Summary
 
@@ -12,7 +12,7 @@
 |-------|---------|--------|-------------|
 | `event.team_formation.run` | `RunTeamFormationCommand` | `TeamFormationJob` | Запуск балансировки команд (возвращает pending) |
 | `event.team_formation.get` | `GetTeamFormationCommand` | `TeamFormationJob` | Получение результатов балансировки |
-| `event.team_formation.choose` | `ChooseTeamFormationVariantCommand` | `list[Team]` | Выбор варианта и создание команд |
+| `event.team_formation.choose` | `ChooseTeamFormationVariantCommand` | `list[TeamDetail]` | Выбор варианта и создание команд |
 | `mixer_service.balancer.result` | `dict` | — | Handler для результатов балансировки (internal) |
 
 ---
@@ -92,8 +92,16 @@
 | `draft_id` | `UUID` | Yes | |
 | `variant_id` | `UUID` | Yes | ID выбранного варианта |
 
-### Result: `list[Team]`
-Созданные команды с загруженными players.
+### Result: `list[TeamDetail]`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUID` | |
+| `event_id` | `UUID` | |
+| `draft_id` | `UUID \| None` | |
+| `name` | `str` | |
+| `players` | `list[TeamPlayerItem]` | Игроки команды |
+
+**TeamPlayerItem:** `id` (UUID), `team_id` (UUID), `member_id` (UUID), `game_role_id` (UUID), `rating` (float)
 
 ### Exceptions
 | Exception | Condition |

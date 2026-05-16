@@ -125,7 +125,7 @@ TournamentBalanceSettings(
 
 ---
 
-## Method: `choose_variant(cmd: ChooseTeamFormationVariantCommand) -> list[Team]`
+## Method: `choose_variant(cmd: ChooseTeamFormationVariantCommand) -> list[TeamDetail]`
 
 ### Purpose
 Выбор варианта балансировки и создание команд в БД.

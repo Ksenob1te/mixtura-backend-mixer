@@ -9,7 +9,7 @@
 - `TeamRepositoryProtocol` — `list_by_event`
 - `EventRepositoryProtocol` — загрузка события
 
-## Method: `get_list(cmd: ListTeamsCommand) -> list[Team]`
+## Method: `get_list(cmd: ListTeamsCommand) -> list[TeamItem]`
 
 ### Purpose
 Получение списка команд события с пагинацией.

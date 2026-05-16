@@ -4,6 +4,7 @@ from src.core.interfaces.repo.event import EventRepositoryProtocol
 from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 from src.core.models.event import EventStatus
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
+from src.core.results.player import PlayerItem, PlayerUpdateResult
 from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_MANAGE_PLAYERS,
     has_event_admin_permission,
@@ -20,7 +21,7 @@ class PlayerService:
         self._event_repo = event_repo
         self._player_repo = player_repo
 
-    async def get_list(self, command: ListPlayersCommand) -> list[dict]:
+    async def get_list(self, command: ListPlayersCommand) -> list[PlayerItem]:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -40,18 +41,9 @@ class PlayerService:
             command.event_id, offset=offset, limit=limit, status=command.status
         )
 
-        return [
-            {
-                "id": str(p.id),
-                "member_id": str(p.member_id),
-                "status": p.status.value,
-                "is_draft_pinned": p.is_draft_pinned,
-                "application_id": str(p.application_id) if p.application_id else None,
-            }
-            for p in players
-        ]
+        return [PlayerItem.model_validate(p) for p in players]
 
-    async def update_status(self, command: UpdatePlayerStatusCommand) -> dict:
+    async def update_status(self, command: UpdatePlayerStatusCommand) -> PlayerUpdateResult:
         event = await self._event_repo.get(command.event_id, load_organizers=True)
         if not event:
             raise NotFoundException("Event not found")
@@ -83,12 +75,7 @@ class PlayerService:
             EventPlayerUpdate(status=command.status, custom_id=command.custom_id),
         )
 
-        return {
-            "id": str(player.id),
-            "member_id": str(player.member_id),
-            "status": player.status.value,
-            "custom_id": str(player.custom_id) if player.custom_id else None,
-        }
+        return PlayerUpdateResult.model_validate(player)
 
     async def remove(self, command: RemovePlayerCommand) -> None:
         event = await self._event_repo.get(command.event_id, load_organizers=True)

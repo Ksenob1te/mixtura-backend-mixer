@@ -2,7 +2,7 @@ from src.core.commands.team import ListTeamsCommand
 from src.core.exceptions import ForbiddenException, NotFoundException
 from src.core.interfaces.repo.event import EventRepositoryProtocol
 from src.core.interfaces.repo.team import TeamRepositoryProtocol
-from src.core.models.team import Team
+from src.core.results.team import TeamItem
 from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_MANAGE_BRACKET,
     has_event_admin_permission,
@@ -19,7 +19,7 @@ class TeamService:
         self._team_repo = team_repo
         self._event_repo = event_repo
 
-    async def get_list(self, cmd: ListTeamsCommand) -> list[Team]:
+    async def get_list(self, cmd: ListTeamsCommand) -> list[TeamItem]:
         event = await self._event_repo.get(
             cmd.event_id,
             load_organizers=True,
@@ -47,4 +47,4 @@ class TeamService:
             (cmd.pagination.page - 1) * cmd.pagination.page_size if cmd.pagination.page else 0,
             cmd.pagination.page_size,
         )
-        return list(result)
+        return [TeamItem.model_validate(t) for t in result]

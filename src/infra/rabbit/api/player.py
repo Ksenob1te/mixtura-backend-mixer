@@ -6,6 +6,7 @@ from src.core.commands.player import (
     UpdatePlayerStatusCommand,
 )
 from src.core.response import ResponseMessage, StatusResponse
+from src.core.results.player import PlayerItem, PlayerUpdateResult
 from src.dependency import PlayerServiceDependency
 
 router = RabbitRouter()
@@ -15,7 +16,7 @@ router = RabbitRouter()
 async def list_players(
     data: ListPlayersCommand,
     service: PlayerServiceDependency,
-) -> ResponseMessage[list[dict]]:
+) -> ResponseMessage[list[PlayerItem]]:
     result = await service.get_list(data)
     return ResponseMessage(status=200, message=result)
 
@@ -24,7 +25,7 @@ async def list_players(
 async def update_player_status(
     data: UpdatePlayerStatusCommand,
     service: PlayerServiceDependency,
-) -> ResponseMessage[dict]:
+) -> ResponseMessage[PlayerUpdateResult]:
     result = await service.update_status(data)
     return ResponseMessage(status=200, message=result)
 

@@ -29,9 +29,10 @@ from src.core.models.rating import RatingPlayerRequest, RatingSettings
 from src.core.models.draft import DraftStatus, DraftUpdate
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.models.event import EventMatchType, TeamFormation as TeamFormationMethod
-from src.core.models.team import Team, TeamCreate
+from src.core.models.team import TeamCreate
 from src.core.models.team_player import TeamPlayerCreate
 from src.core.results.balancer_task import BalancerTask
+from src.core.results.team import TeamDetail
 from src.core.results.team_formation import (
     TeamFormationJob,
     TeamFormationVariant,
@@ -262,7 +263,7 @@ class TeamFormationService:
         limit = cmd.pagination.page_size
         return job.model_copy(update={"variants": job.variants[offset:offset + limit]})
 
-    async def choose_variant(self, cmd: ChooseTeamFormationVariantCommand) -> list[Team]:
+    async def choose_variant(self, cmd: ChooseTeamFormationVariantCommand) -> list[TeamDetail]:
         draft = await self._draft_repo.get(cmd.draft_id, load_drafted_players=True)
         if draft is None:
             raise NotFoundException(f"Draft {cmd.draft_id} not found")
@@ -312,7 +313,7 @@ class TeamFormationService:
         if not selected.teams:
             raise ConflictException("Selected variant has no teams")
 
-        created_teams: list[Team] = []
+        created_teams: list[TeamDetail] = []
         role_ids = {role.id for role in (event.selected_game_roles or [])}
         for vt in selected.teams:
             team = await self._team_repo.create(TeamCreate(
@@ -335,7 +336,7 @@ class TeamFormationService:
                 await self._player_repo.update(ep_id, EventPlayerUpdate(status=EventPlayerStatus.SELECTED))
             loaded = await self._team_repo.get(team.id, load_event=False, load_players=True)
             if loaded:
-                created_teams.append(loaded)
+                created_teams.append(TeamDetail.model_validate(loaded))
 
         await self._draft_repo.update(DraftUpdate(id=cmd.draft_id, status=DraftStatus.BALANCE_SELECTED))
         await self._variant_store.delete(job.job_id, draft.event_id, cmd.draft_id)

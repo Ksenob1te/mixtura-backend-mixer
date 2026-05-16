@@ -14,7 +14,7 @@
 - `DraftedPlayerRepositoryProtocol` — CRUD DraftedPlayer
 - `MatchRepositoryProtocol` — `list_active_draft_ids_by_event`
 
-## Method: `create(cmd: CreateDraftCommand) -> Draft`
+## Method: `create(cmd: CreateDraftCommand) -> DraftDetail`
 
 ### Purpose
 Создание draft-сессии: выбор доступных игроков, создание Draft и DraftedPlayer записей, обновление статуса игроков на SELECTED.
@@ -52,7 +52,7 @@
 
 ---
 
-## Method: `get(cmd: GetDraftCommand) -> Draft`
+## Method: `get(cmd: GetDraftCommand) -> DraftDetail`
 
 ### Purpose
 Получение draft-сессии по ID с drafted_players.
@@ -66,7 +66,7 @@
 
 ---
 
-## Method: `get_list(cmd: ListDraftsCommand) -> list[Draft]`
+## Method: `get_list(cmd: ListDraftsCommand) -> list[DraftItem]`
 
 ### Purpose
 Получение списка draft-сессий события с пагинацией.
