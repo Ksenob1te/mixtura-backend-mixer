@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 from uuid import UUID
 
 from src.core.models.rating import (
@@ -10,6 +10,7 @@ from src.core.models.rating import (
 )
 
 
+@runtime_checkable
 class RatingClientProtocol(Protocol):
     async def calculate_effective_ratings(
         self,

@@ -1,9 +1,10 @@
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 from uuid import UUID
 
 from src.core.results.team_formation import TeamFormationJob
 
 
+@runtime_checkable
 class TeamFormationVariantStoreProtocol(Protocol):
     async def save(self, job_id: UUID, event_id: UUID, draft_id: UUID, payload: TeamFormationJob, ttl_seconds: int) -> None: ...
 

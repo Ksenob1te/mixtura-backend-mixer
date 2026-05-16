@@ -1,9 +1,10 @@
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 from uuid import UUID
 
 from src.core.models.balancer import BalancerPlayer, MixBalanceSettings, TournamentBalanceSettings
 
 
+@runtime_checkable
 class BalancerRequestRepositoryProtocol(Protocol):
     async def request_mix_formation(
         self,
