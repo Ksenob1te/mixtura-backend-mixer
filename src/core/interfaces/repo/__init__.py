@@ -2,6 +2,8 @@ from .application import ApplicationRepositoryProtocol
 from .application_custom_field import ApplicationCustomFieldRepositoryProtocol
 from .application_integration import ApplicationIntegrationRepositoryProtocol
 from .application_time_settings import ApplicationTimeSettingsRepositoryProtocol
+from .balancer_request import BalancerRequestRepositoryProtocol
+from .balancer_task import BalancerTaskStoreProtocol
 from .bracket import BracketRepositoryProtocol
 from .bracket_placement import BracketPlacementRepositoryProtocol
 from .draft import DraftRepositoryProtocol
@@ -14,6 +16,7 @@ from .match_slot import MatchSlotRepositoryProtocol
 from .organizer import OrganizerRepositoryProtocol
 from .player import PlayerRepositoryProtocol
 from .player_role import PlayerRoleRepositoryProtocol
+from .rating import RatingClientProtocol
 from .required_integration import RequiredIntegrationRepositoryProtocol
 from .round_robin_settings import RoundRobinSettingsRepositoryProtocol
 from .selected_game_role import SelectedGameRoleRepositoryProtocol
@@ -21,4 +24,5 @@ from .stage import StageRepositoryProtocol
 from .stage_group import StageGroupRepositoryProtocol
 from .swiss_settings import SwissSettingsRepositoryProtocol
 from .team import TeamRepositoryProtocol
+from .team_formation_variant import TeamFormationVariantStoreProtocol
 from .team_player import TeamPlayerRepositoryProtocol

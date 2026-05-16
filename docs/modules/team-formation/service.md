@@ -15,12 +15,12 @@
 - `TeamPlayerRepositoryProtocol` — создание TeamPlayer
 
 ### Clients
-- `RatingClient` — `calculate_effective_ratings()` (неблокирующий RabbitMQ RPC)
-- `BalancerRequestRepository` — `request_mix_formation()`, `request_tournament_formation()` (publish, не RPC)
+- `RatingClientProtocol` — `calculate_effective_ratings()` (неблокирующий RabbitMQ RPC)
+- `BalancerRequestRepositoryProtocol` — `request_mix_formation()`, `request_tournament_formation()` (publish, не RPC)
 
 ### Stores
-- `TeamFormationVariantStore` — Redis кэш вариантов (TTL из `env.team_formation_variants_ttl_seconds`)
-- `BalancerTaskStore` — Redis хранилище контекста задач балансировки
+- `TeamFormationVariantStoreProtocol` — Redis кэш вариантов (TTL из `env.team_formation_variants_ttl_seconds`)
+- `BalancerTaskStoreProtocol` — Redis хранилище контекста задач балансировки
 
 ## Method: `run(cmd: RunTeamFormationCommand) -> TeamFormationJob`
 

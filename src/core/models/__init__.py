@@ -38,6 +38,13 @@ from .match_score import MatchScore, MatchScoreCreate, MatchScoreUpdate
 from .match_slot import MatchSlot, MatchSlotCreate, MatchSlotSourceType
 from .organizer import Organizer, OrganizerCreate
 from .player_role import PlayerRole, PlayerRoleCreate, PlayerRoleUpdate
+from .rating import (
+    MatchPlayerInput,
+    MatchTeamInput,
+    PlayerEffectiveRating,
+    RatingPlayerRequest,
+    RatingSettings,
+)
 from .required_integration import (
     RequiredIntegration,
     RequiredIntegrationCreate,
@@ -97,18 +104,23 @@ __all__ = (
     "FilledApplicationFieldCreate",
     "Match",
     "MatchCreate",
+    "MatchPlayerInput",
     "MatchScore",
     "MatchScoreCreate",
     "MatchScoreUpdate",
     "MatchSlot",
     "MatchSlotCreate",
     "MatchSlotSourceType",
+    "MatchTeamInput",
     "MatchUpdate",
     "Organizer",
     "OrganizerCreate",
+    "PlayerEffectiveRating",
     "PlayerRole",
     "PlayerRoleCreate",
     "PlayerRoleUpdate",
+    "RatingPlayerRequest",
+    "RatingSettings",
     "RequiredIntegration",
     "RequiredIntegrationCreate",
     "RequiredIntegrationUpdate",

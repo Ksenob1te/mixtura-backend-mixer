@@ -13,6 +13,10 @@ from src.core.interfaces.repo.organizer import OrganizerRepositoryProtocol
 from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 from src.core.interfaces.repo.team import TeamRepositoryProtocol
 from src.core.interfaces.repo.team_player import TeamPlayerRepositoryProtocol
+from src.core.interfaces.repo.balancer_request import BalancerRequestRepositoryProtocol
+from src.core.interfaces.repo.balancer_task import BalancerTaskStoreProtocol
+from src.core.interfaces.repo.rating import RatingClientProtocol
+from src.core.interfaces.repo.team_formation_variant import TeamFormationVariantStoreProtocol
 from src.core.models.balancer import (
     BalancerPlayer,
     BalancerPlayerRole,
@@ -21,6 +25,7 @@ from src.core.models.balancer import (
     TournamentBalanceSettings,
     TournamentRoleConfig,
 )
+from src.core.models.rating import RatingPlayerRequest, RatingSettings
 from src.core.models.draft import DraftStatus, DraftUpdate
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.models.event import EventMatchType, TeamFormation as TeamFormationMethod
@@ -57,10 +62,10 @@ class TeamFormationService:
         player_repo: PlayerRepositoryProtocol,
         team_repo: TeamRepositoryProtocol,
         team_player_repo: TeamPlayerRepositoryProtocol,
-        variant_store,
-        rating_client,
-        balancer_repo,
-        balancer_task_store,
+        variant_store: TeamFormationVariantStoreProtocol,
+        rating_client: RatingClientProtocol,
+        balancer_repo: BalancerRequestRepositoryProtocol,
+        balancer_task_store: BalancerTaskStoreProtocol,
         env,
     ):
         self._event_repo = event_repo
@@ -459,26 +464,23 @@ class TeamFormationService:
         if cmd.use_effective_rating and event.rating_set_id and snapshot:
             try:
                 rating_players = [
-                    {
-                        "member_id": str(s.member_id),
-                        "role_id": str(s.game_role_id),
-                        "open_rating": s.open_rating,
-                        "priority": s.priority,
-                    }
+                    RatingPlayerRequest(
+                        member_id=s.member_id,
+                        role_id=s.game_role_id,
+                        open_rating=s.open_rating,
+                        priority=s.priority,
+                    )
                     for s in snapshot
                 ]
+                rating_settings = RatingSettings.from_command_dict(cmd.rating_settings)
                 effective = await self._rating_client.calculate_effective_ratings(
                     draft_id=draft.id,
                     players=rating_players,
-                    settings=cmd.rating_settings or ({"rating_set_id": str(event.rating_set_id)} if event.rating_set_id else None),
+                    settings=rating_settings,
                 )
                 eff_map = {}
                 for e in effective:
-                    member_id = self._read_uuid(e, "member_id")
-                    rid = self._read_uuid(e, "role_id")
-                    effective_rating = self._read_float(e, "effective_rating")
-                    if member_id is not None and rid is not None and effective_rating is not None:
-                        eff_map[(member_id, rid)] = effective_rating
+                    eff_map[(e.member_id, e.role_id)] = e.effective_rating
                 for s in snapshot:
                     eff = eff_map.get((s.member_id, s.game_role_id))
                     if eff is not None:

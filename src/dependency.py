@@ -5,13 +5,14 @@ from faststream.rabbit import RabbitBroker
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .core.interfaces.clients.balancer_request import BalancerRequestRepositoryProtocol
-from .core.interfaces.clients.rating import RatingClientProtocol
+from .core.interfaces.repo.balancer_request import BalancerRequestRepositoryProtocol
+from .core.interfaces.repo.rating import RatingClientProtocol
 from .core.interfaces.repo import (
     ApplicationCustomFieldRepositoryProtocol,
     ApplicationIntegrationRepositoryProtocol,
     ApplicationRepositoryProtocol,
     ApplicationTimeSettingsRepositoryProtocol,
+    BalancerTaskStoreProtocol,
     BracketPlacementRepositoryProtocol,
     BracketRepositoryProtocol,
     DraftedPlayerRepositoryProtocol,
@@ -30,6 +31,7 @@ from .core.interfaces.repo import (
     StageGroupRepositoryProtocol,
     StageRepositoryProtocol,
     SwissSettingsRepositoryProtocol,
+    TeamFormationVariantStoreProtocol,
     TeamPlayerRepositoryProtocol,
     TeamRepositoryProtocol,
 )
@@ -227,13 +229,13 @@ async def get_balancer_request_repository(
 
 async def get_team_formation_variant_store(
     redis: RedisSession,
-) -> TeamFormationVariantStore:
+) -> TeamFormationVariantStoreProtocol:
     return TeamFormationVariantStore(redis)
 
 
 async def get_balancer_task_store(
     redis: RedisSession,
-) -> BalancerTaskStore:
+) -> BalancerTaskStoreProtocol:
     return BalancerTaskStore(redis)
 
 
@@ -318,8 +320,8 @@ BalancerRequestRepositoryDependency = Annotated[BalancerRequestRepositoryProtoco
 
 # -- Store type aliases --
 
-TeamFormationVariantStoreDependency = Annotated[TeamFormationVariantStore, Depends(get_team_formation_variant_store)]
-BalancerTaskStoreDependency = Annotated[BalancerTaskStore, Depends(get_balancer_task_store)]
+TeamFormationVariantStoreDependency = Annotated[TeamFormationVariantStoreProtocol, Depends(get_team_formation_variant_store)]
+BalancerTaskStoreDependency = Annotated[BalancerTaskStoreProtocol, Depends(get_balancer_task_store)]
 
 # -- Service providers --
 

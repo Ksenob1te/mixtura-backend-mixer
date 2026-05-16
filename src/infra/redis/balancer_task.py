@@ -2,10 +2,11 @@ from uuid import UUID
 
 from redis.asyncio import Redis
 
+from src.core.interfaces.repo.balancer_task import BalancerTaskStoreProtocol
 from src.core.results.balancer_task import BalancerTask
 
 
-class BalancerTaskStore:
+class BalancerTaskStore(BalancerTaskStoreProtocol):
     def __init__(self, redis: Redis):
         self._redis = redis
 

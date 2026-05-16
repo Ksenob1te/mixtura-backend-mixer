@@ -71,6 +71,7 @@
 | SwissSettings | [models/swiss-settings.md](models/swiss-settings.md) | Настройки швейцарской системы |
 | RoundRobinSettings | [models/round-robin-settings.md](models/round-robin-settings.md) | Настройки round robin |
 | BracketPlacement | [models/bracket-placement.md](models/bracket-placement.md) | Позиция команды в bracket |
+| Rating | [models/rating.md](models/rating.md) | DTO-модели для клиента расчёта рейтингов |
 
 ## Repositories
 
@@ -103,3 +104,7 @@
 | RequiredIntegrationRepository | [repositories/required_integration.md](repositories/required_integration.md) | CRUD + list by event |
 | SwissSettingsRepository | [repositories/swiss_settings.md](repositories/swiss_settings.md) | CRUD + get/delete by stage |
 | RoundRobinSettingsRepository | [repositories/round_robin_settings.md](repositories/round_robin_settings.md) | CRUD + get/delete by stage |
+| BalancerTaskStore | [repositories/balancer_task.md](repositories/balancer_task.md) | Redis: save/get/delete контекста задач балансировки |
+| TeamFormationVariantStore | [repositories/team_formation_variant.md](repositories/team_formation_variant.md) | Redis: save/get/delete вариантов с latest-pointer |
+| BalancerRequestRepository | [repositories/balancer_request.md](repositories/balancer_request.md) | RabbitMQ publish: запросы балансировки mix/tournament |
+| RatingClient | [repositories/rating.md](repositories/rating.md) | RabbitMQ RPC + publish: effective ratings, match result (typed DTOs) |

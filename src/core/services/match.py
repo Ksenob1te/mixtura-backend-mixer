@@ -13,12 +13,14 @@ from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 from src.core.interfaces.repo.stage import StageRepositoryProtocol
 from src.core.interfaces.repo.stage_group import StageGroupRepositoryProtocol
 from src.core.interfaces.repo.team import TeamRepositoryProtocol
+from src.core.interfaces.repo.rating import RatingClientProtocol
 from src.core.models.bracket import Bracket, BracketCreate
 from src.core.models.event import EventMatchType, EventStatus
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.models.match import Match, MatchCreate, MatchUpdate
 from src.core.models.match_score import MatchScoreCreate, MatchScoreUpdate
 from src.core.models.match_slot import MatchSlotCreate, MatchSlotSourceType
+from src.core.models.rating import MatchPlayerInput, MatchTeamInput, RatingSettings
 from src.core.models.stage import Stage, StageCreate, StageFormat
 from src.core.models.stage_group import StageGroup, StageGroupCreate
 from src.core.models.team import Team
@@ -45,7 +47,7 @@ class MatchService:
         team_repo: TeamRepositoryProtocol,
         draft_repo: DraftRepositoryProtocol,
         player_repo: PlayerRepositoryProtocol,
-        rating_client,
+        rating_client: RatingClientProtocol,
         env,
     ):
         self._event_repo = event_repo
@@ -197,7 +199,17 @@ class MatchService:
         )
 
         now = datetime.now(timezone.utc)
-        rating_payload = await self._build_rating_payload(event_id, cmd.match_id, now, team_ids, ranks_by_team, cmd.rating_settings)
+        teams_input, players_input, team_ranks_list, rating_settings = await self._build_rating_payload(
+            event_id, cmd.match_id, now, team_ids, ranks_by_team, cmd.rating_settings,
+        )
+        rating_payload_dict = {
+            "match_id": str(cmd.match_id),
+            "match_time": now.isoformat(),
+            "teams": [t.model_dump(mode="json") for t in teams_input],
+            "team_ranks": team_ranks_list,
+            "players": [p.model_dump(mode="json") for p in players_input],
+            "settings": rating_settings.model_dump(mode="json") if rating_settings else {},
+        }
         ordered_forfeit_team_ids = [team_id for team_id in team_ids if team_id in forfeit_team_ids]
         snapshot = {
             "match_id": str(cmd.match_id),
@@ -207,7 +219,7 @@ class MatchService:
             "loser_team_ids": [str(team_id) for team_id in loser_team_ids],
             "is_draw": is_draw,
             "forfeit_team_ids": [str(team_id) for team_id in ordered_forfeit_team_ids],
-            "rating_payload": rating_payload,
+            "rating_payload": rating_payload_dict,
             "rating_published": False,
             "completed_at": now.isoformat(),
         }
@@ -228,7 +240,14 @@ class MatchService:
 
         rating_published = False
         if self._env.rating_match_process_enabled:
-            await self._rating_client.process_match_result(**rating_payload)
+            await self._rating_client.process_match_result(
+                match_id=cmd.match_id,
+                match_time=now.isoformat(),
+                teams=teams_input,
+                team_ranks=team_ranks_list,
+                players=players_input,
+                settings=rating_settings,
+            )
             rating_published = True
             snapshot["rating_published"] = True
 
@@ -255,7 +274,7 @@ class MatchService:
             is_draw=is_draw,
             forfeit_team_ids=ordered_forfeit_team_ids,
             team_ranks=[ranks_by_team[team_id] for team_id in team_ids],
-            rating_payload=rating_payload,
+            rating_payload=rating_payload_dict,
             rating_published=rating_published,
         )
 
@@ -451,9 +470,9 @@ class MatchService:
         team_ids: list[UUID],
         ranks_by_team: dict[UUID, float],
         rating_settings: dict[str, str | int | float | bool | None] | None,
-    ) -> dict:
-        teams_payload = []
-        players_payload = []
+    ) -> tuple[list[MatchTeamInput], list[MatchPlayerInput], list[float], RatingSettings | None]:
+        teams_input: list[MatchTeamInput] = []
+        players_input: list[MatchPlayerInput] = []
         for team_id in team_ids:
             team = await self._team_repo.get(team_id, load_event=False, load_players=True)
             if team is None:
@@ -461,26 +480,20 @@ class MatchService:
             if team.event_id != event_id:
                 raise BadRequestException(f"Team {team_id} belongs to a different event")
             member_ids = [player.member_id for player in team.players]
-            teams_payload.append({
-                "team_id": str(team_id),
-                "player_ids": [str(member_id) for member_id in member_ids],
-            })
+            teams_input.append(MatchTeamInput(
+                team_id=team_id,
+                player_ids=member_ids,
+            ))
             for player in team.players:
-                players_payload.append({
-                    "member_id": str(player.member_id),
-                    "role_id": str(player.game_role_id),
-                    "open_rating": float(player.rating),
-                })
+                players_input.append(MatchPlayerInput(
+                    member_id=player.member_id,
+                    role_id=player.game_role_id,
+                    open_rating=float(player.rating),
+                ))
 
-        rating_settings = rating_settings or {}
-        return {
-            "match_id": str(match_id),
-            "match_time": match_time.isoformat(),
-            "teams": teams_payload,
-            "team_ranks": [ranks_by_team[team_id] for team_id in team_ids],
-            "players": players_payload,
-            "settings": rating_settings,
-        }
+        settings = RatingSettings.from_command_dict(rating_settings)
+        team_ranks = [ranks_by_team[team_id] for team_id in team_ids]
+        return teams_input, players_input, team_ranks, settings
 
 
 async def _build_single_match_view(

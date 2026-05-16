@@ -3,10 +3,11 @@ from uuid import UUID
 
 from redis.asyncio import Redis
 
+from src.core.interfaces.repo.team_formation_variant import TeamFormationVariantStoreProtocol
 from src.core.results.team_formation import TeamFormationJob
 
 
-class TeamFormationVariantStore:
+class TeamFormationVariantStore(TeamFormationVariantStoreProtocol):
     def __init__(self, redis: Redis):
         self._redis = redis
 

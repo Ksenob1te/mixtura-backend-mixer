@@ -2,7 +2,7 @@ from uuid import UUID
 
 from faststream.rabbit import RabbitBroker
 
-from src.core.interfaces.clients.balancer_request import BalancerRequestRepositoryProtocol
+from src.core.interfaces.repo.balancer_request import BalancerRequestRepositoryProtocol
 from src.core.models.balancer import BalancerPlayer, MixBalanceSettings, TournamentBalanceSettings
 
 
