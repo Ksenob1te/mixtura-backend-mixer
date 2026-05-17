@@ -49,6 +49,9 @@
 | `event_id` | `UUID` | Yes | |
 | `member_id` | `UUID` | Yes | ID добавляемого организатора |
 
+### Result: `OrganizerItem`
+Та же схема, что и в [`event.organizer.list`](#queue-eventorganizerlist).
+
 ### Exceptions
 | Exception | Condition |
 |-----------|-----------|
@@ -67,6 +70,9 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `event_id` | `UUID` | Yes | |
 | `member_id` | `UUID` | Yes | ID удаляемого организатора |
+
+### Result: `StatusResponse`
+→ См. [_shared/status-response.md](../../_shared/status-response.md)
 
 ### Exceptions
 | Exception | Condition |

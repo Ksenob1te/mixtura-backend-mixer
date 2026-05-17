@@ -48,6 +48,8 @@
 
 **TeamFormationVariantMetrics:** `strength_diff` (float), `role_fit` (float), `rating_spread` (float), `constraint_violations` (int), `raw_metrics` (dict)
 
+**RatingSnapshotPlayer:** `member_id` (UUID), `event_player_id` (UUID), `game_role_id` (UUID), `priority` (int), `open_rating` (float), `calculated_rating` (float), `effective_rating` (float\|None), `rating_source` (str)
+
 ### Exceptions
 | Exception | Condition |
 |-----------|-----------|
@@ -72,7 +74,7 @@
 | `pagination` | `PaginationRequest` | No | Пагинация вариантов |
 
 ### Result: `TeamFormationJob`
-Возвращает job с пагинированными variants. Может быть в статусе "pending" (ещё в процессе) или "completed".
+Та же схема, что и в [`event.team_formation.run`](#queue-eventteam_formationrun). Возвращает job с пагинированными variants. Может быть в статусе "pending" (ещё в процессе) или "completed".
 
 ### Exceptions
 | Exception | Condition |

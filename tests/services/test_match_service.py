@@ -131,7 +131,8 @@ class TestMatchService:
         updated_score_one = await match_score_repo.get(score_one.id)
         updated_score_two = await match_score_repo.get(score_two.id)
 
-        assert result.winner_team_id == team_one.id
+        assert result.match_id == match.id
+        assert result.completed_at is not None
         assert updated_match is not None
         assert updated_match.time_end is not None
         assert updated_score_one is not None and updated_score_one.score == 2

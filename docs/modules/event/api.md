@@ -38,7 +38,7 @@
 | `rating_set_id` | `UUID \| None` | No | Набор рейтингов |
 
 ### Result: `EventDetail`
-Полная карточка события со всеми связанными данными: organizers, required_integrations, selected_game_roles, time_settings, custom_fields.
+→ См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 
 ### Behavior
 - Создаёт Event, добавляет создателя как Organizer
@@ -62,6 +62,7 @@
 | `access_data` | `AccessDataRequest` | Yes | Авторизация |
 
 ### Result: `EventDetail`
+→ См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 
 ### Exceptions
 | Exception | Condition |
@@ -80,7 +81,7 @@
 | `access_data` | `AccessDataRequest` | Yes | Авторизация |
 
 ### Result: `list[EventCard]`
-Упрощённая карточка: id, name, match_type, use_application, is_public, team_size, team_formation, status, server_id.
+→ См. [_shared/event-detail.md](../../_shared/event-detail.md#eventcard)
 
 ### Behavior
 - Фильтрация: публичные события видны всем, непубличные — только организаторам и admin с `P_EVENT_ADMIN_VIEW`
@@ -109,6 +110,9 @@
 | `allow_multiple_drafts` | `bool \| None` | No | |
 | `rating_set_id` | `UUID \| None` | No | |
 
+### Result: `EventDetail`
+→ См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
+
 ### Exceptions
 | Exception | Condition |
 |-----------|-----------|
@@ -127,7 +131,8 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `event_id` | `UUID` | Yes | |
 
-### Result: Переход статуса → IDLE
+### Result: `EventDetail`
+Переход статуса → IDLE. → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 
 ### Exceptions
 | Exception | Condition |
@@ -145,7 +150,8 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `event_id` | `UUID` | Yes | |
 
-### Result: Переход статуса → REGISTRATION
+### Result: `EventDetail`
+Переход статуса → REGISTRATION. → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 
 ### Exceptions
 | Exception | Condition |
@@ -163,7 +169,8 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `event_id` | `UUID` | Yes | |
 
-### Result: Переход статуса → IDLE
+### Result: `EventDetail`
+Переход статуса → IDLE. → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 
 ### Exceptions
 | Exception | Condition |
@@ -181,7 +188,8 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `event_id` | `UUID` | Yes | |
 
-### Result: Переход статуса → CANCELLED
+### Result: `EventDetail`
+Переход статуса → CANCELLED. → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 
 ### Exceptions
 | Exception | Condition |
@@ -199,7 +207,8 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `event_id` | `UUID` | Yes | |
 
-### Result: Переход статуса → COMPLETED
+### Result: `EventDetail`
+Переход статуса → COMPLETED. → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 
 ### Exceptions
 | Exception | Condition |

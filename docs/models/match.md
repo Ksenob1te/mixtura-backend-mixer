@@ -19,7 +19,6 @@
 | `time_end` | `datetime \| None` | Фактическое время окончания (не null = матч завершён) |
 | `round_number` | `int \| None` | Номер раунда |
 | `bracket_position` | `BracketPosition \| None` | Позиция в bracket (`UPPER`/`LOWER`) |
-| `result_snapshot` | `dict \| None` | Снимок результата: scores, winner, forfeits, rating payload |
 
 ## Relations
 
@@ -42,7 +41,6 @@
 | `time_end` | `datetime \| None` | No | `None` | |
 | `round_number` | `int \| None` | No | `None` | |
 | `bracket_position` | `BracketPosition \| None` | No | `None` | |
-| `result_snapshot` | `dict \| None` | No | `None` | |
 
 ### Update — `MatchUpdate` (`src/core/models/match.py`)
 
@@ -53,7 +51,6 @@
 | `time_end` | `datetime \| None` | No | `None` | |
 | `round_number` | `int \| None` | No | `None` | |
 | `bracket_position` | `BracketPosition \| None` | No | `None` | |
-| `result_snapshot` | `dict \| None` | No | `None` | |
 
 > Поле `group_id` неизменяемо и не включено в Update-модель.
 
@@ -69,7 +66,6 @@
 | `time_end` | `datetime \| None` | |
 | `round_number` | `int \| None` | |
 | `bracket_position` | `BracketPosition \| None` | |
-| `result_snapshot` | `dict \| None` | |
 | `group` | `StageGroup \| None` | Навигационное свойство |
 | `slots` | `list[MatchSlot]` | Навигационное свойство |
 | `source_slots` | `list[MatchSlot]` | Навигационное свойство |

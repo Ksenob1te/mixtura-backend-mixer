@@ -2,7 +2,7 @@ from faststream.rabbit import RabbitRouter
 
 from src.core.commands.match import GetMatchCommand, ListMatchesCommand, RecordMatchResultCommand, SetupMatchCommand
 from src.core.response import ResponseMessage
-from src.core.results.match import RecordedMatchResult, SingleMatchView
+from src.core.results.match import SingleMatchView
 from src.dependency import MatchServiceDependency
 
 router = RabbitRouter()
@@ -21,7 +21,7 @@ async def setup_single_match(
 async def record_single_match_result(
     data: RecordMatchResultCommand,
     service: MatchServiceDependency,
-) -> ResponseMessage[RecordedMatchResult]:
+) -> ResponseMessage[SingleMatchView]:
     result = await service.record_result(data)
     return ResponseMessage(status=200, message=result)
 

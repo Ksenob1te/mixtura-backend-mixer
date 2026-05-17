@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, JSON, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.models.match import BracketPosition
@@ -25,7 +25,6 @@ class MatchModel(Base):
     time_end: Mapped[datetime | None] = mapped_column(nullable=True)
     round_number: Mapped[int | None] = mapped_column(nullable=True)
     bracket_position: Mapped[BracketPosition | None] = mapped_column(nullable=True)
-    result_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     group: Mapped["StageGroupModel"] = relationship("StageGroupModel", back_populates="matches", lazy="noload")
     slots: Mapped[list["MatchSlotModel"]] = relationship("MatchSlotModel", back_populates="match",

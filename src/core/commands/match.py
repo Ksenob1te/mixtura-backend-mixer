@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from src.core.commands.access_data import AccessDataRequest
 from src.core.commands.pagination import PaginationRequest
@@ -19,10 +19,6 @@ class RecordMatchResultCommand(BaseModel):
     access_data: AccessDataRequest
     match_id: UUID
     scores: dict[UUID, int]
-    winner_id: UUID | None = None
-    is_draw: bool = False
-    forfeit_team_ids: list[UUID] = Field(default_factory=list)
-    rating_settings: dict[str, str | int | float | bool | None] | None = None
 
 
 class GetMatchCommand(BaseModel):

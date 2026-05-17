@@ -84,7 +84,6 @@ class Env(LocalSettings):
     postgres: PostgresConfig = Field(default_factory=PostgresConfig)
     event_flow: EventFlowConfig = Field(default_factory=EventFlowConfig.load_from_ini)
     team_formation_variants_ttl_seconds: int = Field(default=3600, alias="TEAM_FORMATION_VARIANTS_TTL_SECONDS")
-    rating_match_process_enabled: bool = Field(default=False, alias="RATING_MATCH_PROCESS_ENABLED")
     rabbit_request_timeout: float = Field(default=30.0, alias="RABBIT_REQUEST_TIMEOUT")
 
     @classmethod

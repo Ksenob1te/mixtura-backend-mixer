@@ -410,12 +410,11 @@ async def get_match_service(
     team_repo: TeamRepositoryDependency,
     draft_repo: DraftRepositoryDependency,
     player_repo: PlayerRepositoryDependency,
-    rating_client: RatingClientDependency,
 ) -> MatchService:
     return MatchService(
         event_repo, bracket_repo, stage_repo, stage_group_repo,
         match_repo, match_slot_repo, match_score_repo, team_repo,
-        draft_repo, player_repo, rating_client, env,
+        draft_repo, player_repo,
     )
 
 

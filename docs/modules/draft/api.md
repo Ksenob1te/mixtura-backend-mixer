@@ -58,7 +58,7 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 
 ### Result: `DraftDetail`
-Draft с загруженными drafted_players.
+Та же схема, что и в [`event.draft.create`](#queue-eventdraftcreate).
 
 ### Exceptions
 | Exception | Condition |

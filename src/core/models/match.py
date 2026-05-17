@@ -27,7 +27,6 @@ class Match(BaseModel):
     time_end: Optional[datetime] = None
     round_number: Optional[int] = None
     bracket_position: Optional[BracketPosition] = None
-    result_snapshot: dict | None = None
     group: Optional[StageGroup] = None
     slots: list[MatchSlot] = Field(default_factory=list)
     source_slots: list[MatchSlot] = Field(default_factory=list)
@@ -42,7 +41,6 @@ class MatchCreate(BaseModel):
     time_end: datetime | None = None
     round_number: int | None = None
     bracket_position: BracketPosition | None = None
-    result_snapshot: dict | None = None
 
 
 class MatchUpdate(BaseModel):
@@ -52,4 +50,3 @@ class MatchUpdate(BaseModel):
     time_end: datetime | None = None
     round_number: int | None = None
     bracket_position: BracketPosition | None = None
-    result_snapshot: dict | None = None

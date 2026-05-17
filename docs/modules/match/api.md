@@ -11,7 +11,7 @@
 | Queue | Command | Result | Description |
 |-------|---------|--------|-------------|
 | `event.match.setup` | `SetupMatchCommand` | `SingleMatchView` | Настройка одиночного матча |
-| `event.match.result.record` | `RecordMatchResultCommand` | `RecordedMatchResult` | Запись результата матча |
+| `event.match.result.record` | `RecordMatchResultCommand` | `SingleMatchView` | Запись результата матча |
 | `event.match.get` | `GetMatchCommand` | `SingleMatchView` | Получение матча по ID |
 | `event.match.list` | `ListMatchesCommand` | `list[SingleMatchView]` | Список матчей события |
 
@@ -29,16 +29,7 @@
 | `scheduled_at` | `datetime \| None` | No | Запланированное время |
 
 ### Result: `SingleMatchView`
-| Field | Type | Description |
-|-------|------|-------------|
-| `event_id` | `UUID` | |
-| `bracket_id` | `UUID` | |
-| `stage_id` | `UUID` | |
-| `group_id` | `UUID` | |
-| `match_id` | `UUID` | |
-| `match_index` | `int` | |
-| `draft_id` | `UUID \| None` | |
-| `slots` | `list[SingleMatchSlotView]` | Слоты с командами и счётом |
+→ См. [_shared/single-match-view.md](../../_shared/single-match-view.md#singlematchview)
 
 **SingleMatchSlotView:** `slot_id` (UUID), `slot_num` (int), `team_id` (UUID), `score_id` (UUID), `score` (int)
 
@@ -65,22 +56,9 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `match_id` | `UUID` | Yes | |
 | `scores` | `dict[UUID, int]` | Yes | team_id → score (неотрицательные) |
-| `winner_id` | `UUID \| None` | No | Явный победитель |
-| `is_draw` | `bool` | No | Ничья |
-| `forfeit_team_ids` | `list[UUID]` | No | Команды, forfeit-нувшие |
-| `rating_settings` | `dict \| None` | No | Настройки для rating client |
 
-### Result: `RecordedMatchResult`
-| Field | Type | Description |
-|-------|------|-------------|
-| `match` | `SingleMatchView` | Обновлённый матч |
-| `winner_team_id` | `UUID \| None` | |
-| `loser_team_ids` | `list[UUID]` | |
-| `is_draw` | `bool` | |
-| `forfeit_team_ids` | `list[UUID]` | |
-| `team_ranks` | `list[float]` | 1.0 = победитель, 2.0 = проигравший |
-| `rating_payload` | `dict` | Данные для rating client |
-| `rating_published` | `bool` | Опубликованы ли рейтинги |
+### Result: `SingleMatchView`
+→ См. [_shared/single-match-view.md](../../_shared/single-match-view.md#singlematchview)
 
 ### Exceptions
 | Exception | Condition |
@@ -91,10 +69,6 @@
 | `BadRequestException` | Нет слотов / нет score row |
 | `ConflictException` | Результат уже записан |
 | `BadRequestException` | Negative scores / missing/extra scores |
-| `BadRequestException` | Unknown forfeit teams |
-| `BadRequestException` | Forfeit + winner_id/draw одновременно |
-| `BadRequestException` | Все команды forfeit |
-| `BadRequestException` | winner_id + draw одновременно |
 
 ---
 
@@ -105,6 +79,9 @@
 |-------|------|----------|-------------|
 | `match_id` | `UUID` | Yes | |
 | `access_data` | `AccessDataRequest` | Yes | |
+
+### Result: `SingleMatchView`
+→ См. [_shared/single-match-view.md](../../_shared/single-match-view.md#singlematchview)
 
 ### Exceptions
 | Exception | Condition |
@@ -123,6 +100,9 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `active` | `bool \| None` | No | Фильтр активных матчей |
 | `pagination` | `PaginationRequest` | No | |
+
+### Result: `list[SingleMatchView]`
+→ См. [_shared/single-match-view.md](../../_shared/single-match-view.md#singlematchview)
 
 ### Exceptions
 | Exception | Condition |

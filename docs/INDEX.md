@@ -40,6 +40,9 @@
 | PaginationRequest | [_shared/pagination.md](_shared/pagination.md) | Стандартная пагинация: page (1-indexed), page_size (default 50) |
 | Domain Exceptions | [_shared/domain-exceptions.md](_shared/domain-exceptions.md) | NotFoundException(404), ForbiddenException(403), BadRequestException(400), ConflictException(409), InternalLogicException(500) |
 | Response Wrapper | [_shared/response-wrapper.md](_shared/response-wrapper.md) | ResponseMessage\<T\>, ErrorResponse, StatusResponse |
+| StatusResponse | [_shared/status-response.md](_shared/status-response.md) | Универсальный ответ: `{"status": "ok"}`, используется organizer.remove, player.remove, health |
+| EventDetail / EventCard | [_shared/event-detail.md](_shared/event-detail.md) | Выходные схемы события: EventDetail (15 полей) + EventCard + вложенные типы |
+| SingleMatchView | [_shared/single-match-view.md](_shared/single-match-view.md) | Выходная схема матча: SingleMatchView + SingleMatchSlotView |
 | Enums | [_shared/enums.md](_shared/enums.md) | EventMatchType, EventStatus, TeamFormation, ApplicationStatus, EventPlayerStatus, DraftStatus, StageFormat, MatchSlotSourceType, BracketPosition |
 | Permission Bits | [_shared/permission-bits.md](_shared/permission-bits.md) | P_EVENT_* (bits 24-31), R_MIX_BAN, R_TOURNAMENT_BAN, helper functions |
 

@@ -63,7 +63,7 @@
 ## Method: `record_result(cmd: RecordMatchResultCommand) -> RecordedMatchResult`
 
 ### Purpose
-Запись результата матча: валидация scores, определение победителя, обновление рейтингов, запись snapshot.
+Запись результата матча: валидация scores, обновление MatchScore, установка time_end.
 
 ### Algorithm
 1. `match_repo.get_event_context(match_id)` → event_id, server_id, stage_format, bracket_id, stage_id, group_id → `NotFoundException`
@@ -75,19 +75,10 @@
 7. Проверка: time_end is None (не завершён) → `ConflictException`
 8. Проверка: есть слоты → `BadRequestException`
 9. **Валидация scores:** все слоты имеют score row, scores для всех команд, нет неизвестных, нет отрицательных → `BadRequestException`
-10. Проверка forfeit_team_ids: все известны, не все команды → `BadRequestException`
-11. **Определение результата:**
-    - Forfeit: winner = не-forfeit команда (если одна), ranks: forfeit=2.0, остальные=1.0
-    - winner_id: ranks: winner=1.0, остальные=2.0
-    - is_draw: все ranks=1.0
-    - По scores: max score = winner, если несколько = draw
-12. **Build rating payload:** сбор данных команд и игроков
-13. Обновление MatchScore для каждого слота
-14. Обновление EventPlayer.status = REGISTERED для всех игроков команд
-15. Если `env.rating_match_process_enabled`: вызов `rating_client.process_match_result()` → rating_published=True
-16. Создание result_snapshot
-17. Обновление Match: time_start, time_end=now, result_snapshot
-18. Построение `SingleMatchView` → возврат `RecordedMatchResult`
+10. Обновление MatchScore для каждого слота
+11. Обновление EventPlayer.status = REGISTERED для всех игроков команд
+12. Обновление Match: time_start, time_end=now
+13. Построение `SingleMatchView` → возврат
 
 ### Exceptions
 | Exception | Condition |
@@ -99,10 +90,6 @@
 | `BadRequestException` | Нет слотов / нет score row |
 | `ConflictException` | Результат уже записан |
 | `BadRequestException` | Negative scores / missing/extra scores |
-| `BadRequestException` | Unknown forfeit teams |
-| `BadRequestException` | Forfeit + winner_id/draw |
-| `BadRequestException` | Все команды forfeit |
-| `BadRequestException` | winner_id + draw |
 
 ---
 

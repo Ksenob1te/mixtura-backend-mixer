@@ -82,6 +82,9 @@
 | `event_id` | `UUID` | Yes | |
 | `member_id` | `UUID` | Yes | ID участника |
 
+### Result: `StatusResponse`
+→ См. [_shared/status-response.md](../../_shared/status-response.md)
+
 ### Exceptions
 | Exception | Condition |
 |-----------|-----------|

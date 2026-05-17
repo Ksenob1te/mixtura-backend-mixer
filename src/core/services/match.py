@@ -13,18 +13,16 @@ from src.core.interfaces.repo.player import PlayerRepositoryProtocol
 from src.core.interfaces.repo.stage import StageRepositoryProtocol
 from src.core.interfaces.repo.stage_group import StageGroupRepositoryProtocol
 from src.core.interfaces.repo.team import TeamRepositoryProtocol
-from src.core.interfaces.repo.rating import RatingClientProtocol
 from src.core.models.bracket import Bracket, BracketCreate
 from src.core.models.event import EventMatchType, EventStatus
 from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.models.match import Match, MatchCreate, MatchUpdate
 from src.core.models.match_score import MatchScoreCreate, MatchScoreUpdate
 from src.core.models.match_slot import MatchSlotCreate, MatchSlotSourceType
-from src.core.models.rating import MatchPlayerInput, MatchTeamInput, RatingSettings
 from src.core.models.stage import Stage, StageCreate, StageFormat
 from src.core.models.stage_group import StageGroup, StageGroupCreate
 from src.core.models.team import Team
-from src.core.results.match import RecordedMatchResult, SingleMatchSlotView, SingleMatchView
+from src.core.results.match import SingleMatchSlotView, SingleMatchView
 from src.core.interfaces.repo.access import (
     P_EVENT_ADMIN_COMPLETE,
     P_EVENT_ADMIN_MANAGE_BRACKET,
@@ -47,8 +45,6 @@ class MatchService:
         team_repo: TeamRepositoryProtocol,
         draft_repo: DraftRepositoryProtocol,
         player_repo: PlayerRepositoryProtocol,
-        rating_client: RatingClientProtocol,
-        env,
     ):
         self._event_repo = event_repo
         self._bracket_repo = bracket_repo
@@ -60,8 +56,6 @@ class MatchService:
         self._team_repo = team_repo
         self._draft_repo = draft_repo
         self._player_repo = player_repo
-        self._rating_client = rating_client
-        self._env = env
 
     async def setup(self, cmd: SetupMatchCommand) -> SingleMatchView:
         event = await self._event_repo.get(
@@ -146,7 +140,7 @@ class MatchService:
             slots=slots,
         )
 
-    async def record_result(self, cmd: RecordMatchResultCommand) -> RecordedMatchResult:
+    async def record_result(self, cmd: RecordMatchResultCommand) -> SingleMatchView:
         context = await self._match_repo.get_event_context(cmd.match_id)
         if context is None:
             raise NotFoundException(f"Match {cmd.match_id} not found")
@@ -185,44 +179,8 @@ class MatchService:
             raise BadRequestException("Match has no slots")
 
         team_ids = self._validate_scores(match, cmd.scores)
-        forfeit_team_ids = set(cmd.forfeit_team_ids)
-        unknown_forfeits = forfeit_team_ids.difference(team_ids)
-        if unknown_forfeits:
-            raise BadRequestException(f"Unknown forfeit team ids: {sorted(str(t) for t in unknown_forfeits)}")
-
-        ranks_by_team, winner_team_id, loser_team_ids, is_draw = self._resolve_result(
-            team_ids,
-            cmd.scores,
-            cmd.winner_id,
-            cmd.is_draw,
-            forfeit_team_ids,
-        )
 
         now = datetime.now(timezone.utc)
-        teams_input, players_input, team_ranks_list, rating_settings = await self._build_rating_payload(
-            event_id, cmd.match_id, now, team_ids, ranks_by_team, cmd.rating_settings,
-        )
-        rating_payload_dict = {
-            "match_id": str(cmd.match_id),
-            "match_time": now.isoformat(),
-            "teams": [t.model_dump(mode="json") for t in teams_input],
-            "team_ranks": team_ranks_list,
-            "players": [p.model_dump(mode="json") for p in players_input],
-            "settings": rating_settings.model_dump(mode="json") if rating_settings else {},
-        }
-        ordered_forfeit_team_ids = [team_id for team_id in team_ids if team_id in forfeit_team_ids]
-        snapshot = {
-            "match_id": str(cmd.match_id),
-            "event_id": str(event_id),
-            "scores": {str(team_id): cmd.scores[team_id] for team_id in team_ids},
-            "winner_team_id": str(winner_team_id) if winner_team_id else None,
-            "loser_team_ids": [str(team_id) for team_id in loser_team_ids],
-            "is_draw": is_draw,
-            "forfeit_team_ids": [str(team_id) for team_id in ordered_forfeit_team_ids],
-            "rating_payload": rating_payload_dict,
-            "rating_published": False,
-            "completed_at": now.isoformat(),
-        }
 
         for slot in match.slots:
             if slot.score is None:
@@ -238,44 +196,20 @@ class MatchService:
                 if player is not None:
                     await self._player_repo.update(player.id, EventPlayerUpdate(status=EventPlayerStatus.REGISTERED))
 
-        rating_published = False
-        if self._env.rating_match_process_enabled:
-            await self._rating_client.process_match_result(
-                match_id=cmd.match_id,
-                match_time=now.isoformat(),
-                teams=teams_input,
-                team_ranks=team_ranks_list,
-                players=players_input,
-                settings=rating_settings,
-            )
-            rating_published = True
-            snapshot["rating_published"] = True
-
         updated = await self._match_repo.update(
             cmd.match_id,
             MatchUpdate(
                 time_start=match.time_start or now,
                 time_end=now,
-                result_snapshot=snapshot,
             ),
         )
-        updated_view = await _build_single_match_view(
+        return await _build_single_match_view(
             updated,
             event_id,
             bracket_id,
             stage_id,
             group_id,
             self._team_repo,
-        )
-        return RecordedMatchResult(
-            match=updated_view,
-            winner_team_id=winner_team_id,
-            loser_team_ids=loser_team_ids,
-            is_draw=is_draw,
-            forfeit_team_ids=ordered_forfeit_team_ids,
-            team_ranks=[ranks_by_team[team_id] for team_id in team_ids],
-            rating_payload=rating_payload_dict,
-            rating_published=rating_published,
         )
 
     async def get(self, cmd: GetMatchCommand) -> SingleMatchView:
@@ -422,79 +356,6 @@ class MatchService:
             raise BadRequestException("Scores cannot be negative")
         return team_ids
 
-    def _resolve_result(
-        self,
-        team_ids: list[UUID],
-        scores: dict[UUID, int],
-        winner_id: UUID | None,
-        is_draw_requested: bool,
-        forfeit_team_ids: set[UUID],
-    ) -> tuple[dict[UUID, float], UUID | None, list[UUID], bool]:
-        if forfeit_team_ids:
-            if winner_id is not None or is_draw_requested:
-                raise BadRequestException("Forfeit result cannot also declare winner_id or draw")
-            if forfeit_team_ids == set(team_ids):
-                raise BadRequestException("All teams cannot forfeit one match")
-            winner_candidates = [team_id for team_id in team_ids if team_id not in forfeit_team_ids]
-            winner_team_id = winner_candidates[0] if len(winner_candidates) == 1 else None
-            ranks = {team_id: (2.0 if team_id in forfeit_team_ids else 1.0) for team_id in team_ids}
-            return ranks, winner_team_id, list(forfeit_team_ids), False
-
-        if winner_id is not None:
-            if is_draw_requested:
-                raise BadRequestException("Draw result cannot also declare winner_id")
-            if winner_id not in team_ids:
-                raise BadRequestException("winner_id does not belong to match teams")
-            ranks = {team_id: (1.0 if team_id == winner_id else 2.0) for team_id in team_ids}
-            return ranks, winner_id, [team_id for team_id in team_ids if team_id != winner_id], False
-
-        if is_draw_requested:
-            return {team_id: 1.0 for team_id in team_ids}, None, [], True
-
-        max_score = max(scores[team_id] for team_id in team_ids)
-        winners = [team_id for team_id in team_ids if scores[team_id] == max_score]
-        is_draw = len(winners) > 1
-        if is_draw:
-            ranks = {team_id: (1.0 if team_id in winners else 2.0) for team_id in team_ids}
-            return ranks, None, [], True
-
-        winner_team_id = winners[0]
-        ranks = {team_id: (1.0 if team_id == winner_team_id else 2.0) for team_id in team_ids}
-        return ranks, winner_team_id, [team_id for team_id in team_ids if team_id != winner_team_id], False
-
-    async def _build_rating_payload(
-        self,
-        event_id: UUID,
-        match_id: UUID,
-        match_time: datetime,
-        team_ids: list[UUID],
-        ranks_by_team: dict[UUID, float],
-        rating_settings: dict[str, str | int | float | bool | None] | None,
-    ) -> tuple[list[MatchTeamInput], list[MatchPlayerInput], list[float], RatingSettings | None]:
-        teams_input: list[MatchTeamInput] = []
-        players_input: list[MatchPlayerInput] = []
-        for team_id in team_ids:
-            team = await self._team_repo.get(team_id, load_event=False, load_players=True)
-            if team is None:
-                raise NotFoundException(f"Team {team_id} not found")
-            if team.event_id != event_id:
-                raise BadRequestException(f"Team {team_id} belongs to a different event")
-            member_ids = [player.member_id for player in team.players]
-            teams_input.append(MatchTeamInput(
-                team_id=team_id,
-                player_ids=member_ids,
-            ))
-            for player in team.players:
-                players_input.append(MatchPlayerInput(
-                    member_id=player.member_id,
-                    role_id=player.game_role_id,
-                    open_rating=float(player.rating),
-                ))
-
-        settings = RatingSettings.from_command_dict(rating_settings)
-        team_ranks = [ranks_by_team[team_id] for team_id in team_ids]
-        return teams_input, players_input, team_ranks, settings
-
 
 async def _build_single_match_view(
     match: Match,
@@ -529,6 +390,5 @@ async def _build_single_match_view(
         match_index=match.match_index or 0,
         draft_id=draft_id,
         completed_at=match.time_end,
-        result_snapshot=match.result_snapshot,
         slots=slots,
     )

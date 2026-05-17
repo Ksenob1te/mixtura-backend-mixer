@@ -27,10 +27,12 @@
 
 ### `event.settings.integration.add`
 **Command:** `AddIntegrationCommand` — `access_data`, `event_id`, `name` (str)
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException` (не организатор/`P_EVENT_ADMIN_UPDATE`), `BadRequestException` (статус не CREATED/IDLE), `ConflictException` (дубликат имени)
 
 ### `event.settings.integration.remove`
 **Command:** `RemoveIntegrationCommand` — `access_data`, `event_id`, `integration_id`
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException`, `BadRequestException` (статус не CREATED/IDLE)
 
 ---
@@ -39,14 +41,17 @@
 
 ### `event.settings.roles.add`
 **Command:** `AddGameRoleCommand` — `access_data`, `event_id`, `game_role_id`, `override_max_count` (int|None), `override_min_count` (int|None)
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException`, `BadRequestException` (статус не CREATED/IDLE), `ConflictException` (роль уже добавлена)
 
 ### `event.settings.roles.update`
 **Command:** `UpdateGameRoleCommand` — `access_data`, `event_id`, `selected_role_id`, `override_max_count` (int|None), `override_min_count` (int|None)
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException`, `BadRequestException` (статус не CREATED/IDLE)
 
 ### `event.settings.roles.remove`
 **Command:** `RemoveGameRoleCommand` — `access_data`, `event_id`, `selected_role_id`
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException`, `BadRequestException` (статус не CREATED/IDLE)
 
 ---
@@ -55,14 +60,17 @@
 
 ### `event.settings.custom_fields.add`
 **Command:** `AddCustomFieldCommand` — `access_data`, `event_id`, `name`, `is_private` (bool, default False), `is_required` (bool, default False)
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException`, `BadRequestException` (статус не CREATED/IDLE или use_application=False), `ConflictException` (дубликат имени)
 
 ### `event.settings.custom_fields.update`
 **Command:** `UpdateCustomFieldCommand` — `access_data`, `event_id`, `field_id`, `name` (str|None), `is_private` (bool|None), `is_required` (bool|None)
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException`, `BadRequestException` (статус не CREATED/IDLE или use_application=False)
 
 ### `event.settings.custom_fields.remove`
 **Command:** `RemoveCustomFieldCommand` — `access_data`, `event_id`, `field_id`
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException`, `BadRequestException` (статус не CREATED/IDLE или use_application=False)
 
 ---
@@ -71,6 +79,7 @@
 
 ### `event.settings.time_settings.update`
 **Command:** `UpdateTimeSettingsCommand` — `access_data`, `event_id`, `start_time` (datetime|None), `end_time` (datetime|None)
+**Result:** `EventDetail` → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventdetail)
 **Exceptions:** `NotFoundException`, `ForbiddenException`, `BadRequestException` (статус не CREATED/IDLE, use_application=False, start_time >= end_time)
 
 ---

@@ -106,6 +106,14 @@
 | `sort_order` | `str` | No | Default: "desc" |
 
 ### Result: `list[ApplicationListItem]`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUID` | ID заявки |
+| `member_id` | `UUID` | |
+| `status` | `ApplicationStatus` | |
+| `created_at` | `datetime` | Время подачи |
+| `roles` | `list[ApplicationRoleItem]` | Роли: `role_id` (UUID), `game_role_id` (UUID\|None), `priority` (int) |
+| `integrations` | `list[ApplicationIntegrationItem]` | Интеграции: `integration_id` (UUID), `provider_id` (UUID), `provider_name` (str) |
 
 ### Exceptions
 | Exception | Condition |
