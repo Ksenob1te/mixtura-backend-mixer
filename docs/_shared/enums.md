@@ -14,23 +14,17 @@
 ## EventStatus
 - **File:** `src/core/models/event.py`
 - **Используется:** Event, EventCard, EventDetail
+- **Подробно:** [statuses/event-status.md](../statuses/event-status.md) — полная машина состояний, триггеры, guard-проверки
 
 | Value | Description |
 |-------|-------------|
 | `CREATED` | Событие создано, настройки не завершены |
 | `REGISTRATION` | Регистрация открыта (applications принимаются) |
 | `IDLE` | Регистрация закрыта, ожидание начала |
-| `FORMATION` | Формирование команд (не используется напрямую в переходах) |
+| `FORMATION` | Формирование команд (автоматически при балансировке) |
 | `IN_PROGRESS` | Событие в процессе (матчи идут) |
-| `COMPLETED` | Событие завершено |
-| `CANCELLED` | Событие отменено |
-
-### Status Flow
-```
-CREATED → IDLE → REGISTRATION → IDLE → IN_PROGRESS → COMPLETED
-                                                  → CANCELLED
-CREATED → CANCELLED (из любого pre-registration статуса)
-```
+| `COMPLETED` | Событие завершено (терминальный) |
+| `CANCELLED` | Событие отменено (терминальный) |
 
 ## TeamFormation
 - **File:** `src/core/models/event.py`
@@ -45,17 +39,19 @@ CREATED → CANCELLED (из любого pre-registration статуса)
 ## ApplicationStatus
 - **File:** `src/core/models/application.py`
 - **Используется:** Application, ApplicationCreate, ApplicationUpdate, SubmitApplicationCommand, ReviewApplicationCommand
+- **Подробно:** [statuses/application-status.md](../statuses/application-status.md) — диаграмма переходов, триггеры, side effects
 
 | Value | Description |
 |-------|-------------|
 | `PENDING` | Заявка на рассмотрении |
 | `APPROVED` | Заявка одобрена |
-| `REJECTED` | Заявка отклонена |
+| `REJECTED` | Заявка отклонена (терминальный) |
 | `WAITLIST` | Заявка в листе ожидания |
 
 ## EventPlayerStatus
 - **File:** `src/core/models/event_player.py`
 - **Используется:** EventPlayer, EventPlayerUpdate, ListPlayersCommand, UpdatePlayerStatusCommand
+- **Подробно:** [statuses/event-player-status.md](../statuses/event-player-status.md) — жизненный цикл, PLAYING lock, обход guard в MatchService
 
 | Value | Description |
 |-------|-------------|
@@ -68,13 +64,14 @@ CREATED → CANCELLED (из любого pre-registration статуса)
 ## DraftStatus
 - **File:** `src/core/models/draft.py`
 - **Используется:** Draft, DraftCreate, DraftUpdate
+- **Подробно:** [statuses/draft-status.md](../statuses/draft-status.md) — переходы через балансировщик, асинхронный callback
 
 | Value | Description |
 |-------|-------------|
 | `OPEN` | Draft открыт, игроки могут быть выбраны |
 | `BALANCE_REQUESTED` | Запрошен балансировщик, варианты генерируются |
 | `BALANCE_SELECTED` | Вариант выбран, команды созданы |
-| `COMPLETED` | Draft завершён |
+| `COMPLETED` | Draft завершён (терминальный) |
 
 ## StageFormat
 - **File:** `src/core/models/stage.py`

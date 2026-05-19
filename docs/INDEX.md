@@ -32,6 +32,18 @@
 | [Settings](modules/settings/api.md) | [api.md](modules/settings/api.md) | [service.md](modules/settings/service.md) |
 | [Health](modules/health/api.md) | [api.md](modules/health/api.md) | — |
 
+## Status Machines
+
+> Подробные диаграммы переходов, триггеры, условия и guard-проверки для каждого статуса.
+
+| Status | File | Brief |
+|--------|------|-------|
+| Index | [statuses/INDEX.md](statuses/INDEX.md) | Обзор всех статусных машин и их взаимодействий |
+| EventStatus | [statuses/event-status.md](statuses/event-status.md) | Формальная машина состояний: 7 статусов, все переходы через `transition_to()` |
+| EventPlayerStatus | [statuses/event-player-status.md](statuses/event-player-status.md) | Жизненный цикл игрока: REGISTERED → SELECTED → PLAYING → COMPLETED |
+| ApplicationStatus | [statuses/application-status.md](statuses/application-status.md) | Заявки: PENDING → APPROVED / REJECTED / WAITLIST |
+| DraftStatus | [statuses/draft-status.md](statuses/draft-status.md) | Draft-сессия: OPEN → BALANCE_REQUESTED → BALANCE_SELECTED |
+
 ## Shared Components
 
 | Component | File | Brief |
