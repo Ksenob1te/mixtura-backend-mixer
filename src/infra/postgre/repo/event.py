@@ -1,13 +1,14 @@
 from typing import Sequence
 from uuid import UUID
 
+from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
 from src.core.exceptions import ConflictException, NotFoundException
 from src.core.interfaces.repo.event import EventRepositoryProtocol
 from src.core.models.event import Event, EventCreate, EventUpdate, EventStatus
 from .base import BaseRepository
-from ..models import EventModel
+from ..models import EventModel, EventPlayerModel, OrganizerModel
 
 
 class EventRepository(BaseRepository[EventModel, EventCreate, Event, EventUpdate], EventRepositoryProtocol):
@@ -70,6 +71,28 @@ class EventRepository(BaseRepository[EventModel, EventCreate, Event, EventUpdate
             offset, limit, None,
             EventModel.server_id == server_id,
         )
+
+    async def list_visible_to_member(self, server_id: UUID, member_id: UUID,
+                                     offset: int, limit: int) -> Sequence[Event]:
+        org_subq = select(OrganizerModel.event_id).where(OrganizerModel.member_id == member_id)
+        plr_subq = select(EventPlayerModel.event_id).where(EventPlayerModel.member_id == member_id)
+
+        stmt = (
+            select(EventModel)
+            .where(
+                EventModel.server_id == server_id,
+                or_(
+                    EventModel.is_public.is_(True),
+                    EventModel.id.in_(org_subq),
+                    EventModel.id.in_(plr_subq),
+                ),
+            )
+            .offset(offset)
+            .limit(limit)
+            .order_by(EventModel.name)
+        )
+        result = await self._session.scalars(stmt)
+        return [self._to_dto(item) for item in result.all()]
 
     async def update(self, event_id: UUID, dto: EventUpdate) -> Event:  # type: ignore[override]
         obj = await self._get_model(event_id)

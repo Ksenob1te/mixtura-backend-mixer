@@ -54,22 +54,21 @@
 ## Method: `get_list(command: ListEventsCommand) -> list[EventCard]`
 
 ### Purpose
-Получение списка событий сервера с фильтрацией по видимости.
+Получение списка событий сервера, видимых конкретному пользователю, с пагинацией.
 
 ### Algorithm
 1. Проверка `is_same_server(access, server_id)` → `ForbiddenException`
-2. Проверка `has_event_admin_permission(access, server_id, P_EVENT_ADMIN_VIEW)` → `has_admin_view`
-3. Загрузка всех событий сервера (`list_by_server`, limit 100)
-4. Фильтрация видимых:
-   - `is_public=True` → видимо всем
-   - `has_admin_view=True` → видно admin
-   - Иначе — проверка: пользователь организатор этого события
-5. Маппинг в `EventCard`
+2. Проверка `access.member_id is not None` → `ForbiddenException`
+3. Вызов `event_repo.list_visible_to_member(server_id, member_id, offset, limit)` — один SQL-запрос:
+   - `is_public=True` ИЛИ пользователь организатор ИЛИ пользователь участник (EventPlayer)
+   - `ORDER BY name`, `OFFSET/LIMIT` из пагинации
+4. Маппинг в `EventCard`
 
 ### Exceptions
 | Exception | Condition |
 |-----------|-----------|
 | `ForbiddenException` | `server_id` не совпадает |
+| `ForbiddenException` | `member_id is None` |
 
 ---
 

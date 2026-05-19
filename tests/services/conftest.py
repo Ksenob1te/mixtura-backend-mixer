@@ -220,8 +220,8 @@ def organizer_service(organizer_repo, event_repo) -> OrganizerService:
 
 
 @pytest.fixture
-def player_service(event_repo, player_repo) -> PlayerService:
-    return PlayerService(event_repo=event_repo, player_repo=player_repo)
+def player_service(event_repo, player_repo, player_role_repo) -> PlayerService:
+    return PlayerService(event_repo=event_repo, player_repo=player_repo, player_role_repo=player_role_repo)
 
 
 @pytest.fixture

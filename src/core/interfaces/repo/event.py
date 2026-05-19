@@ -16,6 +16,9 @@ class EventRepositoryProtocol(Protocol):
 
     async def list_by_server(self, server_id: UUID, offset: int, limit: int) -> Sequence[Event]: ...
 
+    async def list_visible_to_member(self, server_id: UUID, member_id: UUID,
+                                     offset: int, limit: int) -> Sequence[Event]: ...
+
     async def get_list(self, offset: int = 0, limit: int | None = 100, options: list[Any] | None = None,
                    *where_clauses: Any) -> Sequence[Event]: ...
 

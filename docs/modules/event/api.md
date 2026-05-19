@@ -78,19 +78,25 @@
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `server_id` | `UUID` | Yes | ID сервера |
-| `access_data` | `AccessDataRequest` | Yes | Авторизация |
+| `access_data` | `AccessDataRequest` | Yes | Авторизация. Требуется `member_id` |
+| `pagination` | `PaginationRequest` | No | Пагинация (page 1-indexed, page_size default 50) |
 
 ### Result: `list[EventCard]`
 → См. [_shared/event-detail.md](../../_shared/event-detail.md#eventcard)
 
 ### Behavior
-- Фильтрация: публичные события видны всем, непубличные — только организаторам и admin с `P_EVENT_ADMIN_VIEW`
-- Возвращает до 100 событий
+- `member_id` обязателен
+- Видимость определяется через SQL-запрос (без python-фильтрации):
+  - Публичные события (`is_public=True`)
+  - События, где member_id — организатор
+  - События, где member_id — участник (EventPlayer)
+- Пагинация: `offset = (page - 1) * page_size`, `limit = page_size`
 
 ### Exceptions
 | Exception | Condition |
 |-----------|-----------|
 | `ForbiddenException` | `server_id` не совпадает |
+| `ForbiddenException` | `member_id is None` |
 
 ---
 

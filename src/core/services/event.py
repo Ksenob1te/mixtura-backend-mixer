@@ -28,7 +28,6 @@ from src.core.results.event import (
 )
 from src.core.interfaces.repo.access import (
     P_EVENT_CREATE,
-    P_EVENT_ADMIN_VIEW,
     P_EVENT_ADMIN_UPDATE,
     P_EVENT_ADMIN_CANCEL,
     P_EVENT_ADMIN_COMPLETE,
@@ -140,20 +139,15 @@ class EventService:
         if not same_server:
             raise ForbiddenException("Access denied to server events")
 
-        has_admin_view = has_event_admin_permission(access, command.server_id, P_EVENT_ADMIN_VIEW)
+        if access.member_id is None:
+            raise ForbiddenException("Member identification required to list events")
 
-        events = await self._event_repo.list_by_server(command.server_id, 0, 100)
+        offset = (command.pagination.page - 1) * command.pagination.page_size if command.pagination.page else 0
+        limit = command.pagination.page_size
 
-        visible = []
-        for e in events:
-            if e.is_public:
-                visible.append(e)
-            elif has_admin_view:
-                visible.append(e)
-            else:
-                organizers = await self._organizer_repo.list_by_event(e.id)
-                if any(o.member_id == access.member_id for o in organizers):
-                    visible.append(e)
+        events = await self._event_repo.list_visible_to_member(
+            command.server_id, access.member_id, offset, limit
+        )
 
         return [
             EventCard(
@@ -167,7 +161,7 @@ class EventService:
                 status=e.status,
                 server_id=e.server_id,
             )
-            for e in visible
+            for e in events
         ]
 
     async def update(self, command: UpdateEventCommand) -> EventDetail:

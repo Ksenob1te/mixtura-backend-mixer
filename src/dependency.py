@@ -344,8 +344,9 @@ async def get_organizer_service(
 async def get_player_service(
     event_repo: EventRepositoryDependency,
     player_repo: PlayerRepositoryDependency,
+    player_role_repo: PlayerRoleRepositoryDependency,
 ) -> PlayerService:
-    return PlayerService(event_repo, player_repo)
+    return PlayerService(event_repo, player_repo, player_role_repo)
 
 
 async def get_application_service(
