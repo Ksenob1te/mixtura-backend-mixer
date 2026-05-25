@@ -87,6 +87,7 @@
 | RoundRobinSettings | [models/round-robin-settings.md](models/round-robin-settings.md) | Настройки round robin |
 | BracketPlacement | [models/bracket-placement.md](models/bracket-placement.md) | Позиция команды в bracket |
 | Rating | [models/rating.md](models/rating.md) | DTO-модели для клиента расчёта рейтингов |
+| Balancer | [models/balancer.md](models/balancer.md) | DTO-модели для запросов/ответов внешних балансеров |
 
 ## Repositories
 

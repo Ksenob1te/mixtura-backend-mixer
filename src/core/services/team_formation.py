@@ -20,9 +20,12 @@ from src.core.interfaces.repo.team_formation_variant import TeamFormationVariant
 from src.core.models.balancer import (
     BalancerPlayer,
     BalancerPlayerRole,
+    BalancerTeam,
     MixBalanceSettings,
+    MixBalancerResult,
     MixRoleConfig,
     TournamentBalanceSettings,
+    TournamentBalancerResult,
     TournamentRoleConfig,
 )
 from src.core.models.rating import RatingPlayerRequest, RatingSettings
@@ -31,13 +34,12 @@ from src.core.models.event_player import EventPlayerStatus, EventPlayerUpdate
 from src.core.models.event import EventMatchType, TeamFormation as TeamFormationMethod
 from src.core.models.team import TeamCreate
 from src.core.models.team_player import TeamPlayerCreate
-from src.core.results.balancer_task import BalancerTask
+from src.core.results.balancer_task import BalancerTask, RatingSnapshotPlayerFull
 from src.core.results.team import TeamDetail
 from src.core.results.team_formation import (
     TeamFormationJob,
     TeamFormationVariant,
     TeamFormationVariantTeam,
-    TeamFormationVariantMetrics,
     RatingSnapshotPlayer,
 )
 from src.core.interfaces.repo.access import (
@@ -109,8 +111,15 @@ class TeamFormationService:
         if not is_organizer and not is_admin:
             raise ForbiddenException("Only organizer or admin can run team formation")
 
-        if draft.status != DraftStatus.OPEN:
-            raise ConflictException(f"Draft is not OPEN (status={draft.status.value})")
+        if draft.status not in (DraftStatus.OPEN, DraftStatus.BALANCE_REQUESTED):
+            raise ConflictException(f"Cannot run team formation for draft status {draft.status.value}")
+
+        if draft.status == DraftStatus.BALANCE_REQUESTED:
+            job = await self._variant_store.get_latest_by_draft(draft.event_id, cmd.draft_id)
+            if job is not None and job.status == "pending":
+                raise ConflictException(
+                    "Team formation is still in progress. Wait for completion before re-running."
+                )
 
         if event.team_formation != TeamFormationMethod.BALANCE:
             raise BadRequestException(f"Event team formation method is {event.team_formation.value}, not BALANCE")
@@ -126,8 +135,8 @@ class TeamFormationService:
                 players_with_roles.append(player)
 
         balancer_players = self._build_balancer_players(players_with_roles, rating_snapshot)
-        event_player_by_member = {str(player.member_id): str(player.id) for player in players_with_roles}
-        role_by_member = {str(item.member_id): str(item.game_role_id) for item in rating_snapshot}
+        event_player_by_member = {player.member_id: player.id for player in players_with_roles}
+        role_by_member = {item.member_id: item.game_role_id for item in rating_snapshot}
 
         ttl = self._env.team_formation_variants_ttl_seconds
         task = BalancerTask(
@@ -147,7 +156,7 @@ class TeamFormationService:
             event_id=draft.event_id,
             status="pending",
             variants=[],
-            rating_snapshot=rating_snapshot,
+            rating_snapshot=[RatingSnapshotPlayer(**s.model_dump()) for s in rating_snapshot],
         )
         await self._variant_store.save(task_id, draft.event_id, cmd.draft_id, pending_job, ttl)
 
@@ -176,43 +185,38 @@ class TeamFormationService:
 
         return pending_job
 
-    async def complete_formation(self, task_id: UUID, raw_variants: list[dict]) -> None:
+    async def complete_formation(
+        self, task_id: UUID, result: MixBalancerResult | TournamentBalancerResult
+    ) -> None:
         task = await self._balancer_task_store.get(task_id)
         if task is None:
             return
 
-        event_player_by_member = {UUID(k): UUID(v) for k, v in task.event_player_by_member.items()}
-        role_by_member = {UUID(k): UUID(v) for k, v in task.role_by_member.items()}
+        event_player_by_member = task.event_player_by_member
+        role_by_member = task.role_by_member
 
         variants: list[TeamFormationVariant] = []
-        for i, rv in enumerate(raw_variants):
+        for i, balance in enumerate(result.balances):
             variant_id = uuid.uuid4()
-            teams_data = rv.get("teams", [])
+            quality = balance.quality
             variant_teams = []
-            for ti, td in enumerate(teams_data):
+            for ti, bt in enumerate(balance.teams):
                 member_ids, event_player_ids, game_role_ids, calculated_ratings = self._extract_team_players(
-                    td, event_player_by_member, role_by_member,
+                    bt, event_player_by_member, role_by_member,
                 )
                 variant_teams.append(TeamFormationVariantTeam(
                     team_index=ti,
-                    name=td.get("name", f"Team {ti + 1}"),
+                    name=f"Team {ti + 1}",
                     member_ids=member_ids,
                     event_player_ids=event_player_ids,
                     game_role_ids=game_role_ids,
                     calculated_ratings=calculated_ratings,
                 ))
-            metrics = TeamFormationVariantMetrics(
-                strength_diff=rv.get("quality_uniformity", rv.get("dp_fairness", 0.0)),
-                role_fit=rv.get("quality_role_fairness", 0.0),
-                rating_spread=rv.get("vq_uniformity", 0.0),
-                constraint_violations=rv.get("constraint_violations", 0),
-                raw_metrics={k: float(v) for k, v in rv.items() if isinstance(v, (int, float))},
-            )
             variants.append(TeamFormationVariant(
                 id=variant_id,
                 draft_id=task.draft_id,
                 teams=variant_teams,
-                metrics=metrics,
+                metrics=quality,
             ))
 
         job = TeamFormationJob(
@@ -221,7 +225,7 @@ class TeamFormationService:
             event_id=task.event_id,
             status="completed",
             variants=variants,
-            rating_snapshot=task.rating_snapshot,
+            rating_snapshot=[RatingSnapshotPlayer(**s.model_dump()) for s in task.rating_snapshot],
         )
 
         ttl = self._env.team_formation_variants_ttl_seconds
@@ -348,11 +352,11 @@ class TeamFormationService:
     ) -> tuple[MixBalanceSettings, list[BalancerPlayer]]:
         team_size = event.team_size or 2
         settings = MixBalanceSettings(
-            min_in_team=1,
             max_in_team=team_size,
             roles={
-                str(role.id): MixRoleConfig(
-                    count_in_team=(role.override_min_count or 1) if team_size > 1 else 0,
+                role.id: MixRoleConfig(
+                    max_in_team=(role.override_min_count or 1) if team_size > 1 else 0,
+                    min_in_team=(role.override_min_count or 1) if team_size > 1 else 0,
                 )
                 for role in (event.selected_game_roles or [])
             },
@@ -370,10 +374,8 @@ class TeamFormationService:
             team_count=team_count,
             players_in_team=event.team_size,
             roles={
-                str(role.id): TournamentRoleConfig(
+                role.id: TournamentRoleConfig(
                     count_in_team=(role.override_min_count or 1) if event.team_size > 1 else 0,
-                    min_count_in_team=role.override_min_count or 0,
-                    max_count_in_team=role.override_max_count or (event.team_size or 1),
                 )
                 for role in (event.selected_game_roles or [])
             },
@@ -383,20 +385,20 @@ class TeamFormationService:
         return settings, normalized
 
     def _build_balancer_players(
-        self, players_with_roles, rating_snapshot
+        self, players_with_roles, rating_snapshot: list[RatingSnapshotPlayerFull]
     ) -> list[BalancerPlayer]:
         rs_index = {}
         for r in rating_snapshot:
             rs_index[(r.member_id, r.game_role_id)] = r
 
-        member_roles: dict[UUID, dict[str, BalancerPlayerRole]] = {}
+        member_roles: dict[UUID, dict[UUID, BalancerPlayerRole]] = {}
         for player in players_with_roles:
             for role in (player.player_roles or []):
                 rs = rs_index.get((player.member_id, role.game_role_id))
                 calculated_rating = rs.calculated_rating if rs else 1000.0
                 if player.member_id not in member_roles:
                     member_roles[player.member_id] = {}
-                member_roles[player.member_id][str(role.game_role_id)] = BalancerPlayerRole(
+                member_roles[player.member_id][role.game_role_id] = BalancerPlayerRole(
                     priority=role.priority,
                     rating=int(round(calculated_rating)),
                 )
@@ -406,8 +408,8 @@ class TeamFormationService:
             for mid, roles in member_roles.items()
         ]
 
-    async def _build_rating_snapshot(self, draft, event, cmd: RunTeamFormationCommand) -> list[RatingSnapshotPlayer]:
-        snapshot: list[RatingSnapshotPlayer] = []
+    async def _build_rating_snapshot(self, draft, event, cmd: RunTeamFormationCommand) -> list[RatingSnapshotPlayerFull]:
+        snapshot: list[RatingSnapshotPlayerFull] = []
         selected_role_ids = {role.id for role in (event.selected_game_roles or [])}
         role_id_map = {}
         for role in (event.selected_game_roles or []):
@@ -432,7 +434,7 @@ class TeamFormationService:
                     raise BadRequestException(
                         f"Rating snapshot role {selected_role_id} is not selected by player {event_player_id}"
                     )
-                snapshot.append(RatingSnapshotPlayer(
+                snapshot.append(            RatingSnapshotPlayerFull(
                     member_id=item.member_id,
                     event_player_id=event_player_id,
                     game_role_id=selected_role_id,
@@ -452,7 +454,7 @@ class TeamFormationService:
                 if any(s.event_player_id == player.id and s.game_role_id == role.game_role_id for s in snapshot):
                     continue
                 open_rating = 1000.0
-                snapshot.append(RatingSnapshotPlayer(
+                snapshot.append(            RatingSnapshotPlayerFull(
                     member_id=player.member_id,
                     event_player_id=player.id,
                     game_role_id=role.game_role_id,
@@ -473,7 +475,7 @@ class TeamFormationService:
                     )
                     for s in snapshot
                 ]
-                rating_settings = RatingSettings.from_command_dict(cmd.rating_settings)
+                rating_settings = cmd.rating_settings
                 effective = await self._rating_client.calculate_effective_ratings(
                     draft_id=draft.id,
                     players=rating_players,
@@ -523,55 +525,21 @@ class TeamFormationService:
 
     def _extract_team_players(
         self,
-        team_data: dict,
+        team: BalancerTeam,
         event_player_by_member: dict[UUID, UUID],
         role_by_member: dict[UUID, UUID],
     ) -> tuple[list[UUID], list[UUID], list[UUID], list[float]]:
-        raw_players = team_data.get("players")
-        if isinstance(raw_players, list) and raw_players:
-            member_ids = []
-            event_player_ids = []
-            game_role_ids = []
-            calculated_ratings = []
-            for player in raw_players:
-                member_id = self._read_uuid(player, "member_id")
-                event_player_id = self._read_uuid(player, "event_player_id")
-                if event_player_id is None and member_id is not None:
-                    event_player_id = event_player_by_member.get(member_id)
-                role_id = self._read_uuid(player, "game_role_id") or self._read_uuid(player, "role_id")
-                if role_id is None and member_id is not None:
-                    role_id = role_by_member.get(member_id)
-                rating = self._read_float(player, "calculated_rating")
-                if rating is None:
-                    rating = self._read_float(player, "rating") or 0.0
-                if member_id is not None:
-                    member_ids.append(member_id)
-                if event_player_id is not None:
-                    event_player_ids.append(event_player_id)
-                if role_id is not None:
-                    game_role_ids.append(role_id)
-                calculated_ratings.append(rating)
-            return member_ids, event_player_ids, game_role_ids, calculated_ratings
-
-        raw_member_ids = team_data.get("member_ids", [])
-        member_ids = [UUID(m) if isinstance(m, str) else m for m in raw_member_ids]
-        raw_ep_ids = team_data.get("event_player_ids", [])
-        event_player_ids = [UUID(e) if isinstance(e, str) else e for e in raw_ep_ids]
-        if not event_player_ids:
-            event_player_ids = [event_player_by_member[m] for m in member_ids if m in event_player_by_member]
-        raw_role_ids = team_data.get("game_role_ids", team_data.get("role_ids", []))
-        game_role_ids = [UUID(g) if isinstance(g, str) else g for g in raw_role_ids]
-        if not game_role_ids:
-            game_role_ids = [role_by_member[m] for m in member_ids if m in role_by_member]
-        calculated_ratings = [float(v) for v in team_data.get("calculated_ratings", team_data.get("ratings", []))]
+        member_ids = []
+        event_player_ids = []
+        game_role_ids = []
+        calculated_ratings = []
+        for player in team.players:
+            member_ids.append(player.member_id)
+            ep_id = event_player_by_member.get(player.member_id)
+            if ep_id:
+                event_player_ids.append(ep_id)
+            role_id = player.game_role_id or role_by_member.get(player.member_id)
+            if role_id:
+                game_role_ids.append(role_id)
+            calculated_ratings.append(float(player.rating))
         return member_ids, event_player_ids, game_role_ids, calculated_ratings
-
-    def _read_uuid(self, data, key: str) -> UUID | None:
-        value = data.get(key) if isinstance(data, dict) else getattr(data, key, None)
-        if value is None:
-            return None
-        return UUID(str(value)) if isinstance(value, str) else value
-
-    def _read_float(self, data, key: str) -> float | None:
-        value = data.get(key) if isinstance(data, dict) else getattr(data, key, None)
-        return None if value is None else float(value)

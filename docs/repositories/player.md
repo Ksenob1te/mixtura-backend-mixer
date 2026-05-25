@@ -61,6 +61,14 @@ async def list_by_event_with_roles(event_id: UUID) -> Sequence[EventPlayer]
 
 Lists all event players for an event with their roles eagerly loaded (no pagination).
 
+### `list_by_ids`
+
+```python
+async def list_by_ids(event_id: UUID, player_ids: list[UUID]) -> Sequence[EventPlayer]
+```
+
+Returns only players matching both the given `event_id` and whose `id` is in `player_ids`. Returns empty list if `player_ids` is empty.
+
 ## Eager Loading Map
 
 | Flag | Relationship |

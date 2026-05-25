@@ -4,6 +4,7 @@ from uuid import UUID
 from faststream import Context
 from faststream.rabbit import RabbitRouter
 
+from src.core.models.balancer import BalancerResponse
 from src.dependency import TeamFormationServiceDependency
 
 router = RabbitRouter()
@@ -16,5 +17,5 @@ async def balancer_result_handler(
     service: TeamFormationServiceDependency,
 ) -> None:
     task_id = UUID(correlation_id)
-    raw_variants = body.get("variants", [])
-    await service.complete_formation(task_id, raw_variants)
+    response = BalancerResponse.model_validate(body)
+    await service.complete_formation(task_id, response.message)

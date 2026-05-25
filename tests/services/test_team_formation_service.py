@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 import pytest
 
@@ -10,6 +10,13 @@ from src.core.models.draft import DraftCreate
 from src.core.models.event import EventCreate, EventMatchType, EventStatus, TeamFormation
 from src.core.models.player_role import PlayerRoleCreate
 from src.core.models.event_player import EventPlayerCreate, EventPlayerStatus
+from src.core.models.balancer import (
+    BalancerTeam,
+    BalancerTeamPlayer,
+    MixBalance,
+    MixBalancerResult,
+    MixQualityMetrics,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -91,19 +98,35 @@ class TestTeamFormationService:
         assert result.status == "pending"
         assert len(result.variants) == 0
 
-        raw_variants = [
-            {
-                "teams": [
-                    {"name": "Team A", "member_ids": [player_one.member_id], "event_player_ids": [player_one.id], "game_role_ids": [role_one.id], "calculated_ratings": [1200.0]},
-                    {"name": "Team B", "member_ids": [player_two.member_id], "event_player_ids": [player_two.id], "game_role_ids": [role_two.id], "calculated_ratings": [1100.0]},
-                ],
-                "quality_uniformity": 0.9,
-                "quality_role_fairness": 0.8,
-                "vq_uniformity": 0.7,
-                "constraint_violations": 0,
-            }
-        ]
-        await team_formation_service.complete_formation(result.job_id, raw_variants)
+        balancer_result = MixBalancerResult(
+            draft_id=draft.id,
+            balances=[
+                MixBalance(
+                    id=uuid4(),
+                    quality=MixQualityMetrics(
+                        uniformity=0.9,
+                        fairness=0.8,
+                        role_points=12.0,
+                        role_fairness=0.7,
+                    ),
+                    teams=[
+                        BalancerTeam(
+                            id=uuid4(),
+                            players=[
+                                BalancerTeamPlayer(member_id=player_one.member_id, game_role_id=role_one.id, rating=1200),
+                            ],
+                        ),
+                        BalancerTeam(
+                            id=uuid4(),
+                            players=[
+                                BalancerTeamPlayer(member_id=player_two.member_id, game_role_id=role_two.id, rating=1100),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
+        await team_formation_service.complete_formation(result.job_id, balancer_result)
 
         completed = await variant_store.get_latest_by_draft(event.id, draft.id)
         assert completed is not None
@@ -138,19 +161,35 @@ class TestTeamFormationService:
 
         run_result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
 
-        raw_variants = [
-            {
-                "teams": [
-                    {"name": "Team A", "member_ids": [player_one.member_id], "event_player_ids": [player_one.id], "game_role_ids": [role_one.id], "calculated_ratings": [1200.0]},
-                    {"name": "Team B", "member_ids": [player_two.member_id], "event_player_ids": [player_two.id], "game_role_ids": [role_two.id], "calculated_ratings": [1100.0]},
-                ],
-                "quality_uniformity": 0.9,
-                "quality_role_fairness": 0.8,
-                "vq_uniformity": 0.7,
-                "constraint_violations": 0,
-            }
-        ]
-        await team_formation_service.complete_formation(run_result.job_id, raw_variants)
+        balancer_result = MixBalancerResult(
+            draft_id=draft.id,
+            balances=[
+                MixBalance(
+                    id=uuid4(),
+                    quality=MixQualityMetrics(
+                        uniformity=0.9,
+                        fairness=0.8,
+                        role_points=12.0,
+                        role_fairness=0.7,
+                    ),
+                    teams=[
+                        BalancerTeam(
+                            id=uuid4(),
+                            players=[
+                                BalancerTeamPlayer(member_id=player_one.member_id, game_role_id=role_one.id, rating=1200),
+                            ],
+                        ),
+                        BalancerTeam(
+                            id=uuid4(),
+                            players=[
+                                BalancerTeamPlayer(member_id=player_two.member_id, game_role_id=role_two.id, rating=1100),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
+        await team_formation_service.complete_formation(run_result.job_id, balancer_result)
 
         completed = await team_formation_service.get(GetTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
         variant_id = completed.variants[0].id
@@ -202,18 +241,29 @@ class TestTeamFormationService:
 
         run_result = await team_formation_service.run(RunTeamFormationCommand(draft_id=draft.id, access_data=AccessDataRequest(server_id=server_id, member_id=organizer_id)))
 
-        raw_variants = [
-            {
-                "teams": [
-                    {"name": "A", "member_ids": [player.member_id], "event_player_ids": [player.id], "game_role_ids": [role.id], "calculated_ratings": [1200.0]}
-                ],
-                "quality_uniformity": 0.9,
-                "quality_role_fairness": 0.8,
-                "vq_uniformity": 0.7,
-                "constraint_violations": 0,
-            }
-        ]
-        await team_formation_service.complete_formation(run_result.job_id, raw_variants)
+        balancer_result = MixBalancerResult(
+            draft_id=draft.id,
+            balances=[
+                MixBalance(
+                    id=uuid4(),
+                    quality=MixQualityMetrics(
+                        uniformity=0.9,
+                        fairness=0.8,
+                        role_points=12.0,
+                        role_fairness=0.7,
+                    ),
+                    teams=[
+                        BalancerTeam(
+                            id=uuid4(),
+                            players=[
+                                BalancerTeamPlayer(member_id=player.member_id, game_role_id=role.id, rating=1200),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
+        await team_formation_service.complete_formation(run_result.job_id, balancer_result)
 
         with pytest.raises(NotFoundException):
             await team_formation_service.choose_variant(

@@ -2,6 +2,7 @@ from faststream.rabbit import RabbitRouter
 
 from src.core.commands.player import (
     AddPlayerCommand,
+    GetBulkPlayersCommand,
     ListPlayersCommand,
     RemovePlayerCommand,
     UpdatePlayerRolesCommand,
@@ -47,6 +48,15 @@ async def update_player_roles(
     service: PlayerServiceDependency,
 ) -> ResponseMessage[PlayerRolesUpdateResult]:
     result = await service.update_roles(data)
+    return ResponseMessage(status=200, message=result)
+
+
+@router.subscriber(queue="event.player.bulk_get")
+async def bulk_get_players(
+    data: GetBulkPlayersCommand,
+    service: PlayerServiceDependency,
+) -> ResponseMessage[list[PlayerItem]]:
+    result = await service.get_bulk(data)
     return ResponseMessage(status=200, message=result)
 
 

@@ -19,7 +19,7 @@ async def request_mix_formation(task_id: UUID, draft_id: UUID, players: list[Bal
 - `task_id` — ID задачи, используется как correlation_id
 - `draft_id` — ID драфта
 - `players` — список игроков с ролями, рейтингами, приоритетами
-- `settings` — настройки балансировки (min/max игроков в команде, конфигурация ролей)
+- `settings` — настройки балансировки (MixBalanceSettings / TournamentBalanceSettings)
 
 ### `request_tournament_formation`
 

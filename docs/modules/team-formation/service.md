@@ -2,7 +2,7 @@
 
 ## Overview
 - **File:** `src/core/services/team_formation.py`
-- **Private helpers:** `_get_first_role(event)`, `_build_rating_snapshot()`, `_build_balancer_players()`, `_build_mix_balancer_request()`, `_build_tournament_balancer_request()`, `_normalize_priorities()`, `_extract_team_players()`, `_read_uuid()`, `_read_float()`
+- **Private helpers:** `_get_first_role(event)`, `_build_rating_snapshot()`, `_build_balancer_players()`, `_build_mix_balancer_request()`, `_build_tournament_balancer_request()`, `_resolve_event_player_id()`, `_normalize_priorities()`, `_normalize_priorities_for_mix()`, `_normalize_priorities_for_tournament()`, `_extract_team_players()`
 
 ## Dependencies
 
@@ -32,7 +32,8 @@
 2. Загрузка event с organizers, game_roles, teams → `NotFoundException`
 3. Проверка `is_same_server` → `ForbiddenException`
 4. Проверка: организатор ИЛИ `P_EVENT_ADMIN_MANAGE_BRACKET` → `ForbiddenException`
-5. Проверка draft.status == OPEN → `ConflictException`
+5. Проверка draft.status in (OPEN, BALANCE_REQUESTED) → `ConflictException`
+   - Если BALANCE_REQUESTED: проверка что job не pending → `ConflictException` ("Team formation is still in progress...")
 6. Проверка event.team_formation == BALANCE → `BadRequestException`
 7. **Build rating snapshot:**
    - Если передан `cmd.rating_snapshot`: валидация ролей и игроков → `BadRequestException`
@@ -54,10 +55,10 @@
 **Mix:**
 ```python
 MixBalanceSettings(
-    min_in_team: int,
     max_in_team: int,
-    roles: dict[str, MixRoleConfig]  # role_id -> {count_in_team: int}
+    roles: dict[UUID, MixRoleConfig]  # role_id -> {max_in_team, min_in_team}
 )
+# MixRoleConfig.max_in_team == MixRoleConfig.min_in_team (фиксированный слот роли в команде)
 ```
 
 **Tournament:**
@@ -65,8 +66,8 @@ MixBalanceSettings(
 TournamentBalanceSettings(
     team_count: int,
     players_in_team: int,
-    roles: dict[str, TournamentRoleConfig],  # role_id -> {count_in_team, min_count_in_team, max_count_in_team}
-    priority: dict[str, int]
+    roles: dict[UUID, TournamentRoleConfig],  # role_id -> {count_in_team: int}
+    priority: dict[str, int]                # {"max_priority": int}
 )
 ```
 
@@ -76,7 +77,8 @@ TournamentBalanceSettings(
 | `NotFoundException` | Draft/Event не найден |
 | `ForbiddenException` | `server_id` не совпадает |
 | `ForbiddenException` | Не организатор и нет `P_EVENT_ADMIN_MANAGE_BRACKET` |
-| `ConflictException` | Draft не OPEN |
+| `ConflictException` | Draft статус не OPEN и не BALANCE_REQUESTED |
+| `ConflictException` | Job ещё в процессе (pending) при re-run |
 | `BadRequestException` | team_formation не BALANCE |
 | `BadRequestException` | Unknown game role в rating_snapshot |
 | `BadRequestException` | Игрок из snapshot не в draft |
@@ -86,18 +88,20 @@ TournamentBalanceSettings(
 
 ---
 
-## Method: `complete_formation(task_id: UUID, raw_variants: list[dict]) -> None`
+## Method: `complete_formation(task_id: UUID, result: MixBalancerResult | TournamentBalancerResult) -> None`
 
 ### Purpose
-Вызывается handler'ом при получении результата балансировки. Читает контекст задачи из Redis, строит варианты, сохраняет завершённый `TeamFormationJob`.
+Вызывается handler'ом при получении результата балансировки. Разбирает `BalancerResponse`, читает контекст задачи из Redis, строит варианты, сохраняет завершённый `TeamFormationJob`.
 
 ### Algorithm
 1. Получение `BalancerTask` из `BalancerTaskStore` по `task_id` → выход если нет
-2. Распаковка `event_player_by_member`, `role_by_member` (str→UUID)
-3. Построение `TeamFormationVariant` из `raw_variants` (логика `_extract_team_players`)
-4. Создание `TeamFormationJob(status="completed")`
-5. Сохранение в `TeamFormationVariantStore`
-6. Удаление `BalancerTask` из `BalancerTaskStore`
+2. Итерация по `result.balances`:
+   - Извлечение команд через `BalancerTeam.players` → `BalancerTeamPlayer` (member_id, game_role_id, rating)
+   - `event_player_id` восстанавливается из `event_player_by_member` по `member_id`
+   - Построение `TeamFormationVariant` с `metrics=balance.quality` (оригинальные `MixQualityMetrics` или `TournamentQualityMetrics`)
+3. Создание `TeamFormationJob(status="completed")`
+4. Сохранение в `TeamFormationVariantStore`
+5. Удаление `BalancerTask` из `BalancerTaskStore`
 
 ---
 

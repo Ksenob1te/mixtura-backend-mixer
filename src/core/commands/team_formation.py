@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from src.core.commands.access_data import AccessDataRequest
 from src.core.commands.pagination import PaginationRequest
+from src.core.models.rating import RatingSettings
 
 
 class RatingSnapshotInput(BaseModel):
@@ -19,7 +20,7 @@ class RunTeamFormationCommand(BaseModel):
     draft_id: UUID
     use_effective_rating: bool = False
     rating_snapshot: list[RatingSnapshotInput] = Field(default_factory=list)
-    rating_settings: dict[str, str | int | float | bool | None] | None = None
+    rating_settings: RatingSettings | None = None
     team_count: int | None = None
 
 

@@ -19,34 +19,36 @@
 ```
   ┌─────────────┐
   │             │
-  │    OPEN     │◄────────────────────────────┐
-  │             │                             │
-  └──────┬──────┘                             │
-         │                                    │
-         │ formation.run()                    │
-         │ (→ BALANCE_REQUESTED)              │
-         ▼                                    │
-  ┌──────────────────────┐                    │
-  │                      │                    │
+  │    OPEN     │
+  │             │
+  └──────┬──────┘
+         │
+         │ formation.run()
+         │ (→ BALANCE_REQUESTED)
+         ▼
+  ┌──────────────────────┐
+  │                      │◄───────────────────┐
   │  BALANCE_REQUESTED   │                    │
-  │                      │                    │
-  └──────────┬───────────┘                    │
-             │                                │
-             │ formation.choose_variant()     │
-             │ (→ BALANCE_SELECTED)           │
-             ▼                                │
-  ┌──────────────────────┐                    │
-  │                      │                    │
-  │  BALANCE_SELECTED    │                    │
-  │                      │                    │
-  └──────────────────────┘                    │
-                                              │
-  ┌──────────────────────┐                    │
-  │                      │                    │
-  │      COMPLETED       │ (ручной переход    │
-  │      (terminal)      │  вне documented    │
-  │                      │  flow)             │
-  └──────────────────────┘                    │
+  │                      │────────────────────┘
+  └──────────┬───────────┘  formation.run()
+             │               (re-run when job
+             │                completed/expired)
+             │
+             │ formation.choose_variant()
+             │ (→ BALANCE_SELECTED)
+             ▼
+  ┌──────────────────────┐
+  │                      │
+  │  BALANCE_SELECTED    │
+  │                      │
+  └──────────────────────┘
+
+  ┌──────────────────────┐
+  │                      │
+  │      COMPLETED       │ (ручной переход
+  │      (terminal)      │  вне documented
+  │                      │  flow)
+  └──────────────────────┘
 ```
 
 ## Transition Triggers
@@ -66,10 +68,11 @@ Default status from `DraftCreate` model.
 - Creates `DraftedPlayer` records
 - Updates each drafted player's status to `EventPlayerStatus.SELECTED`
 
-### 2. `OPEN` → `BALANCE_REQUESTED` — `TeamFormationService.run()` (`team_formation.py:175`)
+### 2. `OPEN` / `BALANCE_REQUESTED` → `BALANCE_REQUESTED` — `TeamFormationService.run()` (`team_formation.py:175`)
 
 **Guards:**
-- Draft must be in `DraftStatus.OPEN` (line 112-113)
+- Draft must be in `DraftStatus.OPEN` or `DraftStatus.BALANCE_REQUESTED`
+- If `BALANCE_REQUESTED`: cached job must NOT be `"pending"` (must be `"completed"`, expired, or not found)
 - Event `team_formation` must be `TeamFormationMethod.BALANCE` (line 115-116)
 - Caller: organizer OR `P_EVENT_ADMIN_MANAGE_BRACKET`
 
@@ -112,4 +115,5 @@ This is an **internal callback** from the balancer response handler, not trigger
 - `DraftUpdate` может установить любое `DraftStatus` значение — нет формальной валидации переходов. Порядок гарантируется только сервисной логикой.
 - `COMPLETED` статус не имеет документированного триггера в текущем коде (может быть ручным переходом или будущей функциональностью).
 - `BALANCE_SELECTED` и `OPEN` оба допустимы для `choose_variant()` — это позволяет выбрать вариант даже если `run()` не был вызван (если job уже в кеше).
+- `run()` можно перевызвать когда draft в `BALANCE_REQUESTED`, если job уже `completed` или истекла (TTL) — это позволяет запросить новые варианты балансировки без сброса статуса draft.
 - Статусы в Redis (`BalancerTask.status`, `TeamFormationJob.status`) не являются enum-ами, а простыми строками `"pending"` / `"completed"`.

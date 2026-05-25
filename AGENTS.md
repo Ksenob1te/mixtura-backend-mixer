@@ -66,7 +66,7 @@ Update this table whenever adding, removing, or renaming services or service met
 | `EventService` | Event lifecycle, registration state, and visibility rules | create, get, list, update, activate, open/close_registration, cancel, complete |
 | `ApplicationService` | Player applications and organizer review decisions | submit, review, get, list |
 | `OrganizerService` | Event organizer membership management | list, add, remove |
-| `PlayerService` | Event player roster and participation status | list, update_status, remove |
+| `PlayerService` | Event player roster and participation status | list, bulk_get, update_status, remove |
 | `DraftService` | Draft creation and draft lookup for events | create, get, list |
 | `TeamService` | Event team lookup | list |
 | `TeamFormationService` | Team formation runs, cached variants, and variant selection | run, get, choose_variant |

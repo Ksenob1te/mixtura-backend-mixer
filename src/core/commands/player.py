@@ -38,6 +38,12 @@ class UpdatePlayerRolesCommand(BaseModel):
     role_priorities: list[RolePriorityPayload] = Field(default_factory=list)
 
 
+class GetBulkPlayersCommand(BaseModel):
+    access_data: AccessDataRequest
+    event_id: UUID
+    player_ids: list[UUID]
+
+
 class RemovePlayerCommand(BaseModel):
     access_data: AccessDataRequest
     event_id: UUID

@@ -7,7 +7,7 @@
 
 ### Repositories
 - `EventRepositoryProtocol` — загрузка события с organizers
-- `PlayerRepositoryProtocol` — CRUD EventPlayer, `list_by_event`, `get_by_event_and_member`
+- `PlayerRepositoryProtocol` — CRUD EventPlayer, `list_by_event`, `get_by_event_and_member`, `list_by_ids`
 - `PlayerRoleRepositoryProtocol` — CRUD PlayerRole, `list_by_player`
 
 ## Method: `get_list(command: ListPlayersCommand) -> list[PlayerItem]`
@@ -20,6 +20,26 @@
 2. Проверка `is_same_server` → `ForbiddenException`
 3. Проверка: организатор ИЛИ `P_EVENT_ADMIN_MANAGE_PLAYERS` → `ForbiddenException`
 4. `player_repo.list_by_event(event_id, offset, limit, status)` → преобразование в `PlayerItem`
+
+### Exceptions
+| Exception | Condition |
+|-----------|-----------|
+| `NotFoundException` | Событие не найдено |
+| `ForbiddenException` | `server_id` не совпадает |
+| `ForbiddenException` | Не организатор и нет `P_EVENT_ADMIN_MANAGE_PLAYERS` |
+
+---
+
+## Method: `get_bulk(command: GetBulkPlayersCommand) -> list[PlayerItem]`
+
+### Purpose
+Массовое получение участников события по списку ID. Возвращает только участников, принадлежащих указанному событию.
+
+### Algorithm
+1. Загрузка event с organizers → `NotFoundException`
+2. Проверка `is_same_server` → `ForbiddenException`
+3. Проверка: организатор ИЛИ `P_EVENT_ADMIN_MANAGE_PLAYERS` → `ForbiddenException`
+4. `player_repo.list_by_ids(event_id, player_ids)` → преобразование в `list[PlayerItem]`
 
 ### Exceptions
 | Exception | Condition |

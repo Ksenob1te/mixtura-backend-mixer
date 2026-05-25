@@ -2,6 +2,7 @@ from uuid import UUID
 
 from src.core.commands.player import (
     AddPlayerCommand,
+    GetBulkPlayersCommand,
     ListPlayersCommand,
     RemovePlayerCommand,
     UpdatePlayerRolesCommand,
@@ -205,6 +206,22 @@ class PlayerService:
                 for r in (updated.player_roles if updated else [])
             ],
         )
+
+    async def get_bulk(self, command: GetBulkPlayersCommand) -> list[PlayerItem]:
+        event = await self._event_repo.get(command.event_id, load_organizers=True)
+        if not event:
+            raise NotFoundException("Event not found")
+
+        access = command.access_data
+        if not is_same_server(access, event.server_id):
+            raise ForbiddenException("Event belongs to a different server")
+        is_organizer = any(o.member_id == access.member_id for o in event.organizers)
+        has_admin = has_event_admin_permission(access, event.server_id, P_EVENT_ADMIN_MANAGE_PLAYERS)
+        if not is_organizer and not has_admin:
+            raise ForbiddenException("Only organizer or event admin can list players")
+
+        players = await self._player_repo.list_by_ids(command.event_id, command.player_ids)
+        return [PlayerItem.model_validate(p) for p in players]
 
     async def remove(self, command: RemovePlayerCommand) -> None:
         event = await self._event_repo.get(command.event_id, load_organizers=True)

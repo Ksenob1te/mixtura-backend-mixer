@@ -13,7 +13,7 @@
 | `event.team_formation.run` | `RunTeamFormationCommand` | `TeamFormationJob` | Запуск балансировки команд (возвращает pending) |
 | `event.team_formation.get` | `GetTeamFormationCommand` | `TeamFormationJob` | Получение результатов балансировки |
 | `event.team_formation.choose` | `ChooseTeamFormationVariantCommand` | `list[TeamDetail]` | Выбор варианта и создание команд |
-| `mixer_service.balancer.result` | `dict` | — | Handler для результатов балансировки (internal) |
+| `mixer_service.balancer.result` | `BalancerResponse` | — | Handler для результатов балансировки (internal) |
 
 ---
 
@@ -26,7 +26,7 @@
 | `draft_id` | `UUID` | Yes | ID draft-сессии |
 | `use_effective_rating` | `bool` | No | Использовать effective rating (default: False) |
 | `rating_snapshot` | `list[RatingSnapshotInput]` | No | Кастомный snapshot рейтингов |
-| `rating_settings` | `dict \| None` | No | Настройки для rating client |
+| `rating_settings` | `RatingSettings \| None` | No | Настройки для rating client |
 | `team_count` | `int \| None` | No | Количество команд (для tournament) |
 
 **RatingSnapshotInput:** `member_id` (UUID), `event_player_id` (UUID|None), `game_role_id` (UUID), `priority` (int, default 1), `open_rating` (float)
@@ -42,20 +42,19 @@
 | `rating_snapshot` | `list[RatingSnapshotPlayer]` | Snapshot рейтингов |
 | `error` | `str \| None` | Ошибка если была |
 
-**TeamFormationVariant:** `id` (UUID), `draft_id` (UUID), `teams` (list[TeamFormationVariantTeam]), `metrics` (TeamFormationVariantMetrics), `is_selected` (bool)
+**TeamFormationVariant:** `id` (UUID), `draft_id` (UUID), `teams` (list[TeamFormationVariantTeam]), `metrics` (MixQualityMetrics | TournamentQualityMetrics — см. [Balancer Models](#queue-mixer_servicebalancerresult-internal)), `is_selected` (bool)
 
 **TeamFormationVariantTeam:** `team_index` (int), `name` (str), `member_ids` (list[UUID]), `event_player_ids` (list[UUID]), `game_role_ids` (list[UUID]), `calculated_ratings` (list[float])
 
-**TeamFormationVariantMetrics:** `strength_diff` (float), `role_fit` (float), `rating_spread` (float), `constraint_violations` (int), `raw_metrics` (dict)
-
-**RatingSnapshotPlayer:** `member_id` (UUID), `event_player_id` (UUID), `game_role_id` (UUID), `priority` (int), `open_rating` (float), `calculated_rating` (float), `effective_rating` (float\|None), `rating_source` (str)
+**RatingSnapshotPlayer:** `member_id` (UUID), `event_player_id` (UUID), `game_role_id` (UUID), `priority` (int), `open_rating` (float), `rating_source` (str)
 
 ### Exceptions
 | Exception | Condition |
 |-----------|-----------|
 | `NotFoundException` | Draft/Event не найден |
 | `ForbiddenException` | Не организатор и нет `P_EVENT_ADMIN_MANAGE_BRACKET` |
-| `ConflictException` | Draft не в статусе OPEN |
+| `ConflictException` | Draft статус не OPEN и не BALANCE_REQUESTED |
+| `ConflictException` | Job ещё в процессе (pending) при re-run |
 | `BadRequestException` | `team_formation` не BALANCE |
 | `BadRequestException` | Unknown game role в rating_snapshot |
 | `BadRequestException` | Игрок из rating_snapshot не в draft |
@@ -123,14 +122,35 @@
 
 Обрабатывает результаты от внешних балансеров (mix_balance_service, tournament_balance_service).
 
-### Input: `dict`
-Тело ответа балансера — содержит `"variants"` (list[dict]).
+### Input: `BalancerResponse`
+```python
+BalancerResponse(
+    status: int,
+    message: MixBalancerResult | TournamentBalancerResult,
+)
+```
+
+**MixBalancerResult:** `draft_id` (UUID), `balances` (list[MixBalance]), `created_at` (datetime)
+- **MixBalance:** `id` (UUID), `quality` (MixQualityMetrics), `teams` (list[BalancerTeam])
+- **MixQualityMetrics:** `uniformity` (float), `fairness` (float), `role_points` (float), `role_fairness` (float)
+
+**TournamentBalancerResult:** `draft_id` (UUID), `balances` (list[TournamentBalance]), `created_at` (datetime)
+- **TournamentBalance:** `id` (UUID), `quality` (TournamentQualityMetrics), `teams` (list[BalancerTeam])
+- **TournamentQualityMetrics:** `dp_fairness` (float), `dp_role_fairness` (float), `vq_uniformity` (float), `role_priority_points` (float), `fitness_balance` (float), `fitness_priority` (float), `fitness_role_imbalance` (float), `fitness_team_spread` (float), `fitness_subrole` (float), `role_subrole_penalty` (float), `evaluation` (float)
+
+**BalancerTeam:** `id` (UUID), `players` (list[BalancerTeamPlayer])
+
+**BalancerTeamPlayer:** `member_id` (UUID), `game_role_id` (UUID), `rating` (int), `priority` (int, default 0)
+
+Дискриминация: `MixQualityMetrics` — `extra='forbid'`, все поля обязательные → парсится при наличии `uniformity`. `TournamentQualityMetrics` — `extra='forbid'`, все поля с дефолтами → парсится при отсутствии `uniformity`.
+
+Модели в `src/core/models/balancer.py`.
 
 ### Handler
 `balancer_result_handler(body, correlation_id, service)`:
 1. Извлекает `task_id = UUID(correlation_id)`
-2. Извлекает `raw_variants = body["variants"]`
-3. Вызывает `service.complete_formation(task_id, raw_variants)`
+2. Парсит `body` как `BalancerResponse`
+3. Вызывает `service.complete_formation(task_id, response.message)`
 
 ### Ошибки
 Ошибки логируются, но не возвращаются отправителю (fire-and-forget). Если задача не найдена (истекла), результат игнорируется.

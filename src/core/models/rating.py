@@ -15,12 +15,6 @@ class RatingSettings(BaseModel):
     sigma_init: float = Field(default=25.0, description="Initial uncertainty")
     d: float = Field(default=4.0, description="Gate function steepness")
 
-    @classmethod
-    def from_command_dict(cls, raw: dict[str, str | int | float | bool | None] | None) -> "RatingSettings | None":
-        if raw is None:
-            return None
-        return cls.model_validate({k: v for k, v in raw.items() if v is not None})
-
 
 class RatingPlayerRequest(BaseModel):
     """Input player for effective rating calculation (mirrors mixtura-ranker Player)."""

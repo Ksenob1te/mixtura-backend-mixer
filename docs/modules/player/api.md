@@ -11,6 +11,7 @@
 | Queue | Command | Result | Description |
 |-------|---------|--------|-------------|
 | `event.player.list` | `ListPlayersCommand` | `list[PlayerItem]` | Список участников события |
+| `event.player.bulk_get` | `GetBulkPlayersCommand` | `list[PlayerItem]` | Массовое получение участников по ID (в рамках события) |
 | `event.player.add` | `AddPlayerCommand` | `PlayerAddResult` | Добавление игрока организатором (без заявки) |
 | `event.player.status.update` | `UpdatePlayerStatusCommand` | `PlayerUpdateResult` | Обновление статуса участника |
 | `event.player.roles.update` | `UpdatePlayerRolesCommand` | `PlayerRolesUpdateResult` | Полная замена ролей и приоритетов игрока |
@@ -27,6 +28,32 @@
 | `access_data` | `AccessDataRequest` | Yes | |
 | `status` | `EventPlayerStatus \| None` | No | Фильтр по статусу |
 | `pagination` | `PaginationRequest` | No | |
+
+### Result: `list[PlayerItem]`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUID` | |
+| `member_id` | `UUID` | |
+| `status` | `EventPlayerStatus` | |
+| `is_draft_pinned` | `bool` | |
+| `application_id` | `UUID \| None` | |
+| `custom_id` | `UUID \| None` | ID оценки игрока (рейтинг) |
+
+### Exceptions
+| Exception | Condition |
+|-----------|-----------|
+| `NotFoundException` | Событие не найдено |
+| `ForbiddenException` | Не организатор и нет `P_EVENT_ADMIN_MANAGE_PLAYERS` |
+
+---
+## Queue: `event.player.bulk_get`
+
+### Command: `GetBulkPlayersCommand`
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `access_data` | `AccessDataRequest` | Yes | |
+| `event_id` | `UUID` | Yes | |
+| `player_ids` | `list[UUID]` | Yes | Список ID участников для получения |
 
 ### Result: `list[PlayerItem]`
 | Field | Type | Description |

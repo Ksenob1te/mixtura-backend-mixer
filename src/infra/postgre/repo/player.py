@@ -54,6 +54,15 @@ class PlayerRepository(BaseRepository[EventPlayerModel, EventPlayerCreate, Event
         result = await self._session.scalars(stmt)
         return [self._to_dto(item) for item in result.all()]
 
+    async def list_by_ids(self, event_id: UUID, player_ids: list[UUID]) -> Sequence[EventPlayer]:
+        if not player_ids:
+            return []
+        where_clauses = [
+            EventPlayerModel.event_id == event_id,
+            EventPlayerModel.id.in_(player_ids),
+        ]
+        return await self.get_list(0, None, None, *where_clauses)
+
     async def update(self, player_id: UUID, dto: EventPlayerUpdate) -> EventPlayer:  # type: ignore[override]
         obj = await self._get_model(player_id)
         if not obj:
