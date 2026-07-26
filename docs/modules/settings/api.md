@@ -1,7 +1,7 @@
 # Settings — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/settings.py`
+- **Handler file:** `src/app/rabbit/api/settings.py`
 - **Service file:** `src/core/services/settings.py`
 - **Commands file:** `src/core/commands/settings.py`
 - **Results file:** `src/core/results/event.py` (EventDetail, ApplicationFormSettingsResponse)

@@ -1,7 +1,7 @@
 # Application — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/application.py`
+- **Handler file:** `src/app/rabbit/api/application.py`
 - **Service file:** `src/core/services/application.py`
 - **Commands file:** `src/core/commands/application.py`
 - **Results file:** `src/core/results/application.py`

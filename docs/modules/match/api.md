@@ -1,7 +1,7 @@
 # Match — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/match.py`
+- **Handler file:** `src/app/rabbit/api/match.py`
 - **Service file:** `src/core/services/match.py`
 - **Commands file:** `src/core/commands/match.py`
 - **Results file:** `src/core/results/match.py`

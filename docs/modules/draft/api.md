@@ -1,7 +1,7 @@
 # Draft — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/draft.py`
+- **Handler file:** `src/app/rabbit/api/draft.py`
 - **Service file:** `src/core/services/draft.py`
 - **Commands file:** `src/core/commands/draft.py`
 - **Results file:** `src/core/results/draft.py`

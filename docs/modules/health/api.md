@@ -1,7 +1,7 @@
 # Health — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/health.py`
+- **Handler file:** `src/app/rabbit/api/health.py`
 - **Commands file:** `src/core/commands/health.py`
 
 ## Queues Summary

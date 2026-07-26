@@ -1,7 +1,7 @@
 # Event — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/event.py`
+- **Handler file:** `src/app/rabbit/api/event.py`
 - **Service file:** `src/core/services/event.py`
 - **Commands file:** `src/core/commands/event.py`
 - **Results file:** `src/core/results/event.py`

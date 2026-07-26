@@ -1,7 +1,7 @@
 # Organizer — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/organizer.py`
+- **Handler file:** `src/app/rabbit/api/organizer.py`
 - **Service file:** `src/core/services/organizer.py`
 - **Commands file:** `src/core/commands/organizer.py`
 - **Results file:** `src/core/results/organizer.py`

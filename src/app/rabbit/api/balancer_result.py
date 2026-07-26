@@ -4,7 +4,7 @@ from uuid import UUID
 from faststream import Context
 from faststream.rabbit import RabbitRouter
 
-from src.core.models.balancer import BalancerResponse
+from src.app.rabbit.models.balancer import BalancerResponse
 from src.dependency import TeamFormationServiceDependency
 
 router = RabbitRouter()

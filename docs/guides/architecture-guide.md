@@ -121,6 +121,8 @@ service/
 │   │   │   ├── repo/                  #   Repository implementations
 │   │   │   ├── engine.py              #   Async engine + session manager
 │   │   │   └── exceptions.py          #   Integrity error types
+│   │   ├── rabbit/                    # ← only if using a message broker
+│   │   │   └── rpc_client.py          #   Async RPC client (only if req/reply is needed)
 │   │   ├── redis/                     # ← only if you need caching/ephemeral stores
 │   │   │   ├── engine.py              #   Redis session manager
 │   │   │   └── *.py                   #   Stores
@@ -134,8 +136,7 @@ service/
 │   │   └── rabbit/                    # ← only if using a message broker
 │   │       ├── main.py                #   FastStream app factory
 │   │       ├── api/                   #   Message handlers
-│   │       ├── models/                #   External message payload schemas (contract)
-│   │       └── rpc_client.py          #   Async RPC client (only if req/reply is needed)
+│   │       └── models/                #   External message payload schemas (contract)
 │   ├── dependency.py                  # DI wiring, shared by app/http and app/rabbit
 │   ├── env_config.py                  # Config singleton (pydantic-settings)
 │   ├── logging_setup.py               # optional: structured logging bootstrap
@@ -151,9 +152,7 @@ service/
 │   └── services/
 ├── pyproject.toml
 ├── pytest.ini
-├── docker-compose.dev.yaml
 └── Dockerfile
-```
 
 `app/http/`, `app/rabbit/`, `infra/redis/`, `infra/postgre/` are independent — add the folders your project actually needs. `core/` stay regardless of transport.
 

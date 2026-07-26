@@ -1,7 +1,7 @@
 # Team — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/team.py`
+- **Handler file:** `src/app/rabbit/api/team.py`
 - **Service file:** `src/core/services/team.py`
 - **Commands file:** `src/core/commands/team.py`
 - **Results file:** `src/core/results/team.py`

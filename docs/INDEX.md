@@ -6,10 +6,11 @@
 >
 > | Изменение в коде | Что обновить |
 > |------------------|--------------|
-> | Новый/изменённый handler (`src/infra/rabbit/api/<feature>.py`) | `docs/modules/<feature>/api.md` — очереди, команды, результаты |
+> | Новый/изменённый handler (`src/app/rabbit/api/<feature>.py`) | `docs/modules/<feature>/api.md` — очереди, команды, результаты |
 > | Новый/изменённый метод сервиса (`src/core/services/<feature>.py`) | `docs/modules/<feature>/service.md` — алгоритм, исключения, зависимости |
 > | Новая/изменённая команда (`src/core/commands/<feature>.py`) | `docs/modules/<feature>/api.md` — схема Command |
 > | Новый/изменённый результат (`src/core/results/<feature>.py`) | `docs/modules/<feature>/api.md` — схема Result |
+> | Новая/изменённая модель app-слоя (`src/app/rabbit/models/<feature>.py`) | `docs/modules/<feature>/api.md` — внешняя схема сообщения |
 > | Новая/изменённая модель (`src/core/models/<model>.py`) | `docs/models/<model>.md` — поля, роль, связи |
 > | Изменение общих схем (AccessDataRequest, ResponseMessage, enums, permissions) | `docs/_shared/<file>.md` |
 > | Новый/изменённый репозиторий (`src/core/interfaces/repo/<feature>.py`) | `docs/repositories/<feature>.md` — методы, eager loading |

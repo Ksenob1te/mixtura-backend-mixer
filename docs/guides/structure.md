@@ -191,7 +191,7 @@ async def <method_name>(<params>) -> <return_type>
 # <Feature> — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/<feature>.py`
+- **Handler file:** `src/app/rabbit/api/<feature>.py`
 - **Service file:** `src/core/services/<feature>.py`
 - **Commands file:** `src/core/commands/<feature>.py`
 - **Results file:** `src/core/results/<feature>.py`

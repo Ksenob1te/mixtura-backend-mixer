@@ -3,7 +3,7 @@
 - **File:** `src/core/exceptions.py`
 
 ## Overview
-Все доменные исключения наследуются от `DomainException` и автоматически обрабатываются middleware в `src/infra/rabbit/main.py`. При выбросе исключения происходит автоматический rollback транзакции и возврат `ResponseMessage` с соответствующим HTTP-подобным статусом.
+Все доменные исключения наследуются от `DomainException` и автоматически обрабатываются middleware в `src/app/rabbit/main.py`. При выбросе исключения происходит автоматический rollback транзакции и возврат `ResponseMessage` с соответствующим HTTP-подобным статусом.
 
 ## Hierarchy
 

@@ -30,17 +30,18 @@ src/
     services/       # Business logic classes (all scenarios)
     interfaces/
       repo/         # Protocol interfaces + access.py (permissions)
-  infra/
-    postgre/        # SQLAlchemy ORM models + repo implementations
+  app/
     rabbit/
       main.py       # FastStream app, lifespan, broker, error middleware
       api/          # Queue handlers — inject service via Depends
+      models/       # External message schemas (wire contract)
+  infra/
+    rabbit/
+      rpc_client.py # Async RPC client (RabbitMQ request/reply)
+    postgre/        # SQLAlchemy ORM models + repo implementations
     redis/          # Redis engine + TeamFormationVariantStore
     clients/        # External: rating, mix_balancer, tournament_balancer
-    config/         # Optional state machine config (INI/YAML)
-  logging_setup.py  # Structured logging setup
-  dependency.py     # All DI wiring (repo → service → handler) — at src/ root
-```
+  config/           # Optional state machine config (INI/YAML)
 
 **Key pattern:** API handlers call `service.method(command)` directly. No usecase layer. All services in `src/core/services/` receive repository protocols in `__init__`.
 

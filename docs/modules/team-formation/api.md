@@ -1,7 +1,7 @@
 # Team Formation — Queue Contracts
 
 ## Overview
-- **Handler files:** `src/infra/rabbit/api/team_formation.py`, `src/infra/rabbit/api/balancer_result.py`
+- **Handler files:** `src/app/rabbit/api/team_formation.py`, `src/app/rabbit/api/balancer_result.py`
 - **Service file:** `src/core/services/team_formation.py`
 - **Commands file:** `src/core/commands/team_formation.py`
 - **Results files:** `src/core/results/team_formation.py`, `src/core/results/team.py`

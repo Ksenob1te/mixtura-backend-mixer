@@ -1,7 +1,7 @@
 # Player — Queue Contracts
 
 ## Overview
-- **Handler file:** `src/infra/rabbit/api/player.py`
+- **Handler file:** `src/app/rabbit/api/player.py`
 - **Service file:** `src/core/services/player.py`
 - **Commands file:** `src/core/commands/player.py`
 - **Results file:** `src/core/results/player.py`
