@@ -37,7 +37,9 @@ src/
       api/          # Queue handlers — inject service via Depends
     redis/          # Redis engine + TeamFormationVariantStore
     clients/        # External: rating, mix_balancer, tournament_balancer
-  dependency.py     # All DI wiring (repo → service → handler)
+    config/         # Optional state machine config (INI/YAML)
+  logging_setup.py  # Structured logging setup
+  dependency.py     # All DI wiring (repo → service → handler) — at src/ root
 ```
 
 **Key pattern:** API handlers call `service.method(command)` directly. No usecase layer. All services in `src/core/services/` receive repository protocols in `__init__`.
@@ -54,6 +56,7 @@ Flow: `api -|commands/results|> services -|dtos|> repos -> orm models`.
 - **External balancers:** `mix_balancer` and `tournament_balancer` clients communicate via RabbitMQ, not HTTP.
 - **Team formation variants:** Cached in Redis with TTL (default 3600s).
 - **Alembic:** DB URL comes from `env.postgres.url` in `alembic/env.py`, not from `alembic.ini`.
+- **Architecture guide:** If you encounter a reusable solution pattern or a recurring anti-pattern worth documenting, **propose it to the user** for addition to `docs/guides/architecture-guide.md`. Don't add entries unilaterally — the user decides what goes into the guide. Keep the guide — not this file — as the living record of architectural decisions and conventions.
 
 ## Services (src/core/services/)
 
@@ -77,5 +80,3 @@ Update this table whenever adding, removing, or renaming services or service met
 
 - Python 3.13+ required (`pyproject.toml`).
 - `pytest.ini` loads `.env`, sets `asyncio_mode = auto`, and uses session-scoped asyncio loops; no `@pytest.mark.asyncio` needed.
-- Tests under `tests/repo/` run against a temporary `postgres:16-alpine` container from `testcontainers` and create tables from SQLAlchemy metadata.
-- The `service/` folder under `core/` is a leftover placeholder; real code is in `services/` (plural).
